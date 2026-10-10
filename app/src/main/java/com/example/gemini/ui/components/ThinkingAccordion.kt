@@ -85,7 +85,7 @@ fun ThinkingAccordion(
             Spacer(modifier = Modifier.width(4.dp))
 
             Icon(
-                imageVector = Icons.Outlined.Memory,
+                imageVector = Icons.Outlined.Psychology,
                 contentDescription = "Thinking",
                 tint = ClaudeTerracotta.copy(alpha = 0.85f),
                 modifier = Modifier.size(15.dp)

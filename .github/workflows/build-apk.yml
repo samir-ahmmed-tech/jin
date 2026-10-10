@@ -39,6 +39,21 @@ jobs:
             keytool -genkey -v -keystore app/release.jks -alias antigem -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=JIN, OU=JIN, O=JIN, L=City, S=State, C=US"
           fi
 
+      - name: Fix AAPT PNG Format
+        run: |
+          python3 -m pip install pillow
+          python3 -c "
+          import glob
+          from PIL import Image
+          for p in glob.glob('app/src/main/res/**/*.png', recursive=True):
+              try:
+                  with Image.open(p) as img:
+                      img.convert('RGBA').save(p, 'PNG')
+                      print('Converted:', p)
+              except Exception as e:
+                  print('Error on', p, e)
+          "
+
       - name: Build Release APKs
         run: |
           chmod +x gradlew scripts/build_all_apks.sh
