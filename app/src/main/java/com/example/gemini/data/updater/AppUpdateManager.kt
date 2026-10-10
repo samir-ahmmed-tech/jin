@@ -17,7 +17,7 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 private const val TAG = "AppUpdateManager"
-private const val DEFAULT_VERSION_URL = "https://raw.githubusercontent.com/santoshkurmi/antigem/master/version.json"
+private const val DEFAULT_VERSION_URL = "https://raw.githubusercontent.com/samir-ahmmed-tech/jin/main/version.json"
 
 data class AppUpdateInfo(
     val versionCode: Int,
@@ -85,14 +85,14 @@ class AppUpdateManager(private val context: Context) {
             // Auto-generate package-specific download URL based on remote version name and flavor
             val currentPkg = context.packageName
             val flavorType = if (currentPkg == "com.termux") "termux" else "standard"
-            val downloadUrl = "https://github.com/santoshkurmi/antigem/releases/download/v$remoteVersionName/antiGem-$flavorType-v$remoteVersionName-release.apk"
+            val downloadUrl = "https://github.com/samir-ahmmed-tech/jin/releases/download/v$remoteVersionName/jin-$flavorType-v$remoteVersionName-release.apk"
 
             if (remoteVersionCode > BuildConfig.VERSION_CODE && downloadUrl.isNotBlank()) {
                 // Verify that the APK asset is actually published and downloadable on GitHub
                 val probeRequest = Request.Builder()
                     .url(downloadUrl)
                     .head()
-                    .header("User-Agent", "antiGem-Updater/${BuildConfig.VERSION_NAME}")
+                    .header("User-Agent", "JIN-Updater/${BuildConfig.VERSION_NAME}")
                     .build()
 
                 val isAvailable = try {
@@ -139,7 +139,7 @@ class AppUpdateManager(private val context: Context) {
         try {
             val request = Request.Builder()
                 .url(downloadUrl)
-                .header("User-Agent", "antiGem-Updater/${BuildConfig.VERSION_NAME}")
+                .header("User-Agent", "JIN-Updater/${BuildConfig.VERSION_NAME}")
                 .build()
 
             val response = httpClient.newCall(request).execute()
@@ -151,7 +151,7 @@ class AppUpdateManager(private val context: Context) {
             val totalBytes = body.contentLength()
 
             val targetDir = context.externalCacheDir ?: context.cacheDir
-            val targetFile = File(targetDir, "antiGem_update_${System.currentTimeMillis()}.apk")
+            val targetFile = File(targetDir, "jin_update_${System.currentTimeMillis()}.apk")
 
             body.byteStream().use { input ->
                 targetFile.outputStream().use { output ->

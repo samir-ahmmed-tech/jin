@@ -41,8 +41,12 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 enum class CategoryType {
+    ANTIGRAVITY,
+    OPENAI,
+    DEEPSEEK,
+    CLAUDE,
     GEMINI,
-    CLAUDE
+    CUSTOM
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,14 +61,24 @@ fun ModelSelectorBottomSheet(
     onSelectModel: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Group models into two groups: Claude and Gemini (with GPT-OSS and others under Gemini)
-    val claudeModels = availableModels.filter {
-        (it.family == ModelFamily.CLAUDE || it.id.contains("claude", ignoreCase = true) || it.displayName.contains("claude", ignoreCase = true)) &&
-                !it.id.contains("gpt", ignoreCase = true) && !it.displayName.contains("gpt", ignoreCase = true)
+    val allModels = remember(availableModels) {
+        val list = availableModels.toMutableList()
+        for (m in AiModel.DEFAULT_MODELS) {
+            if (list.none { it.id == m.id || it.key == m.id }) {
+                list.add(m)
+            }
+        }
+        list
     }
-    val geminiModels = availableModels.filter { it !in claudeModels }
 
-    val activeModel = availableModels.find { it.id == selectedModelId }
+    val antigravityModels = allModels.filter { it.family == ModelFamily.ANTIGRAVITY || it.id.contains("antigravity", true) }
+    val openAiModels = allModels.filter { it.family == ModelFamily.OPENAI || it.id.contains("codex", true) || it.id.contains("gpt", true) }
+    val deepseekModels = allModels.filter { it.family == ModelFamily.DEEPSEEK || it.id.contains("deepseek", true) || it.id.contains("hermes", true) }
+    val claudeModels = allModels.filter { it.family == ModelFamily.CLAUDE || (it.id.contains("claude", true) && !it.id.contains("gpt", true)) }
+    val geminiModels = allModels.filter { it.family == ModelFamily.GEMINI }
+    val customModels = allModels.filter { it.family == ModelFamily.OTHER || it.id.contains("custom", true) || it.id.contains("openrouter", true) }
+
+    val activeModel = allModels.find { it.id == selectedModelId } ?: allModels.firstOrNull()
 
     // Navigation state inside the sheet: null = category list, CategoryType = subcategory sheet
     var activeCategory by remember { mutableStateOf<CategoryType?>(null) }
@@ -116,10 +130,14 @@ fun ModelSelectorBottomSheet(
                     // Main Level: Active Model + Category Selection Tiles
                     MainCategoryListView(
                         activeModel = activeModel,
-                        availableModels = availableModels,
+                        availableModels = allModels,
+                        antigravityModelsCount = antigravityModels.size,
+                        openAiModelsCount = openAiModels.size,
+                        deepseekModelsCount = deepseekModels.size,
                         claudeModelsCount = claudeModels.size,
                         geminiModelsCount = geminiModels.size,
-                        availableModelsCount = availableModels.size,
+                        customModelsCount = customModels.size,
+                        availableModelsCount = allModels.size,
                         quotas = quotas,
                         quotaSummary = quotaSummary,
                         isRefreshing = isRefreshing,
@@ -130,8 +148,12 @@ fun ModelSelectorBottomSheet(
                 } else {
                     // Sub-Sheet: Models inside the chosen category
                     val (categoryTitle, brandColor, categoryModels) = when (currentCategory) {
+                        CategoryType.ANTIGRAVITY -> Triple("Antigravity 2.0 Engine", Color(0xFF00E5FF), antigravityModels)
+                        CategoryType.OPENAI -> Triple("OpenAI Codex & ChatGPT", Color(0xFF10A37F), openAiModels)
+                        CategoryType.DEEPSEEK -> Triple("DeepSeek Hermes & V3", Color(0xFF3B82F6), deepseekModels)
+                        CategoryType.CLAUDE -> Triple("Anthropic Claude", Color(0xFFD97706), claudeModels)
                         CategoryType.GEMINI -> Triple("Google Gemini", GeminiBlue, geminiModels)
-                        CategoryType.CLAUDE -> Triple("Anthropic Claude", ClaudeTerracotta, claudeModels)
+                        CategoryType.CUSTOM -> Triple("Custom & 3rd-Party APIs", Color(0xFF8B5CF6), customModels)
                     }
 
                     CategoryModelsSubView(
@@ -257,8 +279,12 @@ fun QuotaBadgeChip(
 private fun MainCategoryListView(
     activeModel: AiModel?,
     availableModels: List<AiModel>,
+    antigravityModelsCount: Int,
+    openAiModelsCount: Int,
+    deepseekModelsCount: Int,
     claudeModelsCount: Int,
     geminiModelsCount: Int,
+    customModelsCount: Int,
     availableModelsCount: Int,
     quotas: List<ModelQuota>,
     quotaSummary: com.example.gemini.domain.model.QuotaSummaryResponse? = null,
@@ -305,52 +331,92 @@ private fun MainCategoryListView(
                 )
             }
         } else {
-            // Category Navigation Tiles: Gemini FIRST, Claude SECOND
-            val isClaudeActive = activeModel != null && (
-                activeModel.family == ModelFamily.CLAUDE ||
-                activeModel.id.contains("claude", ignoreCase = true) ||
-                activeModel.displayName.contains("claude", ignoreCase = true)
-            ) && !activeModel.id.contains("gpt", ignoreCase = true) && !activeModel.displayName.contains("gpt", ignoreCase = true)
-            val isGeminiActive = activeModel != null && !isClaudeActive
+            // Category Navigation Tiles
+            val isAntigravityActive = activeModel != null && (activeModel.family == ModelFamily.ANTIGRAVITY || activeModel.id.contains("antigravity", ignoreCase = true))
+            val isOpenAiActive = activeModel != null && (activeModel.family == ModelFamily.OPENAI || activeModel.id.contains("codex", ignoreCase = true) || activeModel.id.contains("gpt", ignoreCase = true))
+            val isDeepseekActive = activeModel != null && (activeModel.family == ModelFamily.DEEPSEEK || activeModel.id.contains("deepseek", ignoreCase = true) || activeModel.id.contains("hermes", ignoreCase = true))
+            val isClaudeActive = activeModel != null && activeModel.family == ModelFamily.CLAUDE
+            val isGeminiActive = activeModel != null && activeModel.family == ModelFamily.GEMINI
+            val isCustomActive = activeModel != null && activeModel.family == ModelFamily.OTHER
 
             val cleanActiveModelName = activeModel?.displayName
                 ?.replace(Regex("\\s*\\(?Thinking\\)?", RegexOption.IGNORE_CASE), "")
                 ?.trim()
 
-            val geminiGroup = quotaSummary?.groups?.find {
-                it.groupId == "gemini" || it.groupName.contains("gemini", ignoreCase = true)
-            }
-            val claudeGroup = quotaSummary?.groups?.find {
-                it.groupId == "claude_gpt" || it.groupName.contains("claude", ignoreCase = true) || it.groupName.contains("gpt", ignoreCase = true)
+            // 1. Antigravity 2.0 Engine
+            if (antigravityModelsCount > 0) {
+                CategoryNavigationTile(
+                    title = "Antigravity 2.0 Engine",
+                    activeModelName = if (isAntigravityActive) cleanActiveModelName else null,
+                    line1 = "Next-Gen Pair Programmer",
+                    fraction1 = 1.0f,
+                    line2 = "Flash Thinking & Pro",
+                    fraction2 = 1.0f,
+                    count = antigravityModelsCount,
+                    brandColor = Color(0xFF00E5FF),
+                    onClick = { onSelectCategory(CategoryType.ANTIGRAVITY) }
+                )
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
-            // 1. Google Gemini (First!)
+            // 2. OpenAI Codex & ChatGPT
+            if (openAiModelsCount > 0) {
+                CategoryNavigationTile(
+                    title = "OpenAI Codex & ChatGPT",
+                    activeModelName = if (isOpenAiActive) cleanActiveModelName else null,
+                    line1 = "GPT-4o & Codex Coder",
+                    fraction1 = 1.0f,
+                    line2 = "High-precision code synthesis",
+                    fraction2 = 1.0f,
+                    count = openAiModelsCount,
+                    brandColor = Color(0xFF10A37F),
+                    onClick = { onSelectCategory(CategoryType.OPENAI) }
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            // 3. DeepSeek Hermes & V3
+            if (deepseekModelsCount > 0) {
+                CategoryNavigationTile(
+                    title = "DeepSeek Hermes & V3",
+                    activeModelName = if (isDeepseekActive) cleanActiveModelName else null,
+                    line1 = "DeepSeek Coder & Hermes",
+                    fraction1 = 1.0f,
+                    line2 = "671B MoE benchmark leader",
+                    fraction2 = 1.0f,
+                    count = deepseekModelsCount,
+                    brandColor = Color(0xFF3B82F6),
+                    onClick = { onSelectCategory(CategoryType.DEEPSEEK) }
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            // 2. Anthropic Claude (Second, no GPT in title!)
+            // 4. Anthropic Claude
+            if (claudeModelsCount > 0) {
+                CategoryNavigationTile(
+                    title = "Anthropic Claude",
+                    activeModelName = if (isClaudeActive) cleanActiveModelName else null,
+                    line1 = "Claude 3.7 Sonnet Thinking",
+                    fraction1 = 1.0f,
+                    line2 = "Claude 3.5 Sonnet",
+                    fraction2 = 1.0f,
+                    count = claudeModelsCount,
+                    brandColor = Color(0xFFD97706),
+                    onClick = { onSelectCategory(CategoryType.CLAUDE) }
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            // 5. Google Gemini
             if (geminiModelsCount > 0) {
-                val fiveHour = geminiGroup?.fiveHour
-                val weekly = geminiGroup?.weekly
-                val fiveHourFraction = fiveHour?.remainingFraction ?: quotas.find { q -> availableModels.any { it.id == q.modelId && it.family == ModelFamily.GEMINI } }?.remainingFraction
-                val weeklyFraction = weekly?.remainingFraction ?: quotas.find { q -> availableModels.any { it.id == q.modelId && it.family == ModelFamily.GEMINI } }?.weeklyRemainingFraction
-
-                val line1 = buildQuotaSummaryLine(
-                    "5h",
-                    fiveHourFraction,
-                    fiveHour?.resetTime,
-                    fiveHour?.countdown ?: quotas.find { q -> availableModels.any { it.id == q.modelId && it.family == ModelFamily.GEMINI } }?.resetCountdown
-                )
-                val line2 = buildQuotaSummaryLine(
-                    "7d",
-                    weeklyFraction,
-                    weekly?.resetTime,
-                    weekly?.countdown ?: quotas.find { q -> availableModels.any { it.id == q.modelId && it.family == ModelFamily.GEMINI } }?.weeklyResetCountdown
-                )
-
                 CategoryNavigationTile(
                     title = "Google Gemini",
                     activeModelName = if (isGeminiActive) cleanActiveModelName else null,
-                    line1 = line1,
-                    fraction1 = fiveHourFraction,
-                    line2 = line2,
-                    fraction2 = weeklyFraction,
+                    line1 = "Gemini 2.5 Pro & Flash",
+                    fraction1 = 1.0f,
+                    line2 = "Multimodal 2M Context",
+                    fraction2 = 1.0f,
                     count = geminiModelsCount,
                     brandColor = GeminiBlue,
                     onClick = { onSelectCategory(CategoryType.GEMINI) }
@@ -358,36 +424,18 @@ private fun MainCategoryListView(
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
-            // 2. Anthropic Claude (Second, no GPT in title!)
-            if (claudeModelsCount > 0) {
-                val fiveHour = claudeGroup?.fiveHour
-                val weekly = claudeGroup?.weekly
-                val fiveHourFraction = fiveHour?.remainingFraction ?: quotas.find { q -> availableModels.any { it.id == q.modelId && it.family == ModelFamily.CLAUDE } }?.remainingFraction
-                val weeklyFraction = weekly?.remainingFraction ?: quotas.find { q -> availableModels.any { it.id == q.modelId && it.family == ModelFamily.CLAUDE } }?.weeklyRemainingFraction
-
-                val line1 = buildQuotaSummaryLine(
-                    "5h",
-                    fiveHourFraction,
-                    fiveHour?.resetTime,
-                    fiveHour?.countdown ?: quotas.find { q -> availableModels.any { it.id == q.modelId && it.family == ModelFamily.CLAUDE } }?.resetCountdown
-                )
-                val line2 = buildQuotaSummaryLine(
-                    "7d",
-                    weeklyFraction,
-                    weekly?.resetTime,
-                    weekly?.countdown ?: quotas.find { q -> availableModels.any { it.id == q.modelId && it.family == ModelFamily.CLAUDE } }?.weeklyResetCountdown
-                )
-
+            // 6. Custom & 3rd-Party APIs
+            if (customModelsCount > 0) {
                 CategoryNavigationTile(
-                    title = "Anthropic Claude",
-                    activeModelName = if (isClaudeActive) cleanActiveModelName else null,
-                    line1 = line1,
-                    fraction1 = fiveHourFraction,
-                    line2 = line2,
-                    fraction2 = weeklyFraction,
-                    count = claudeModelsCount,
-                    brandColor = ClaudeTerracotta,
-                    onClick = { onSelectCategory(CategoryType.CLAUDE) }
+                    title = "Custom & 3rd-Party APIs",
+                    activeModelName = if (isCustomActive) cleanActiveModelName else null,
+                    line1 = "Codestral, Qwen 2.5 & Custom",
+                    fraction1 = 1.0f,
+                    line2 = "Ollama, OpenRouter & Proxies",
+                    fraction2 = 1.0f,
+                    count = customModelsCount,
+                    brandColor = Color(0xFF8B5CF6),
+                    onClick = { onSelectCategory(CategoryType.CUSTOM) }
                 )
             }
         }

@@ -61,7 +61,8 @@ object LocalEnvironmentManager {
     // Minimum 10 MB required for a real Termux bootstrap archive
     private const val MIN_BOOTSTRAP_SIZE_BYTES = 10 * 1024 * 1024L
 
-    const val HARDCODED_ROOTFS_URL = "https://github.com/Santoshkurmi/antigem/releases/download/rootfs-v1/bootrapz_2026-10-04.zip"
+    const val HARDCODED_ROOTFS_URL = "https://github.com/samir-ahmmed-tech/jin/releases/download/rootfs-v1/bootrapz_2026-10-04.zip"
+    const val FALLBACK_ROOTFS_URL = "https://github.com/Santoshkurmi/antigem/releases/download/rootfs-v1/bootrapz_2026-10-04.zip"
     const val HARDCODED_ROOTFS_TAG = "rootfs-v1"
     const val HARDCODED_ROOTFS_ASSET = "bootrapz_2026-10-04.zip"
     const val HARDCODED_ROOTFS_SIZE_BYTES = 350 * 1024 * 1024L
@@ -892,21 +893,34 @@ object LocalEnvironmentManager {
                     )
                     updateInstallNotification(appContext, "Downloading $titlePrefix", "Connecting...", -1)
 
-                    try {
-                        val request = Request.Builder()
-                            .url(targetUrl)
-                            .header("User-Agent", "GeminiApp-LocalTerminal/${Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64"}")
-                            .build()
+                        var activeUrl = targetUrl
+                        var response = httpClient.newCall(
+                            Request.Builder()
+                                .url(activeUrl)
+                                .header("User-Agent", "GeminiApp-LocalTerminal/${Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64"}")
+                                .build()
+                        ).execute()
 
-                        httpClient.newCall(request).execute().use { response ->
-                            if (!response.isSuccessful) {
-                                val errorMsg = "Download failed: HTTP ${response.code} from release server."
+                        if (!response.isSuccessful && isTermux && activeUrl != FALLBACK_ROOTFS_URL) {
+                            response.close()
+                            activeUrl = FALLBACK_ROOTFS_URL
+                            response = httpClient.newCall(
+                                Request.Builder()
+                                    .url(activeUrl)
+                                    .header("User-Agent", "GeminiApp-LocalTerminal/${Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64"}")
+                                    .build()
+                            ).execute()
+                        }
+
+                        response.use { resp ->
+                            if (!resp.isSuccessful) {
+                                val errorMsg = "Download failed: HTTP ${resp.code} from release server."
                                 updateInstallNotification(appContext, "Installation Failed", errorMsg, -2, ongoing = false, force = true)
                                 _installerState.value = LocalInstallerState.Error(errorMessage = errorMsg, canRetry = true)
                                 return@withContext false
                             }
 
-                            val body = response.body
+                            val body = resp.body
                             if (body == null) {
                                 val errorMsg = "Download failed: Empty response body."
                                 updateInstallNotification(appContext, "Installation Failed", errorMsg, -2, ongoing = false, force = true)

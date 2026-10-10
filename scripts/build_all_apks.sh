@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # -----------------------------------------------------------------------------
-# AntiGem Multi-Package APK Build & Output Packager
-# Builds standard (com.antigem) and termux (com.termux) flavors.
+# JIN Multi-Package APK Build & Output Packager
+# Developed by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)
+# Builds standard and termux flavors.
 # -----------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,7 +17,7 @@ if [[ "${1:-}" == "--release" || "${1:-}" == "-r" ]]; then
 fi
 
 echo "================================================================="
-echo "🚀 Building AntiGem Packages in [${MODE^^}] mode"
+echo "🚀 Building JIN Packages in [${MODE^^}] mode"
 echo "================================================================="
 
 # Extract version from version.json

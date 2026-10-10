@@ -128,6 +128,9 @@ data class Conversation(
 )
 
 enum class ModelFamily {
+    ANTIGRAVITY,
+    OPENAI,
+    DEEPSEEK,
     CLAUDE,
     GEMINI,
     OTHER
@@ -138,10 +141,14 @@ data class AiModel(
     val id: String,
     val displayName: String,
     val family: ModelFamily = when {
+        id.contains("antigravity", ignoreCase = true) || displayName.contains("antigravity", ignoreCase = true) -> ModelFamily.ANTIGRAVITY
+        id.contains("codex", ignoreCase = true) || id.contains("gpt", ignoreCase = true) || id.contains("openai", ignoreCase = true) || displayName.contains("codex", ignoreCase = true) || displayName.contains("gpt", ignoreCase = true) -> ModelFamily.OPENAI
+        id.contains("deepseek", ignoreCase = true) || id.contains("hermes", ignoreCase = true) || displayName.contains("deepseek", ignoreCase = true) || displayName.contains("hermes", ignoreCase = true) -> ModelFamily.DEEPSEEK
         id.contains("claude", ignoreCase = true) || displayName.contains("claude", ignoreCase = true) -> ModelFamily.CLAUDE
-        else -> ModelFamily.GEMINI
+        id.contains("gemini", ignoreCase = true) || displayName.contains("gemini", ignoreCase = true) -> ModelFamily.GEMINI
+        else -> ModelFamily.OTHER
     },
-    val supportsThinking: Boolean = id.contains("thinking", ignoreCase = true) || id.contains("flash", ignoreCase = true) || id.contains("pro", ignoreCase = true) || id.contains("high", ignoreCase = true) || id.contains("medium", ignoreCase = true) || id.contains("low", ignoreCase = true),
+    val supportsThinking: Boolean = id.contains("thinking", ignoreCase = true) || id.contains("flash", ignoreCase = true) || id.contains("pro", ignoreCase = true) || id.contains("high", ignoreCase = true) || id.contains("medium", ignoreCase = true) || id.contains("low", ignoreCase = true) || id.contains("r1", ignoreCase = true),
     val description: String = "",
     val isDefault: Boolean = false,
     val key: String = "",
@@ -149,19 +156,42 @@ data class AiModel(
     val tier: String? = null
 ) {
     companion object {
-        val DEFAULT_MODELS = emptyList<AiModel>()
+        val DEFAULT_MODELS = listOf(
+            AiModel("antigravity-2.0-flash", "Antigravity 2.0 Flash Thinking", ModelFamily.ANTIGRAVITY, true, "Next-gen Antigravity reasoning engine with live step-by-step thinking", isDefault = true),
+            AiModel("antigravity-2.0-pro", "Antigravity 2.0 Pro", ModelFamily.ANTIGRAVITY, true, "Flagship Antigravity 2.0 model with advanced agentic workspace tool execution"),
+            AiModel("openai-codex", "OpenAI Codex Coder", ModelFamily.OPENAI, false, "OpenAI high-speed code synthesis, terminal operations and automated debugging"),
+            AiModel("gpt-4o", "ChatGPT 4o", ModelFamily.OPENAI, false, "Omni-modal reasoning and software architecture model"),
+            AiModel("gpt-4o-mini", "ChatGPT 4o Mini", ModelFamily.OPENAI, false, "Lightweight ChatGPT model optimized for fast responses"),
+            AiModel("deepseek-hermes", "DeepSeek Hermes", ModelFamily.DEEPSEEK, true, "Fine-tuned DeepSeek model for complex algorithmic reasoning and terminal tasks"),
+            AiModel("deepseek-chat", "DeepSeek V3", ModelFamily.DEEPSEEK, false, "DeepSeek 671B MoE architecture with ultra-high coding capability"),
+            AiModel("deepseek-coder", "DeepSeek Coder V2", ModelFamily.DEEPSEEK, false, "Dedicated coding LLM supporting 300+ programming languages"),
+            AiModel("claude-3-7-sonnet", "Claude 3.7 Sonnet (Thinking)", ModelFamily.CLAUDE, true, "Anthropic hybrid reasoning model for complex agentic workflows"),
+            AiModel("claude-3-5-sonnet", "Claude 3.5 Sonnet", ModelFamily.CLAUDE, false, "Anthropic top-tier code intelligence and refactoring engine"),
+            AiModel("gemini-2.5-pro", "Gemini 2.5 Pro", ModelFamily.GEMINI, true, "Google multimodal frontier model with 2M token context"),
+            AiModel("gemini-2.5-flash", "Gemini 2.5 Flash", ModelFamily.GEMINI, true, "Google high-speed low-latency multimodal reasoning model"),
+            AiModel("openrouter-codestral", "Mistral Codestral 25B", ModelFamily.OTHER, false, "Mistral AI cutting-edge open weights coding model"),
+            AiModel("openrouter-qwen", "Qwen 2.5 Coder 32B", ModelFamily.OTHER, false, "Alibaba Cloud flagship code model for polyglot software engineering"),
+            AiModel("custom-api", "Custom OpenAI-Compatible API", ModelFamily.OTHER, false, "Connect to any custom base URL (Ollama, LM Studio, vLLM, OpenRouter)")
+        )
 
         fun fromApi(id: String, displayName: String?, description: String? = null): AiModel {
             val name = displayName?.takeIf { it.isNotBlank() } ?: formatModelName(id)
             val family = when {
+                id.contains("antigravity", ignoreCase = true) || name.contains("antigravity", ignoreCase = true) -> ModelFamily.ANTIGRAVITY
+                id.contains("codex", ignoreCase = true) || id.contains("gpt", ignoreCase = true) || id.contains("openai", ignoreCase = true) || name.contains("codex", ignoreCase = true) || name.contains("gpt", ignoreCase = true) -> ModelFamily.OPENAI
+                id.contains("deepseek", ignoreCase = true) || id.contains("hermes", ignoreCase = true) || name.contains("deepseek", ignoreCase = true) || name.contains("hermes", ignoreCase = true) -> ModelFamily.DEEPSEEK
                 id.contains("claude", ignoreCase = true) || name.contains("claude", ignoreCase = true) -> ModelFamily.CLAUDE
-                else -> ModelFamily.GEMINI
+                id.contains("gemini", ignoreCase = true) || name.contains("gemini", ignoreCase = true) -> ModelFamily.GEMINI
+                else -> ModelFamily.OTHER
             }
-            val thinking = id.contains("thinking", ignoreCase = true) || id.contains("flash", ignoreCase = true) || id.contains("pro", ignoreCase = true) || id.contains("high", ignoreCase = true) || id.contains("medium", ignoreCase = true) || id.contains("low", ignoreCase = true)
+            val thinking = id.contains("thinking", ignoreCase = true) || id.contains("flash", ignoreCase = true) || id.contains("pro", ignoreCase = true) || id.contains("high", ignoreCase = true) || id.contains("medium", ignoreCase = true) || id.contains("low", ignoreCase = true) || id.contains("r1", ignoreCase = true)
             val desc = description ?: when (family) {
-                ModelFamily.CLAUDE -> "Anthropic Claude via Antigravity"
+                ModelFamily.ANTIGRAVITY -> "Google Antigravity 2.0 Engine"
+                ModelFamily.OPENAI -> "OpenAI Codex & ChatGPT Model"
+                ModelFamily.DEEPSEEK -> "DeepSeek AI Open Intelligence"
+                ModelFamily.CLAUDE -> "Anthropic Claude via JIN"
                 ModelFamily.GEMINI -> "Google Gemini via Antigravity"
-                ModelFamily.OTHER -> "Other Model via Antigravity"
+                ModelFamily.OTHER -> "Custom / 3rd-Party API Provider"
             }
             var baseName = name
             var tier: String? = null

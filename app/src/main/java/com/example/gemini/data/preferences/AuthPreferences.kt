@@ -82,6 +82,16 @@ class AuthPreferences(private val context: Context) {
         val TERMINAL_LAUNCHER_STYLE = stringPreferencesKey("terminal_launcher_style") // "ANTITERM" or "TERMUX"
         val IS_TERMINAL_LAUNCHER_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("is_terminal_launcher_enabled")
 
+        // Direct API Keys & Custom Proxy/Endpoints
+        val OPENAI_API_KEY = stringPreferencesKey("openai_api_key")
+        val DEEPSEEK_API_KEY = stringPreferencesKey("deepseek_api_key")
+        val ANTHROPIC_API_KEY = stringPreferencesKey("anthropic_api_key")
+        val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
+        val OPENROUTER_API_KEY = stringPreferencesKey("openrouter_api_key")
+        val CUSTOM_API_KEY = stringPreferencesKey("custom_api_key")
+        val CUSTOM_API_BASE_URL = stringPreferencesKey("custom_api_base_url")
+        val CUSTOM_API_MODEL_NAME = stringPreferencesKey("custom_api_model_name")
+
         const val DEFAULT_BRIDGE_BINARY_PATH = "~/../usr/bin/agy_ide_bridge"
         const val DEFAULT_UBUNTU_BRIDGE_BINARY_PATH = "/antigem/bin/agy_ide_bridge"
         const val DEFAULT_AGY_BINARY_PATH = "~/.local/bin/agy"
@@ -820,6 +830,71 @@ class AuthPreferences(private val context: Context) {
 
     suspend fun setTerminalLauncherEnabled(enabled: Boolean) {
         context.dataStore.edit { it[IS_TERMINAL_LAUNCHER_ENABLED] = enabled }
+    }
+
+    // Direct API Keys & Custom Proxy Accessors
+    val openAiApiKey: Flow<String> = context.dataStore.data.map { it[OPENAI_API_KEY] ?: getOpenAiApiKeySync() }
+    fun getOpenAiApiKeySync(): String = syncPrefs.getString("openai_api_key", "") ?: ""
+    suspend fun saveOpenAiApiKey(key: String) {
+        val trimmed = key.trim()
+        syncPrefs.edit().putString("openai_api_key", trimmed).apply()
+        context.dataStore.edit { it[OPENAI_API_KEY] = trimmed }
+    }
+
+    val deepSeekApiKey: Flow<String> = context.dataStore.data.map { it[DEEPSEEK_API_KEY] ?: getDeepSeekApiKeySync() }
+    fun getDeepSeekApiKeySync(): String = syncPrefs.getString("deepseek_api_key", "") ?: ""
+    suspend fun saveDeepSeekApiKey(key: String) {
+        val trimmed = key.trim()
+        syncPrefs.edit().putString("deepseek_api_key", trimmed).apply()
+        context.dataStore.edit { it[DEEPSEEK_API_KEY] = trimmed }
+    }
+
+    val anthropicApiKey: Flow<String> = context.dataStore.data.map { it[ANTHROPIC_API_KEY] ?: getAnthropicApiKeySync() }
+    fun getAnthropicApiKeySync(): String = syncPrefs.getString("anthropic_api_key", "") ?: ""
+    suspend fun saveAnthropicApiKey(key: String) {
+        val trimmed = key.trim()
+        syncPrefs.edit().putString("anthropic_api_key", trimmed).apply()
+        context.dataStore.edit { it[ANTHROPIC_API_KEY] = trimmed }
+    }
+
+    val geminiApiKey: Flow<String> = context.dataStore.data.map { it[GEMINI_API_KEY] ?: getGeminiApiKeySync() }
+    fun getGeminiApiKeySync(): String = syncPrefs.getString("gemini_api_key", "") ?: ""
+    suspend fun saveGeminiApiKey(key: String) {
+        val trimmed = key.trim()
+        syncPrefs.edit().putString("gemini_api_key", trimmed).apply()
+        context.dataStore.edit { it[GEMINI_API_KEY] = trimmed }
+    }
+
+    val openRouterApiKey: Flow<String> = context.dataStore.data.map { it[OPENROUTER_API_KEY] ?: getOpenRouterApiKeySync() }
+    fun getOpenRouterApiKeySync(): String = syncPrefs.getString("openrouter_api_key", "") ?: ""
+    suspend fun saveOpenRouterApiKey(key: String) {
+        val trimmed = key.trim()
+        syncPrefs.edit().putString("openrouter_api_key", trimmed).apply()
+        context.dataStore.edit { it[OPENROUTER_API_KEY] = trimmed }
+    }
+
+    val customApiKey: Flow<String> = context.dataStore.data.map { it[CUSTOM_API_KEY] ?: getCustomApiKeySync() }
+    fun getCustomApiKeySync(): String = syncPrefs.getString("custom_api_key", "") ?: ""
+    suspend fun saveCustomApiKey(key: String) {
+        val trimmed = key.trim()
+        syncPrefs.edit().putString("custom_api_key", trimmed).apply()
+        context.dataStore.edit { it[CUSTOM_API_KEY] = trimmed }
+    }
+
+    val customApiBaseUrl: Flow<String> = context.dataStore.data.map { it[CUSTOM_API_BASE_URL] ?: getCustomApiBaseUrlSync() }
+    fun getCustomApiBaseUrlSync(): String = syncPrefs.getString("custom_api_base_url", "https://api.openai.com/v1") ?: "https://api.openai.com/v1"
+    suspend fun saveCustomApiBaseUrl(url: String) {
+        val trimmed = url.trim().ifBlank { "https://api.openai.com/v1" }
+        syncPrefs.edit().putString("custom_api_base_url", trimmed).apply()
+        context.dataStore.edit { it[CUSTOM_API_BASE_URL] = trimmed }
+    }
+
+    val customApiModelName: Flow<String> = context.dataStore.data.map { it[CUSTOM_API_MODEL_NAME] ?: getCustomApiModelNameSync() }
+    fun getCustomApiModelNameSync(): String = syncPrefs.getString("custom_api_model_name", "gpt-4o") ?: "gpt-4o"
+    suspend fun saveCustomApiModelName(name: String) {
+        val trimmed = name.trim().ifBlank { "gpt-4o" }
+        syncPrefs.edit().putString("custom_api_model_name", trimmed).apply()
+        context.dataStore.edit { it[CUSTOM_API_MODEL_NAME] = trimmed }
     }
 
     suspend fun clearAuth() {

@@ -1,14 +1,19 @@
 {
-  "version_code": 100,
-  "version_name": "1.0.0",
+  "version_code": 200,
+  "version_name": "2.0.0",
   "min_supported_version_code": 1,
   "changelog": [
-    "🚀 Initial release of JIN - AI Coding Super-Agent",
-    "🛡️ 100% Privacy-Centric Architecture (Zero Telemetry, Local Vault)",
-    "🎨 Brand-new Obsidian Cyber-Dark Theme & High-Tech UI",
-    "🤖 Maus-style Minimalist AI Robot Mascot Icon",
-    "⚡ Full Native Android & Termux Integration",
-    "🧠 Multi-Model AI Engine (DeepSeek R1/V3, Claude 3.7 Sonnet, GPT-4o, Gemini 2.5 Pro)"
+    "✨ Full ChatGPT-style sleek, modern chat UI with capsule input bar and clean typography",
+    "🚀 Antigravity 2.0 Super-Agent integration (Gemini 2.5 Flash & Gemini 2.5 Pro)",
+    "💻 OpenAI Codex & GPT-4o / GPT-4o Mini coding engines",
+    "⚡ DeepSeek Hermes & DeepSeek V3 / Coder high-speed reasoning models",
+    "🧠 Claude Code CLI & Claude 3.7 / 3.5 Sonnet agent support",
+    "🔑 Direct API Keys Vault: Use OpenAI, DeepSeek, Claude, Gemini & OpenRouter without subscription",
+    "🌐 Custom OpenAI-compatible proxy and 3rd-party endpoint integration (Groq, Ollama, local LLM)",
+    "🛡️ 100% Privacy & Security: Local credentials vault, zero analytics or telemetry tracking",
+    "📦 Complete Termux environment integration, PTY shell runner, and native file manager",
+    "🔄 Auto-updater directly connected to https://github.com/samir-ahmmed-tech/jin",
+    "👨‍💻 Lead Developer: Samir Ahmmed (https://github.com/samir-ahmmed-tech)"
   ],
   "is_critical": false
 }

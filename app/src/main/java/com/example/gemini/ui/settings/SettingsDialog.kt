@@ -44,6 +44,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import com.example.gemini.data.remote.DirectApiClient
 import androidx.core.content.ContextCompat
 import com.example.gemini.domain.model.AiModel
 import com.example.gemini.domain.model.ModelQuota
@@ -84,7 +87,8 @@ import com.example.gemini.data.daemon.TermuxDaemonManager
 import com.example.gemini.data.daemon.IdeApiClient
 
 enum class SettingsSection(val title: String, val subtitle: String) {
-    MAIN("Settings & Preferences", "Configure your AntiGem experience"),
+    MAIN("Settings & Preferences", "Configure your JIN experience"),
+    API_KEYS("API Keys & Providers", "Direct API keys for OpenAI, DeepSeek, Claude, Gemini & custom endpoints"),
     APPEARANCE("Appearance & Theme", "Theme, dark mode, and chat font scaling"),
     SERVERS("Servers & Connectivity", "Configure AGY Hub and IDE Bridge endpoints"),
     MCP("MCP Servers", "Model Context Protocol tools & integrations"),
@@ -381,6 +385,11 @@ fun SettingsDialog(
                         onNavigate = { currentSection = it }
                     )
 
+                    SettingsSection.API_KEYS -> ApiKeysSubScreen(
+                        cardBg = cardBg,
+                        cardBorder = cardBorder
+                    )
+
                     SettingsSection.APPEARANCE -> AppearanceSubScreen(
                         themeMode = themeMode,
                         chatFontScale = chatFontScale,
@@ -598,6 +607,19 @@ private fun MainSettingsMenu(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        SettingsGroupHeader("API Keys & Custom Models", ChatGptEmerald, "Direct API keys for OpenAI, DeepSeek, Claude, Gemini & custom endpoints")
+        SettingsCategoryCard(
+            icon = Icons.Outlined.Key,
+            iconTint = ChatGptEmerald,
+            title = "API Keys & Providers",
+            subtitle = "OpenAI Codex/GPT-4o, DeepSeek Hermes, Claude, Gemini & custom proxy",
+            badgeText = "Configure",
+            badgeColor = ChatGptEmerald,
+            cardBg = cardBg,
+            cardBorder = cardBorder,
+            onClick = { onNavigate(SettingsSection.API_KEYS) }
+        )
+
         SettingsGroupHeader("Agents", MaterialTheme.colorScheme.primary, "Which agents run, and the local server they share")
         SettingsCategoryCard(
             icon = Icons.Outlined.SmartToy,
@@ -8774,13 +8796,13 @@ private fun AboutSubScreen(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "AntiGem",
+                    text = "JIN",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Antigravity Mobile Hub & AI Pair Programmer",
+                    text = "AI Coding Super-Agent • Developed by Samir Ahmmed",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -8963,8 +8985,8 @@ private fun AboutSubScreen(
                                         updateCheckResultText = null
                                     } else {
                                         isUpdateCheckError = false
-                                        updateCheckResultText = "AntiGem is up to date (v${BuildConfig.VERSION_NAME})."
-                                        Toast.makeText(context, "AntiGem is up to date!", Toast.LENGTH_SHORT).show()
+                                        updateCheckResultText = "JIN is up to date (v${BuildConfig.VERSION_NAME})."
+                                        Toast.makeText(context, "JIN is up to date!", Toast.LENGTH_SHORT).show()
                                     }
                                 }.onFailure { err ->
                                     isUpdateCheckError = true
@@ -9164,13 +9186,62 @@ private fun AboutSubScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
+                // Developer Profile
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/santoshkurmi/antigem"))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/samir-ahmmed-tech"))
+                            context.startActivity(intent)
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = Color(0xFF00E5FF),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "Lead Developer",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Samir Ahmmed (github.com/samir-ahmmed-tech)",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/samir-ahmmed-tech/jin"))
                             context.startActivity(intent)
                         }
                 ) {
@@ -9197,7 +9268,7 @@ private fun AboutSubScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "github.com/santoshkurmi/antigem",
+                                    text = "github.com/samir-ahmmed-tech/jin",
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -9218,7 +9289,7 @@ private fun AboutSubScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/santoshkurmi/antigem/releases"))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/samir-ahmmed-tech/jin/releases"))
                             context.startActivity(intent)
                         }
                 ) {
@@ -9258,6 +9329,500 @@ private fun AboutSubScreen(
                             modifier = Modifier.size(16.dp)
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApiKeysSubScreen(
+    cardBg: Color,
+    cardBorder: BorderStroke
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val authPrefs = remember(context) { AuthPreferences(context) }
+    val apiClient = remember { DirectApiClient() }
+
+    var openAiKey by remember { mutableStateOf(authPrefs.getOpenAiApiKeySync()) }
+    var deepSeekKey by remember { mutableStateOf(authPrefs.getDeepSeekApiKeySync()) }
+    var anthropicKey by remember { mutableStateOf(authPrefs.getAnthropicApiKeySync()) }
+    var geminiKey by remember { mutableStateOf(authPrefs.getGeminiApiKeySync()) }
+    var openRouterKey by remember { mutableStateOf(authPrefs.getOpenRouterApiKeySync()) }
+    var customKey by remember { mutableStateOf(authPrefs.getCustomApiKeySync()) }
+    var customBaseUrl by remember { mutableStateOf(authPrefs.getCustomApiBaseUrlSync()) }
+    var customModelName by remember { mutableStateOf(authPrefs.getCustomApiModelNameSync()) }
+
+    var showOpenAiKey by remember { mutableStateOf(false) }
+    var showDeepSeekKey by remember { mutableStateOf(false) }
+    var showAnthropicKey by remember { mutableStateOf(false) }
+    var showGeminiKey by remember { mutableStateOf(false) }
+    var showOpenRouterKey by remember { mutableStateOf(false) }
+    var showCustomKey by remember { mutableStateOf(false) }
+
+    var openAiStatus by remember { mutableStateOf<String?>(null) }
+    var deepSeekStatus by remember { mutableStateOf<String?>(null) }
+    var anthropicStatus by remember { mutableStateOf<String?>(null) }
+    var geminiStatus by remember { mutableStateOf<String?>(null) }
+    var openRouterStatus by remember { mutableStateOf<String?>(null) }
+    var customStatus by remember { mutableStateOf<String?>(null) }
+
+    var testingProvider by remember { mutableStateOf<String?>(null) }
+    var isSaving by remember { mutableStateOf(false) }
+    var saveMessage by remember { mutableStateOf<String?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Info Banner
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = ChatGptEmerald.copy(alpha = 0.12f)),
+            border = BorderStroke(1.dp, ChatGptEmerald.copy(alpha = 0.35f))
+        ) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Key,
+                    contentDescription = null,
+                    tint = ChatGptEmerald,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Direct API Keys (No Subscription Needed)",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Enter your own API keys to use OpenAI Codex, GPT-4o, DeepSeek Hermes, Claude, or Gemini without paid cloud accounts. Keys are stored safely on your device.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+        }
+
+        // Save All Button (Top quick action)
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    isSaving = true
+                    authPrefs.saveOpenAiApiKey(openAiKey)
+                    authPrefs.saveDeepSeekApiKey(deepSeekKey)
+                    authPrefs.saveAnthropicApiKey(anthropicKey)
+                    authPrefs.saveGeminiApiKey(geminiKey)
+                    authPrefs.saveOpenRouterApiKey(openRouterKey)
+                    authPrefs.saveCustomApiKey(customKey)
+                    authPrefs.saveCustomApiBaseUrl(customBaseUrl)
+                    authPrefs.saveCustomApiModelName(customModelName)
+                    isSaving = false
+                    saveMessage = "✓ All API keys saved successfully!"
+                    android.widget.Toast.makeText(context, "API settings saved!", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = ChatGptEmerald),
+            shape = RoundedCornerShape(10.dp),
+            enabled = !isSaving
+        ) {
+            Icon(imageVector = Icons.Outlined.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(if (isSaving) "Saving..." else "Save All API Keys", fontWeight = FontWeight.Bold)
+        }
+
+        if (saveMessage != null) {
+            Text(
+                text = saveMessage ?: "",
+                color = QuotaGreen,
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
+
+        // 1. OpenAI Key Card
+        ApiKeyCard(
+            title = "OpenAI API Key",
+            subtitle = "Used for OpenAI Codex, GPT-4o, GPT-4o Mini",
+            icon = Icons.Outlined.SmartToy,
+            accentColor = ChatGptEmerald,
+            key = openAiKey,
+            onKeyChange = { openAiKey = it; saveMessage = null },
+            showKey = showOpenAiKey,
+            onToggleShowKey = { showOpenAiKey = !showOpenAiKey },
+            isTesting = testingProvider == "OPENAI",
+            testStatus = openAiStatus,
+            onTest = {
+                coroutineScope.launch {
+                    testingProvider = "OPENAI"
+                    openAiStatus = "Testing connection..."
+                    val res = apiClient.testConnection(DirectApiClient.ApiProvider.OPENAI, openAiKey)
+                    openAiStatus = if (res.success) "✓ ${res.message}" else "✗ ${res.message}"
+                    testingProvider = null
+                }
+            },
+            cardBg = cardBg,
+            cardBorder = cardBorder
+        )
+
+        // 2. DeepSeek Key Card
+        ApiKeyCard(
+            title = "DeepSeek API Key",
+            subtitle = "Used for DeepSeek Hermes, DeepSeek V3, DeepSeek Coder",
+            icon = Icons.Outlined.AutoAwesome,
+            accentColor = DeepSeekBlue,
+            key = deepSeekKey,
+            onKeyChange = { deepSeekKey = it; saveMessage = null },
+            showKey = showDeepSeekKey,
+            onToggleShowKey = { showDeepSeekKey = !showDeepSeekKey },
+            isTesting = testingProvider == "DEEPSEEK",
+            testStatus = deepSeekStatus,
+            onTest = {
+                coroutineScope.launch {
+                    testingProvider = "DEEPSEEK"
+                    deepSeekStatus = "Testing connection..."
+                    val res = apiClient.testConnection(DirectApiClient.ApiProvider.DEEPSEEK, deepSeekKey)
+                    deepSeekStatus = if (res.success) "✓ ${res.message}" else "✗ ${res.message}"
+                    testingProvider = null
+                }
+            },
+            cardBg = cardBg,
+            cardBorder = cardBorder
+        )
+
+        // 3. Anthropic Claude Key Card
+        ApiKeyCard(
+            title = "Anthropic Claude API Key",
+            subtitle = "Used for Claude 3.7 Sonnet, Claude 3.5 Sonnet",
+            icon = Icons.Outlined.Psychology,
+            accentColor = ClaudeTerracotta,
+            key = anthropicKey,
+            onKeyChange = { anthropicKey = it; saveMessage = null },
+            showKey = showAnthropicKey,
+            onToggleShowKey = { showAnthropicKey = !showAnthropicKey },
+            isTesting = testingProvider == "ANTHROPIC",
+            testStatus = anthropicStatus,
+            onTest = {
+                coroutineScope.launch {
+                    testingProvider = "ANTHROPIC"
+                    anthropicStatus = "Testing connection..."
+                    val res = apiClient.testConnection(DirectApiClient.ApiProvider.ANTHROPIC, anthropicKey)
+                    anthropicStatus = if (res.success) "✓ ${res.message}" else "✗ ${res.message}"
+                    testingProvider = null
+                }
+            },
+            cardBg = cardBg,
+            cardBorder = cardBorder
+        )
+
+        // 4. Google Gemini API Key Card
+        ApiKeyCard(
+            title = "Google Gemini API Key",
+            subtitle = "Used for Antigravity 2.0 / Gemini 2.5 Flash & Pro",
+            icon = Icons.Outlined.Terminal,
+            accentColor = GeminiBlue,
+            key = geminiKey,
+            onKeyChange = { geminiKey = it; saveMessage = null },
+            showKey = showGeminiKey,
+            onToggleShowKey = { showGeminiKey = !showGeminiKey },
+            isTesting = testingProvider == "GEMINI",
+            testStatus = geminiStatus,
+            onTest = {
+                coroutineScope.launch {
+                    testingProvider = "GEMINI"
+                    geminiStatus = "Testing connection..."
+                    val res = apiClient.testConnection(DirectApiClient.ApiProvider.GEMINI, geminiKey)
+                    geminiStatus = if (res.success) "✓ ${res.message}" else "✗ ${res.message}"
+                    testingProvider = null
+                }
+            },
+            cardBg = cardBg,
+            cardBorder = cardBorder
+        )
+
+        // 5. OpenRouter Key Card
+        ApiKeyCard(
+            title = "OpenRouter API Key",
+            subtitle = "Access 300+ LLMs via a single unified key",
+            icon = Icons.Outlined.Hub,
+            accentColor = Color(0xFF7C3AED),
+            key = openRouterKey,
+            onKeyChange = { openRouterKey = it; saveMessage = null },
+            showKey = showOpenRouterKey,
+            onToggleShowKey = { showOpenRouterKey = !showOpenRouterKey },
+            isTesting = testingProvider == "OPENROUTER",
+            testStatus = openRouterStatus,
+            onTest = {
+                coroutineScope.launch {
+                    testingProvider = "OPENROUTER"
+                    openRouterStatus = "Testing connection..."
+                    val res = apiClient.testConnection(DirectApiClient.ApiProvider.OPENROUTER, openRouterKey)
+                    openRouterStatus = if (res.success) "✓ ${res.message}" else "✗ ${res.message}"
+                    testingProvider = null
+                }
+            },
+            cardBg = cardBg,
+            cardBorder = cardBorder
+        )
+
+        // 6. Custom / OpenAI-Compatible Endpoint Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            border = cardBorder
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.Dns,
+                        contentDescription = null,
+                        tint = Color(0xFF00ACC1),
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Custom / 3rd Party Proxy Endpoint",
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Groq, Ollama, Together AI, or local LLM server",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = customBaseUrl,
+                    onValueChange = { customBaseUrl = it; saveMessage = null },
+                    label = { Text("Base URL") },
+                    placeholder = { Text("https://api.openai.com/v1") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = customModelName,
+                    onValueChange = { customModelName = it; saveMessage = null },
+                    label = { Text("Model Name / Identifier") },
+                    placeholder = { Text("gpt-4o") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = customKey,
+                    onValueChange = { customKey = it; saveMessage = null },
+                    label = { Text("API Key (Optional for local Ollama)") },
+                    placeholder = { Text("sk-...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = if (showCustomKey) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showCustomKey = !showCustomKey }) {
+                            Icon(
+                                imageVector = if (showCustomKey) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                contentDescription = "Toggle key visibility",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                testingProvider = "CUSTOM"
+                                customStatus = "Testing endpoint..."
+                                val res = apiClient.testConnection(
+                                    DirectApiClient.ApiProvider.CUSTOM,
+                                    customKey,
+                                    customBaseUrl,
+                                    customModelName
+                                )
+                                customStatus = if (res.success) "✓ ${res.message}" else "✗ ${res.message}"
+                                testingProvider = null
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = testingProvider != "CUSTOM"
+                    ) {
+                        Text(if (testingProvider == "CUSTOM") "Connecting..." else "Test Endpoint")
+                    }
+
+                    if (customStatus != null) {
+                        Text(
+                            text = customStatus ?: "",
+                            fontSize = 11.5.sp,
+                            color = if (customStatus?.startsWith("✓") == true) QuotaGreen else Color.Red,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f).padding(start = 8.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Save All Button (Bottom)
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    isSaving = true
+                    authPrefs.saveOpenAiApiKey(openAiKey)
+                    authPrefs.saveDeepSeekApiKey(deepSeekKey)
+                    authPrefs.saveAnthropicApiKey(anthropicKey)
+                    authPrefs.saveGeminiApiKey(geminiKey)
+                    authPrefs.saveOpenRouterApiKey(openRouterKey)
+                    authPrefs.saveCustomApiKey(customKey)
+                    authPrefs.saveCustomApiBaseUrl(customBaseUrl)
+                    authPrefs.saveCustomApiModelName(customModelName)
+                    isSaving = false
+                    saveMessage = "✓ All API keys saved successfully!"
+                    android.widget.Toast.makeText(context, "API settings saved!", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = ChatGptEmerald),
+            shape = RoundedCornerShape(10.dp),
+            enabled = !isSaving
+        ) {
+            Icon(imageVector = Icons.Outlined.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(if (isSaving) "Saving..." else "Save All API Keys", fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun ApiKeyCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    accentColor: Color,
+    key: String,
+    onKeyChange: (String) -> Unit,
+    showKey: Boolean,
+    onToggleShowKey: () -> Unit,
+    isTesting: Boolean,
+    testStatus: String?,
+    onTest: () -> Unit,
+    cardBg: Color,
+    cardBorder: BorderStroke
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = cardBorder
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = subtitle,
+                        fontSize = 11.5.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = key,
+                onValueChange = onKeyChange,
+                label = { Text("API Key") },
+                placeholder = { Text("sk-...") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = onToggleShowKey) {
+                        Icon(
+                            imageVector = if (showKey) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = "Toggle key visibility",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(10.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = onTest,
+                    shape = RoundedCornerShape(8.dp),
+                    enabled = !isTesting && key.isNotBlank()
+                ) {
+                    Text(if (isTesting) "Verifying..." else "Test Connection")
+                }
+
+                if (testStatus != null) {
+                    Text(
+                        text = testStatus,
+                        fontSize = 11.5.sp,
+                        color = if (testStatus.startsWith("✓")) QuotaGreen else Color.Red,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(start = 8.dp)
+                    )
                 }
             }
         }

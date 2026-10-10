@@ -1,0 +1,284 @@
+package com.example.gemini.data.remote
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.util.concurrent.TimeUnit
+
+/**
+ * Direct API Client for JIN - AI Coding Super-Agent.
+ * Allows using OpenAI (Codex / GPT-4o), DeepSeek (Hermes / V3 / Coder), Anthropic Claude,
+ * Google Gemini, OpenRouter, and custom OpenAI-compatible proxies directly with user-supplied API keys.
+ *
+ * Developed by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)
+ */
+class DirectApiClient(
+    private val client: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+) {
+
+    data class DirectApiTestResult(
+        val success: Boolean,
+        val message: String,
+        val details: String? = null
+    )
+
+    enum class ApiProvider(val displayName: String, val defaultBaseUrl: String) {
+        OPENAI("OpenAI", "https://api.openai.com/v1"),
+        DEEPSEEK("DeepSeek", "https://api.deepseek.com/v1"),
+        ANTHROPIC("Anthropic Claude", "https://api.anthropic.com/v1"),
+        GEMINI("Google Gemini", "https://generativelanguage.googleapis.com/v1beta"),
+        OPENROUTER("OpenRouter", "https://openrouter.ai/api/v1"),
+        CUSTOM("Custom / 3rd Party Proxy", "")
+    }
+
+    suspend fun testConnection(
+        provider: ApiProvider,
+        apiKey: String,
+        customBaseUrl: String = "",
+        customModel: String = ""
+    ): DirectApiTestResult = withContext(Dispatchers.IO) {
+        if (apiKey.isBlank() && provider != ApiProvider.CUSTOM) {
+            return@withContext DirectApiTestResult(false, "API key cannot be empty")
+        }
+
+        try {
+            when (provider) {
+                ApiProvider.OPENAI -> testOpenAi(apiKey)
+                ApiProvider.DEEPSEEK -> testDeepSeek(apiKey)
+                ApiProvider.ANTHROPIC -> testAnthropic(apiKey)
+                ApiProvider.GEMINI -> testGemini(apiKey)
+                ApiProvider.OPENROUTER -> testOpenRouter(apiKey)
+                ApiProvider.CUSTOM -> testCustom(apiKey, customBaseUrl, customModel)
+            }
+        } catch (e: Exception) {
+            DirectApiTestResult(false, "Connection error: ${e.localizedMessage ?: e.message}")
+        }
+    }
+
+    private fun testOpenAi(apiKey: String): DirectApiTestResult {
+        val request = Request.Builder()
+            .url("https://api.openai.com/v1/models")
+            .header("Authorization", "Bearer $apiKey")
+            .get()
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            return if (response.isSuccessful) {
+                DirectApiTestResult(true, "OpenAI API key verified successfully!")
+            } else {
+                val errorBody = response.body?.string() ?: ""
+                val msg = parseErrorMessage(errorBody, "OpenAI error: HTTP ${response.code}")
+                DirectApiTestResult(false, msg)
+            }
+        }
+    }
+
+    private fun testDeepSeek(apiKey: String): DirectApiTestResult {
+        val request = Request.Builder()
+            .url("https://api.deepseek.com/models")
+            .header("Authorization", "Bearer $apiKey")
+            .get()
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            return if (response.isSuccessful) {
+                DirectApiTestResult(true, "DeepSeek API key verified successfully!")
+            } else {
+                val errorBody = response.body?.string() ?: ""
+                val msg = parseErrorMessage(errorBody, "DeepSeek error: HTTP ${response.code}")
+                DirectApiTestResult(false, msg)
+            }
+        }
+    }
+
+    private fun testAnthropic(apiKey: String): DirectApiTestResult {
+        val payload = JSONObject().apply {
+            put("model", "claude-3-haiku-20240307")
+            put("max_tokens", 5)
+            put("messages", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("content", "ping")
+                })
+            })
+        }
+
+        val request = Request.Builder()
+            .url("https://api.anthropic.com/v1/messages")
+            .header("x-api-key", apiKey)
+            .header("anthropic-version", "2023-06-01")
+            .header("content-type", "application/json")
+            .post(payload.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            return if (response.isSuccessful) {
+                DirectApiTestResult(true, "Anthropic Claude API key verified successfully!")
+            } else {
+                val errorBody = response.body?.string() ?: ""
+                val msg = parseErrorMessage(errorBody, "Claude error: HTTP ${response.code}")
+                DirectApiTestResult(false, msg)
+            }
+        }
+    }
+
+    private fun testGemini(apiKey: String): DirectApiTestResult {
+        val request = Request.Builder()
+            .url("https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey")
+            .get()
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            return if (response.isSuccessful) {
+                DirectApiTestResult(true, "Google Gemini API key verified successfully!")
+            } else {
+                val errorBody = response.body?.string() ?: ""
+                val msg = parseErrorMessage(errorBody, "Gemini error: HTTP ${response.code}")
+                DirectApiTestResult(false, msg)
+            }
+        }
+    }
+
+    private fun testOpenRouter(apiKey: String): DirectApiTestResult {
+        val request = Request.Builder()
+            .url("https://openrouter.ai/api/v1/models")
+            .header("Authorization", "Bearer $apiKey")
+            .get()
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            return if (response.isSuccessful) {
+                DirectApiTestResult(true, "OpenRouter API key verified successfully!")
+            } else {
+                val errorBody = response.body?.string() ?: ""
+                val msg = parseErrorMessage(errorBody, "OpenRouter error: HTTP ${response.code}")
+                DirectApiTestResult(false, msg)
+            }
+        }
+    }
+
+    private fun testCustom(apiKey: String, baseUrl: String, model: String): DirectApiTestResult {
+        val cleanUrl = baseUrl.trim().trimEnd('/')
+        if (cleanUrl.isBlank()) {
+            return DirectApiTestResult(false, "Base URL cannot be empty")
+        }
+
+        val targetUrl = if (cleanUrl.endsWith("/v1")) "$cleanUrl/models" else "$cleanUrl/v1/models"
+        val reqBuilder = Request.Builder().url(targetUrl).get()
+        if (apiKey.isNotBlank()) {
+            reqBuilder.header("Authorization", "Bearer $apiKey")
+        }
+
+        return try {
+            client.newCall(reqBuilder.build()).execute().use { response ->
+                if (response.isSuccessful) {
+                    DirectApiTestResult(true, "Custom endpoint responded successfully (HTTP ${response.code})")
+                } else {
+                    val errorBody = response.body?.string() ?: ""
+                    val msg = parseErrorMessage(errorBody, "Endpoint error: HTTP ${response.code}")
+                    DirectApiTestResult(false, msg)
+                }
+            }
+        } catch (e: Exception) {
+            DirectApiTestResult(false, "Endpoint unreachable: ${e.localizedMessage ?: e.message}")
+        }
+    }
+
+    suspend fun streamOpenAiCompatibleChat(
+        baseUrl: String,
+        apiKey: String,
+        model: String,
+        prompt: String,
+        systemPrompt: String = "You are JIN, an advanced agentic AI coding super-assistant developed by Samir Ahmmed.",
+        onToken: (String) -> Unit
+    ): String = withContext(Dispatchers.IO) {
+        val cleanUrl = baseUrl.trim().trimEnd('/')
+        val completionsUrl = when {
+            cleanUrl.endsWith("/chat/completions") -> cleanUrl
+            cleanUrl.endsWith("/v1") -> "$cleanUrl/chat/completions"
+            else -> "$cleanUrl/v1/chat/completions"
+        }
+
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("stream", true)
+            put("messages", JSONArray().apply {
+                if (systemPrompt.isNotBlank()) {
+                    put(JSONObject().apply {
+                        put("role", "system")
+                        put("content", systemPrompt)
+                    })
+                }
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("content", prompt)
+                })
+            })
+        }
+
+        val reqBuilder = Request.Builder()
+            .url(completionsUrl)
+            .post(payload.toString().toRequestBody("application/json".toMediaType()))
+
+        if (apiKey.isNotBlank()) {
+            reqBuilder.header("Authorization", "Bearer $apiKey")
+        }
+
+        val fullResponse = StringBuilder()
+
+        client.newCall(reqBuilder.build()).execute().use { response ->
+            if (!response.isSuccessful) {
+                val err = response.body?.string() ?: "HTTP ${response.code}"
+                throw IllegalStateException("API error: $err")
+            }
+
+            val source = response.body?.byteStream() ?: return@withContext ""
+            val reader = BufferedReader(InputStreamReader(source))
+
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                val l = line?.trim() ?: continue
+                if (l.startsWith("data:")) {
+                    val data = l.removePrefix("data:").trim()
+                    if (data == "[DONE]") break
+                    try {
+                        val json = JSONObject(data)
+                        val choices = json.optJSONArray("choices")
+                        if (choices != null && choices.length() > 0) {
+                            val delta = choices.getJSONObject(0).optJSONObject("delta")
+                            val content = delta?.optString("content", "") ?: ""
+                            if (content.isNotEmpty()) {
+                                fullResponse.append(content)
+                                onToken(content)
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+
+        fullResponse.toString()
+    }
+
+    private fun parseErrorMessage(body: String, fallback: String): String {
+        return try {
+            val json = JSONObject(body)
+            json.optJSONObject("error")?.optString("message")
+                ?: json.optString("message", fallback)
+        } catch (_: Exception) {
+            fallback
+        }
+    }
+}

@@ -2,37 +2,48 @@ package com.example.gemini.theme
 
 import androidx.compose.ui.graphics.Color
 
-// JIN - Cyber-Obsidian & Electric Cyan Theme Palette (100% Unique & Privacy-Centric)
+// JIN - Modern ChatGPT Theme Palette (Sleek, Clean, Distraction-Free)
+val ChatGptEmerald = Color(0xFF10A37F)
+val ChatGptElectricBlue = Color(0xFF3B82F6)
+val ChatGptDarkBg = Color(0xFF212121)
+val ChatGptDarkSurface = Color(0xFF171717)
+val ChatGptDarkInputBg = Color(0xFF2F2F2F)
+val ChatGptUserBubbleDark = Color(0xFF2F2F2F)
+val ChatGptThinkingDark = Color(0xFF1E1E1E)
+val ChatGptCodeBlockBg = Color(0xFF181818)
+
+val ChatGptLightBg = Color(0xFFFFFFFF)
+val ChatGptLightSurface = Color(0xFFF7F7F8)
+val ChatGptLightInputBg = Color(0xFFF4F4F4)
+val ChatGptUserBubbleLight = Color(0xFFF4F4F4)
+val ChatGptThinkingLight = Color(0xFFEBEBEB)
+
+// JIN cyber accents
 val JinCyberCyan = Color(0xFF00E5FF)
 val JinElectricBlue = Color(0xFF2979FF)
-val JinObsidianBg = Color(0xFF08090C)
-val JinDarkSurface = Color(0xFF101218)
-val JinUserBubbleDark = Color(0xFF181C26)
-val JinThinkingDark = Color(0xFF0D0F14)
-val JinCodeBlockBg = Color(0xFF0A0C10)
 
-// Compatibility palette mapped to JIN Obsidian Cyber Theme
-val ClaudeTerracotta = JinCyberCyan
-val ClaudeTerracottaDark = JinElectricBlue
-val ClaudeCream = Color(0xFFF0F4F8)
-val ClaudeWarmSurface = Color(0xFFE8EEF5)
-val ClaudeUserBubbleLight = Color(0xFFDCE5EF)
-val ClaudeThinkingLight = Color(0xFFE2EBF5)
+// Mappings for Material & Custom UI to ChatGPT Palette
+val ClaudeTerracotta = ChatGptEmerald
+val ClaudeTerracottaDark = Color(0xFF0E8A6C)
+val ClaudeCream = ChatGptLightBg
+val ClaudeWarmSurface = ChatGptLightSurface
+val ClaudeUserBubbleLight = ChatGptUserBubbleLight
+val ClaudeThinkingLight = ChatGptThinkingLight
 
-val ClaudeDarkBg = JinObsidianBg
-val ClaudeDarkSurface = JinDarkSurface
-val ClaudeUserBubbleDark = JinUserBubbleDark
-val ClaudeThinkingDark = JinThinkingDark
+val ClaudeDarkBg = ChatGptDarkBg
+val ClaudeDarkSurface = ChatGptDarkSurface
+val ClaudeUserBubbleDark = ChatGptUserBubbleDark
+val ClaudeThinkingDark = ChatGptThinkingDark
 
-val CodeBlockBgDark = JinCodeBlockBg
-val TextPrimaryLight = Color(0xFF0A0C10)
-val TextSecondaryLight = Color(0xFF4A5568)
-val TextPrimaryDark = Color(0xFFF0F4F8)
-val TextSecondaryDark = Color(0xFF8A99AD)
+val CodeBlockBgDark = ChatGptCodeBlockBg
+val TextPrimaryLight = Color(0xFF0D0D0D)
+val TextSecondaryLight = Color(0xFF6B7280)
+val TextPrimaryDark = Color(0xFFECECEC)
+val TextSecondaryDark = Color(0xFF9CA3AF)
 
-val QuotaGreen = Color(0xFF00E676)
-val QuotaAmber = Color(0xFFFFAB00)
-val QuotaRed = Color(0xFFFF1744)
+val QuotaGreen = Color(0xFF10A37F)
+val QuotaAmber = Color(0xFFF59E0B)
+val QuotaRed = Color(0xFFEF4444)
 
-val GeminiBlue = Color(0xFF00E5FF)
-val GeminiPurple = Color(0xFF7C4DFF)
+val GeminiBlue = Color(0xFF3B82F6)
+val GeminiPurple = Color(0xFF8B5CF6)
