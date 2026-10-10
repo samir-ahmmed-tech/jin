@@ -146,14 +146,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         codex: StateFlow<T> = agy,
         openrouter: StateFlow<T> = agy
     ): StateFlow<T> =
-        combine(store.currentConversation, agy, claude, deepseek) { conv, a, c, d ->
-            when (conv?.agent) {
-                AgentKind.CLAUDE -> c
-                AgentKind.DEEPSEEK_LOCAL -> d
-                AgentKind.CODEX -> codex.value
-                AgentKind.OPENROUTER -> openrouter.value
-                else -> a
-            }
+        combine(agy, claude, deepseek, codex, openrouter) { a, c, d, cx, or_ ->
+            mapOf(
+                AgentKind.AGY to a,
+                AgentKind.CLAUDE to c,
+                AgentKind.DEEPSEEK_LOCAL to d,
+                AgentKind.CODEX to cx,
+                AgentKind.OPENROUTER to or_
+            )
+        }.combine(store.currentConversation) { values, conv ->
+            values[conv?.agent ?: AgentKind.AGY] ?: values[AgentKind.AGY] ?: agy.value
         }.stateIn(viewModelScope, SharingStarted.Eagerly, agy.value)
 
     private fun isoUtc(epochSeconds: Long): String =
@@ -533,15 +535,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         claudeBackend.conversations,
         deepseekBackend.conversations,
         codexBackend.conversations,
-        openrouterBackend.conversations,
-        enabledAgents
-    ) { agy, claude, deepseek, codex, openrouter, enabled ->
+        openrouterBackend.conversations
+    ) { agy, claude, deepseek, codex, openrouter ->
+        mapOf(
+            AgentKind.AGY to agy,
+            AgentKind.CLAUDE to claude,
+            AgentKind.DEEPSEEK_LOCAL to deepseek,
+            AgentKind.CODEX to codex,
+            AgentKind.OPENROUTER to openrouter
+        )
+    }.combine(enabledAgents) { convMap, enabled ->
         val list = mutableListOf<Conversation>()
-        if (AgentKind.AGY in enabled) list.addAll(agy)
-        if (AgentKind.CLAUDE in enabled) list.addAll(claude)
-        if (AgentKind.DEEPSEEK_LOCAL in enabled) list.addAll(deepseek)
-        if (AgentKind.CODEX in enabled) list.addAll(codex)
-        if (AgentKind.OPENROUTER in enabled) list.addAll(openrouter)
+        for ((agent, convs) in convMap) {
+            if (agent in enabled) {
+                list.addAll(convs)
+            }
+        }
         list.sortedByDescending { it.updatedAt }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
