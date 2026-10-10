@@ -110,7 +110,7 @@ fun isSystemInDarkThemeRobust(): Boolean {
 
 @Composable
 fun GeminiTheme(
-    darkTheme: Boolean = isSystemInDarkThemeRobust(),
+    darkTheme: Boolean = true, // Force full dark mode
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

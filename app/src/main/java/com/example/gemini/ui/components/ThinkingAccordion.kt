@@ -85,7 +85,7 @@ fun ThinkingAccordion(
             Spacer(modifier = Modifier.width(4.dp))
 
             Icon(
-                imageVector = Icons.Outlined.Psychology,
+                imageVector = Icons.Outlined.Memory,
                 contentDescription = "Thinking",
                 tint = ClaudeTerracotta.copy(alpha = 0.85f),
                 modifier = Modifier.size(15.dp)
@@ -102,7 +102,7 @@ fun ThinkingAccordion(
                 )
                 Spacer(modifier = Modifier.width(5.dp))
                 Text(
-                    text = "Thinking...",
+                    text = "Agent is thinking...",
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.Medium,
                     color = ClaudeTerracotta

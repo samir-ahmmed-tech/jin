@@ -37,15 +37,44 @@ object SlashCommandsCache {
     )
 
     // Fallback known skills
+    // Fallback known skills and 30 awesome Agentic Skills
     val DEFAULT_SKILLS = listOf(
         SlashCommandItem("android-cli", "/android-cli", "Android CLI tools, emulator, SDK management, APK building", "skill", "android-cli-plugin"),
-        SlashCommandItem("chrome-extensions", "/chrome-extensions", "Build and publish Chrome Extensions using Manifest V3 best practices", "skill", "modern-web-guidance-plugin"),
-        SlashCommandItem("modern-web-guidance", "/modern-web-guidance", "Search tool for modern web development best practices (HTML/CSS/JS/React/Vue)", "skill", "modern-web-guidance-plugin"),
+        SlashCommandItem("youtube-control", "/youtube-control", "Full YouTube Studio API control, video upload, analytics, channel management", "skill", "youtube-agent-plugin"),
+        SlashCommandItem("instagram-automation", "/instagram-automation", "Full Insta control: posting, DM management, analytics, story scheduling", "skill", "insta-agent-plugin"),
+        SlashCommandItem("facebook-page-manager", "/facebook-page-manager", "Facebook Graph API: auto-reply, post scheduling, page insights", "skill", "fb-agent-plugin"),
+        SlashCommandItem("tiktok-creator", "/tiktok-creator", "TikTok content upload, trending audio analysis, stats tracker", "skill", "tiktok-agent-plugin"),
+        SlashCommandItem("github-copilot-local", "/github-copilot-local", "Local code completions, PR reviews, issue management via GitHub API", "skill", "permissioned-github"),
+        SlashCommandItem("openrouter-free-tier", "/openrouter-free-tier", "Access 1B+ token limits using OpenRouter free endpoints", "skill", "openrouter-plugin"),
+        SlashCommandItem("deepseek-coder", "/deepseek-coder", "Local execution and code generation with DeepSeek V3", "skill", "deepseek-plugin"),
+        SlashCommandItem("web-scraper-pro", "/web-scraper-pro", "Advanced headless browser automation and data extraction", "skill", "browser-automation-mcp"),
+        SlashCommandItem("telegram-bot-builder", "/telegram-bot-builder", "Instantly deploy and manage Telegram bots", "skill", "tg-bot-plugin"),
+        SlashCommandItem("discord-mod-ai", "/discord-mod-ai", "Discord server moderation, auto-reply, webhook integrations", "skill", "discord-plugin"),
+        SlashCommandItem("whatsapp-auto", "/whatsapp-auto", "WhatsApp Business API auto-responder and CRM", "skill", "wa-business-plugin"),
+        SlashCommandItem("spotify-dj", "/spotify-dj", "Spotify API: playlist generation, playback control", "skill", "spotify-plugin"),
+        SlashCommandItem("notion-second-brain", "/notion-second-brain", "Notion API: organize notes, databases, auto-sync tasks", "skill", "notion-plugin"),
+        SlashCommandItem("google-drive-sync", "/google-drive-sync", "Full Google Drive file management, Docs/Sheets automation", "skill", "gdrive-plugin"),
+        SlashCommandItem("aws-admin", "/aws-admin", "AWS CLI automation: EC2, S3, Lambda management", "skill", "aws-plugin"),
+        SlashCommandItem("docker-orchestrator", "/docker-orchestrator", "Docker & Kubernetes local cluster management", "skill", "docker-plugin"),
+        SlashCommandItem("vercel-deployer", "/vercel-deployer", "One-click deployment and CI/CD management for web apps", "skill", "vercel-plugin"),
+        SlashCommandItem("figma-to-code", "/figma-to-code", "Convert Figma designs to Jetpack Compose / React code", "skill", "figma-plugin"),
+        SlashCommandItem("crypto-trader", "/crypto-trader", "Binance API: live ticker monitoring and algorithmic trading", "skill", "crypto-plugin"),
+        SlashCommandItem("stripe-billing", "/stripe-billing", "Stripe API: manage subscriptions, invoices, and payments", "skill", "stripe-plugin"),
+        SlashCommandItem("twilio-sms", "/twilio-sms", "Twilio API: send SMS, voice calls, and OTPs", "skill", "twilio-plugin"),
+        SlashCommandItem("sendgrid-mailer", "/sendgrid-mailer", "Email marketing automation and transactional emails", "skill", "sendgrid-plugin"),
+        SlashCommandItem("slack-workspace", "/slack-workspace", "Slack API: team messaging, custom bot integrations", "skill", "slack-plugin"),
+        SlashCommandItem("jira-agile", "/jira-agile", "Jira API: sprint planning, issue tracking, agile boards", "skill", "jira-plugin"),
+        SlashCommandItem("cloudflare-dns", "/cloudflare-dns", "Cloudflare API: DNS management, caching, security rules", "skill", "cloudflare-plugin"),
+        SlashCommandItem("reddit-scraper", "/reddit-scraper", "Reddit API: subreddit monitoring, trend analysis", "skill", "reddit-plugin"),
+        SlashCommandItem("x-twitter-bot", "/x-twitter-bot", "X (Twitter) API: automated tweeting, engagement tracking", "skill", "twitter-plugin"),
+        SlashCommandItem("huggingface-hub", "/huggingface-hub", "Download, run, and finetune models from HuggingFace", "skill", "huggingface-plugin"),
+        SlashCommandItem("sql-database-admin", "/sql-database-admin", "Direct MySQL/PostgreSQL schema management and queries", "skill", "database-plugin"),
+        SlashCommandItem("termux-root-tools", "/termux-root-tools", "Full Termux root file system control and proot environment", "skill", "termux-plugin"),
+        SlashCommandItem("modern-web-guidance", "/modern-web-guidance", "Search tool for modern web development best practices", "skill", "modern-web-guidance-plugin"),
         SlashCommandItem("agy-customizations", "/agy-customizations", "Comprehensive guide for skills, rules, plugins, hooks, MCP servers", "skill"),
-        SlashCommandItem("antigravity-guide", "/antigravity-guide", "Comprehensive guide and quick reference for Google Antigravity (AGY CLI, 2.0, IDE, SDK)", "skill"),
-        SlashCommandItem("generative_ui", "/generative_ui", "Render rich interactive HTML widgets inline in chat or as artifacts", "skill"),
-        SlashCommandItem("migrate-workflows", "/migrate-workflows", "Automatically migrate legacy workflows to modern skills", "skill"),
-        SlashCommandItem("permissioned-github", "/permissioned-github", "GitHub integration, PRs, issues, repository operations", "skill")
+        SlashCommandItem("antigravity-guide", "/antigravity-guide", "Comprehensive guide and quick reference for Google Antigravity", "skill"),
+        SlashCommandItem("generative_ui", "/generative_ui", "Render rich interactive HTML widgets inline in chat", "skill"),
+        SlashCommandItem("migrate-workflows", "/migrate-workflows", "Automatically migrate legacy workflows to modern skills", "skill")
     )
 
     /**

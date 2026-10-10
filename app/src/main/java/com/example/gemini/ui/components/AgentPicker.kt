@@ -32,11 +32,17 @@ val AgyAccent = Color(0xFF3B82F6)
 fun AgentKind.label(): String = when (this) {
     AgentKind.AGY -> "Antigravity"
     AgentKind.CLAUDE -> "Claude Code"
+    AgentKind.DEEPSEEK_LOCAL -> "DeepSeek"
+    AgentKind.CODEX -> "Codex"
+    AgentKind.OPENROUTER -> "OpenRouter"
 }
 
 fun AgentKind.accent(): Color = when (this) {
     AgentKind.AGY -> AgyAccent
     AgentKind.CLAUDE -> ClaudeAccent
+    AgentKind.DEEPSEEK_LOCAL -> Color(0xFF3B82F6) // DeepSeek blue
+    AgentKind.CODEX -> Color(0xFF10A37F) // OpenAI green
+    AgentKind.OPENROUTER -> Color(0xFF8B5CF6) // Purple
 }
 
 /**

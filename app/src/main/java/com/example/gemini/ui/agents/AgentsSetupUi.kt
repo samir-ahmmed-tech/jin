@@ -59,12 +59,27 @@ private val AGENT_OPTIONS = listOf(
     AgentOption(
         setOf(AgentKind.CLAUDE),
         "Claude Code",
-        "Anthropic's Claude Code CLI on this device: your Claude subscription or Anthropic Console account."
+        "Anthropic's Claude Code CLI on this device: your Claude subscription or Anthropic Console account. (Requires 300MB download)"
     ),
     AgentOption(
-        setOf(AgentKind.AGY, AgentKind.CLAUDE),
-        "Both",
-        "Pick the agent for each new chat. Both share the chat list, status and accounts."
+        setOf(AgentKind.DEEPSEEK_LOCAL),
+        "DeepSeek Harness",
+        "High-speed local reasoning agent using DeepSeek V3 / Coder. Download and run locally. (Requires 450MB download)"
+    ),
+    AgentOption(
+        setOf(AgentKind.CODEX),
+        "OpenAI Codex CLI",
+        "OpenAI's powerful coding engine. Requires OpenAI API key. Download agent environment. (Requires 200MB download)"
+    ),
+    AgentOption(
+        setOf(AgentKind.OPENROUTER),
+        "OpenRouter Universal Agent",
+        "Connects to any model via OpenRouter API. Best for free 1B+ token models."
+    ),
+    AgentOption(
+        setOf(AgentKind.AGY, AgentKind.CLAUDE, AgentKind.DEEPSEEK_LOCAL, AgentKind.CODEX, AgentKind.OPENROUTER),
+        "All Agents",
+        "Enable all agents. Pick the agent for each new chat. They share the chat list, status and accounts."
     )
 )
 

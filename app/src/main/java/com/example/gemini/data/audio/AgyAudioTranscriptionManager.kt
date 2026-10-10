@@ -75,7 +75,7 @@ class AgyAudioTranscriptionManager(
 
         val record = try {
             AudioRecord(
-                MediaRecorder.AudioSource.MIC,
+                MediaRecorder.AudioSource.VOICE_RECOGNITION, // Improved accuracy via hardware noise cancellation
                 SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
