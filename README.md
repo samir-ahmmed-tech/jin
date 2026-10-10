@@ -1,4 +1,4 @@
-# 🤖 JIN v2.0.2 — AI Coding Super-Agent
+# 🤖 JIN v2.0.3 — AI Coding Super-Agent
 
 > **Next-Generation Autonomous AI Coding Companion for Android & Termux**  
 > **Developed by Samir Ahmmed** • [GitHub Profile](https://github.com/samir-ahmmed-tech) • [Repository](https://github.com/samir-ahmmed-tech/jin)
@@ -11,55 +11,53 @@
 
 ## 🌟 Overview
 
-**JIN** is an autonomous AI coding super-agent engineered natively for Android and Termux. Inspired by the sleek, minimalist design of ChatGPT and powered by the world's most capable AI engines, JIN turns your mobile device into a full-fledged software engineering workstation.
+**JIN** is an autonomous AI coding super-agent engineered natively for Android and Termux. Inspired by the sleek, minimalist design of modern AI IDEs and powered by the world's most capable AI engines, JIN turns your mobile device into a full-fledged software engineering workstation.
 
-With **100% privacy, local execution guards, and direct API key support**, JIN eliminates subscription barriers and allows developers to run cutting-edge models locally or through their own API keys.
+With **100% privacy, local execution guards, swarm multi-agent concurrency, and direct API key support**, JIN eliminates subscription barriers and allows developers to run cutting-edge models locally or through their own API keys.
 
 ---
 
-## ✨ 12+ Key Features
+## ✨ Key Features in v2.0.3
 
-### 1. 🤖 Full 5-Agent Architecture
-- **Antigravity 2.0**: Gemini 2.5 Flash & Pro models through Google Antigravity hub.
-- **Claude Code CLI**: Full Anthropic Claude 3.7 & 3.5 Sonnet hybrid reasoning agent.
-- **DeepSeek Harness**: Direct streaming with DeepSeek V3, DeepSeek Coder, and Hermes.
-- **OpenAI Codex**: GPT-4o, GPT-4o Mini, and Codex coder agents.
-- **OpenRouter Universal**: Access to Llama 3.3, Codestral, Qwen 2.5, and thousands of models.
+### 1. 🚀 Swarm Multi-Agent Concurrency (1 to 6 Agents)
+- Run multiple autonomous agents concurrently! Select **Antigravity + DeepSeek + Claude + Codex + OpenRouter** all at once without stopping Antigravity.
+- Configurable concurrency limit (1 to 6 concurrent running agents) with dynamic preset modes: Solo, Dual, Trio, and Full Swarm.
 
-### 2. 🎨 Brand-New 3D Glossy Robot Mascot
-- Iconic 3D robot astronaut app icon integrated across launcher, splash screen, onboarding, and in-app branding.
-- True AMOLED Pitch Black theme (`#0B0C0E`) with seamless adaptive icon blending.
+### 2. ⚡ Ready-Only Model Picker & Instant Unlock
+- Chat box only displays providers and models that are ready and configured.
+- Unconfigured models (OpenAI, DeepSeek, Claude, OpenRouter) display clean "+ Add API Key" cards with an instant unlock dialog right in the picker sheet.
 
-### 3. ⚡ Direct Token Streaming & Multi-Turn Memory
-- Instant real-time token streaming for all direct API models with full conversational context.
-- Persistent local chat history saved safely on-device in JSON format.
+### 3. 🏎️ Supercharged 200–300 MB/s Network Engine
+- 2MB buffered streams for blazingly fast downloads and uploads.
+- OkHttpClient connection pooling (16 concurrent idle connections) and dispatcher optimized for maximum throughput.
 
-### 4. 🔑 Direct API Keys Vault (Zero Subscription Barrier)
-- Built-in secure credentials vault in **Settings → API Keys & Providers**.
-- Use your own API keys for **OpenAI, DeepSeek, Anthropic, Gemini, and OpenRouter** without paid subscriptions.
-- Keys are encrypted and stored 100% locally on your Android device.
+### 4. 📱 Global UI Scale Customization (25% to 200%)
+- Full granular zoom control across the entire app via Compose `LocalDensity`.
+- Quick-select presets: 50%, 75%, 100%, 125%, 150%, 200% for phone, foldable, and tablet screens.
 
-### 5. 🌐 Custom OpenAI-Compatible Proxies & 3rd-Party Endpoints
-- Connect any OpenAI-compatible API endpoint: **Groq**, **Ollama**, **Together AI**, **vLLM**, or local LLM servers.
-- Configure custom base URLs, custom model identifiers, and test connectivity in 1 click.
+### 5. 🔄 Automatic Model Quota Failover
+- Real-time automatic failover on HTTP 429 quota exhaustion.
+- Instantly switches to the next configured fallback model seamlessly with an inline notice so coding tasks never freeze.
 
-### 6. 🛡️ 100% Privacy-First Architecture
-- **Zero external telemetry**: Chat histories, prompts, tokens, and workspace files never leave your device.
-- Local sandbox guards and explicit approval workflows before executing bash scripts or editing source code.
+### 6. ⚙️ Hardware Performance Tuning & Safeguards
+- Deep hardware diagnostics HUD: CPU cores, RAM, and runtime heap limits.
+- Configurable CPU thread limiters, memory cache sliders, and performance profiles (Turbo, Balanced, Power Saver, Custom).
 
-### 7. 📦 Native Android & Termux Terminal Integration
-- Deep Termux PTY shell runner, persistent SSH bridge, and native filesystem access.
-- Embedded Sora editor with syntax highlighting and file tree navigation.
+### 7. 🧩 Dynamic Community Skills & MCP Installer
+- 1-click GitHub (`user/repo` or git URL), npm, or raw URL skill and MCP server installer.
+- 8 curated community presets ready to install with a single tap.
 
-### 8. 🔄 In-App Auto-Updater
-- One-tap OTA updater checking releases directly from [samir-ahmmed-tech/jin](https://github.com/samir-ahmmed-tech/jin).
-- Automatic release note diffing, version verification, and background APK downloading.
+### 8. 🖥️ Desktop / PC IDE Super-Features
+- **Quick Open File Palette** (`Ctrl+P` modal): Instant fuzzy search across workspace files.
+- **Scratchpad & Notes**: Built-in notepad for code snippets and quick ideas right inside the IDE.
+- Full **JIN IDE** branding and status telemetry.
 
-### 9. 📊 Live Token & Quota Monitoring
-- Real-time token usage telemetry, rate limit tracking, and model quota HUD.
+### 9. 🔇 Quiet Startup & Clean Logs
+- Suppressed noisy startup toasts and background notification clutter for a smooth, distraction-free environment.
 
-### 10. 🛠️ Autonomous Tool Ecosystem
-- Built-in MCP (Model Context Protocol) servers, Google Plugins catalog, and custom skill scripts.
+### 10. 🎨 Unified 3D Robot Astronaut Mascot & JIN Branding
+- Unified glossy 3D robot astronaut icon matching across all launcher mipmaps, adaptive round icons, splash screen, and notifications.
+- Consistent **JIN** name everywhere across the OS.
 
 ---
 
@@ -100,7 +98,7 @@ This repository is configured with automated CI/CD via GitHub Actions (`.github/
 
 ### Download Pre-built APKs:
 1. Navigate to the [GitHub Actions tab](https://github.com/samir-ahmmed-tech/jin/actions) or [Releases](https://github.com/samir-ahmmed-tech/jin/releases).
-2. Download `jin-termux-v2.0.2-release.apk`.
+2. Download `jin-termux-v2.0.3-release.apk`.
 3. Install and launch on your Android device!
 
 ---

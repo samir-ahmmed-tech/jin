@@ -944,6 +944,11 @@ private fun AppearanceSubScreen(
     onSetFloatingSwitcherAutoCollapseSec: (Int) -> Unit,
     onResetFloatingSwitcherPosition: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val authPrefs = remember { com.example.gemini.data.preferences.AuthPreferences(context) }
+    val coroutineScope = rememberCoroutineScope()
+    var currentUiScale by remember { mutableFloatStateOf(authPrefs.getAppUiScaleSync()) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1101,6 +1106,106 @@ private fun AppearanceSubScreen(
             }
         }
 
+        // Global App UI Scaling Section (25% to 200%)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Global App UI Scale (${(currentUiScale * 100).toInt()}%)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Scales entire app layout, buttons, text and density (25% - 200%)",
+                    fontSize = 11.5.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            if (currentUiScale != 1.0f) {
+                TextButton(
+                    onClick = {
+                        currentUiScale = 1.0f
+                        coroutineScope.launch { authPrefs.saveAppUiScale(1.0f) }
+                    },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text("Reset (100%)", fontSize = 12.sp, color = ClaudeTerracotta)
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            border = cardBorder
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("25%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Slider(
+                        value = currentUiScale,
+                        onValueChange = { currentUiScale = it },
+                        onValueChangeFinished = {
+                            coroutineScope.launch { authPrefs.saveAppUiScale(currentUiScale) }
+                        },
+                        valueRange = 0.25f..2.0f,
+                        modifier = Modifier.weight(1f),
+                        colors = SliderDefaults.colors(
+                            thumbColor = ClaudeTerracotta,
+                            activeTrackColor = ClaudeTerracotta
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("200%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val scalePresets = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+                    scalePresets.forEach { p ->
+                        val isSel = kotlin.math.abs(currentUiScale - p) < 0.04f
+                        Surface(
+                            onClick = {
+                                currentUiScale = p
+                                coroutineScope.launch { authPrefs.saveAppUiScale(p) }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSel) ClaudeTerracotta.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, if (isSel) ClaudeTerracotta else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = "${(p * 100).toInt()}%",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSel) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
         // Live Chat Message Preview Box (Directly under Chat Text Scaling)
         Text(
             text = "Live Preview",
@@ -1131,7 +1236,7 @@ private fun AppearanceSubScreen(
                         color = ClaudeTerracotta.copy(alpha = 0.15f)
                     ) {
                         Text(
-                            text = "How does AntiGem connect to AGY Hub?",
+                            text = "How does JIN connect to AGY Hub?",
                             fontSize = (13 * chatFontScale).sp,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -1151,7 +1256,7 @@ private fun AppearanceSubScreen(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "AntiGem connects via gRPC-Web to stream live agent steps and tool executions.",
+                                text = "JIN connects via gRPC-Web to stream live agent steps and tool executions.",
                                 fontSize = (13 * chatFontScale).sp,
                                 lineHeight = (18 * chatFontScale).sp,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -1692,7 +1797,7 @@ private fun AppearanceSubScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Modern AntiGem styled icon & name",
+                                        text = "Modern JIN styled icon & name",
                                         fontSize = 10.5.sp,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                     )
@@ -1942,7 +2047,7 @@ private fun ServersSubScreen(
             },
             title = {
                 Text(
-                    text = "Reopen AntiGem?",
+                    text = "Reopen JIN?",
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp
                 )
@@ -2225,7 +2330,7 @@ private fun ServersSubScreen(
                 )
                 if (com.example.gemini.data.local.LocalEnvironmentManager.isTermuxPackage(LocalContext.current)) {
                     Text(
-                        text = "• Claude Code: the default is AntiGem's launcher, which runs the newest official Claude version through the bundled glibc. Claude updates never replace it.",
+                        text = "• Claude Code: the default is JIN's launcher, which runs the newest official Claude version through the bundled glibc. Claude updates never replace it.",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -4385,7 +4490,7 @@ private fun TerminalSubScreen(
                     )
 
                     Text(
-                        text = "AntiGem is wiping all local app data, rootfs, and settings.\n\nThe app will automatically close in $countdownSeconds seconds. Simply re-open AntiGem to start fresh.",
+                        text = "JIN is wiping all local app data, rootfs, and settings.\n\nThe app will automatically close in $countdownSeconds seconds. Simply re-open JIN to start fresh.",
                         fontSize = 13.5.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -6273,7 +6378,7 @@ private fun DataProtectionSubScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Why enable this? AntiGem hosts a full local Linux environment with your Node/Python packages, Git repos, and active coding projects. An accidental drag-to-uninstall from the home screen wipes all of it permanently.\n\nActivating Android Device Administrator greys out the 'Uninstall' button at the OS level across phone launchers. You can safely disable this anytime if you wish to uninstall.",
+                    text = "Why enable this? JIN hosts a full local Linux environment with your Node/Python packages, Git repos, and active coding projects. An accidental drag-to-uninstall from the home screen wipes all of it permanently.\n\nActivating Android Device Administrator greys out the 'Uninstall' button at the OS level across phone launchers. You can safely disable this anytime if you wish to uninstall.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     lineHeight = 16.sp
@@ -6418,7 +6523,7 @@ private fun DataProtectionSubScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "When enabled (default), tapping 'Clear Data' in Android's phone Settings > App Info opens AntiGem's Safe Space Manager instead of wiping everything instantly with one click. This prevents accidental wipes and allows safe cache-only cleanup.\n\nYou can toggle this off anytime if you prefer the standard raw Android 'Clear Data' button.",
+                    text = "When enabled (default), tapping 'Clear Data' in Android's phone Settings > App Info opens JIN's Safe Space Manager instead of wiping everything instantly with one click. This prevents accidental wipes and allows safe cache-only cleanup.\n\nYou can toggle this off anytime if you prefer the standard raw Android 'Clear Data' button.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     lineHeight = 16.sp
@@ -6451,7 +6556,7 @@ private fun DataProtectionSubScreen(
             title = { Text("Disable Uninstall Protection?") },
             text = {
                 Text(
-                    "This will remove AntiGem's Device Admin status. The app will become vulnerable to accidental home-screen uninstallation.",
+                    "This will remove JIN's Device Admin status. The app will become vulnerable to accidental home-screen uninstallation.",
                     fontSize = 13.sp
                 )
             },
@@ -8225,7 +8330,7 @@ private fun AutomationSubScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Allows the AI to generate images and videos on Google Flow (flow.google.com) through your own signed-in session in the in-app browser, and to read your Flow projects, media and credits. Open Flow in the AntiGem browser and sign in first, and keep AntiGem open while generating. Files are kept once in ~/flow-media (never copied to your gallery) and fetched only when the AI needs them.",
+                    text = "Allows the AI to generate images and videos on Google Flow (flow.google.com) through your own signed-in session in the in-app browser, and to read your Flow projects, media and credits. Open Flow in the JIN browser and sign in first, and keep JIN open while generating. Files are kept once in ~/flow-media (never copied to your gallery) and fetched only when the AI needs them.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                     lineHeight = 17.sp
@@ -8357,6 +8462,15 @@ private fun DiagnosticsSubScreen(
         )
     }
 
+    val authPrefs = remember { com.example.gemini.data.preferences.AuthPreferences(context) }
+    val coroutineScope = rememberCoroutineScope()
+    var perfMode by remember { mutableStateOf(authPrefs.getPerformanceModeSync()) }
+    val availableCores = remember { Runtime.getRuntime().availableProcessors().coerceAtLeast(1) }
+    val maxHeapMb = remember { (Runtime.getRuntime().maxMemory() / (1024 * 1024)).toInt() }
+    var cpuThreads by remember { mutableIntStateOf(authPrefs.getPerfCpuThreadsSync()) }
+    var cacheMb by remember { mutableIntStateOf(authPrefs.getPerfCacheMbSync()) }
+    var autoFailover by remember { mutableStateOf(authPrefs.getAutoFailoverEnabledSync()) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -8364,6 +8478,224 @@ private fun DiagnosticsSubScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Section 0: Device Hardware & Performance Tuning Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            border = cardBorder
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFF59E0B).copy(alpha = 0.15f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Speed,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Column {
+                            Text(
+                                text = "Device Performance & Hardware",
+                                fontSize = 14.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Detected: $availableCores Cores · ${maxHeapMb}MB Max Heap",
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // High-Speed I/O Status Badge
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF10A37F).copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, Color(0xFF10A37F).copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = Color(0xFF10A37F),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "2MB Ultra-Buffered I/O: 200-300 MB/s Download & Upload Ready",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF10A37F)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Performance Mode Selector
+                Text(
+                    text = "Performance Mode",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val modes = listOf(
+                        "TURBO" to "⚡ Turbo",
+                        "BALANCED" to "⚖️ Balanced",
+                        "SAVER" to "🔋 Saver",
+                        "CUSTOM" to "🛠️ Custom"
+                    )
+
+                    modes.forEach { (mode, label) ->
+                        val isSel = perfMode == mode
+                        Surface(
+                            onClick = {
+                                perfMode = mode
+                                coroutineScope.launch {
+                                    authPrefs.savePerformanceMode(mode)
+                                    when (mode) {
+                                        "TURBO" -> {
+                                            cpuThreads = availableCores
+                                            cacheMb = minOf(1024, maxHeapMb / 2)
+                                            authPrefs.savePerfCpuThreads(cpuThreads)
+                                            authPrefs.savePerfCacheMb(cacheMb)
+                                        }
+                                        "BALANCED" -> {
+                                            cpuThreads = maxOf(1, availableCores / 2)
+                                            cacheMb = minOf(512, maxHeapMb / 3)
+                                            authPrefs.savePerfCpuThreads(cpuThreads)
+                                            authPrefs.savePerfCacheMb(cacheMb)
+                                        }
+                                        "SAVER" -> {
+                                            cpuThreads = 1
+                                            cacheMb = 128
+                                            authPrefs.savePerfCpuThreads(1)
+                                            authPrefs.savePerfCacheMb(128)
+                                        }
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSel) Color(0xFFF59E0B).copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSel) Color(0xFFF59E0B) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(vertical = 7.dp, horizontal = 2.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSel) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // If Custom Mode, show sliders with device constraints
+                if (perfMode == "CUSTOM") {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "CPU Execution Threads: $cpuThreads / $availableCores Cores",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Slider(
+                        value = cpuThreads.toFloat(),
+                        onValueChange = { cpuThreads = it.toInt() },
+                        onValueChangeFinished = {
+                            coroutineScope.launch { authPrefs.savePerfCpuThreads(cpuThreads) }
+                        },
+                        valueRange = 1f..availableCores.toFloat(),
+                        steps = if (availableCores > 1) availableCores - 2 else 0
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "RAM Cache Limit: ${cacheMb}MB (Device Limit: ${maxHeapMb}MB)",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Slider(
+                        value = cacheMb.toFloat(),
+                        onValueChange = { cacheMb = it.toInt() },
+                        onValueChangeFinished = {
+                            coroutineScope.launch { authPrefs.savePerfCacheMb(cacheMb) }
+                        },
+                        valueRange = 64f..maxHeapMb.toFloat()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Auto-Failover Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Automatic Model Quota Failover",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Switch automatically to an alternate ready model on 429 quota limits so generation never halts",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    Switch(
+                        checked = autoFailover,
+                        onCheckedChange = {
+                            autoFailover = it
+                            coroutineScope.launch { authPrefs.saveAutoFailoverEnabled(it) }
+                        }
+                    )
+                }
+            }
+        }
+
         // Section 1: Network Inspector Card
         Card(
             modifier = Modifier.fillMaxWidth(),

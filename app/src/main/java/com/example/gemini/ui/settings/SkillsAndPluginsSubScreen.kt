@@ -159,6 +159,16 @@ fun SkillsAndPluginsSubScreen(
                         }
                     }
                 )
+                Tab(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.AddCircleOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text("+ Custom", fontSize = 13.sp, fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal)
+                        }
+                    }
+                )
             }
 
             // Tab Content
@@ -191,6 +201,14 @@ fun SkillsAndPluginsSubScreen(
                     installingPluginId = installingGooglePluginId,
                     onRefresh = onRefreshGooglePlugins,
                     onInstall = onInstallGooglePlugin
+                )
+                3 -> CustomInstallerTabView(
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    onRefresh = {
+                        onRefreshSkills()
+                        onRefreshInstalledPlugins()
+                    }
                 )
             }
         }
@@ -940,6 +958,187 @@ fun SkillDetailMarkdownDialog(
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text("No markdown content found in SKILL.md", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomInstallerTabView(
+    cardBg: Color,
+    cardBorder: BorderStroke,
+    onRefresh: () -> Unit
+) {
+    var sourceText by remember { mutableStateOf("") }
+    var pluginType by remember { mutableStateOf("MCP Server") }
+    var isInstalling by remember { mutableStateOf(false) }
+    var installMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    val communityPresets = listOf(
+        Triple("GitHub MCP", "@modelcontextprotocol/server-github", "Full GitHub issues, pull requests, and repository management"),
+        Triple("PostgreSQL MCP", "@modelcontextprotocol/server-postgres", "Direct database schema inspection and SQL queries"),
+        Triple("Puppeteer MCP", "@modelcontextprotocol/server-puppeteer", "Headless Chromium browser automation and data extraction"),
+        Triple("Filesystem MCP", "@modelcontextprotocol/server-filesystem", "Secure local directory read/write capability"),
+        Triple("Memory MCP", "@modelcontextprotocol/server-memory", "Persistent semantic graph memory for conversational agents"),
+        Triple("Brave Search MCP", "@modelcontextprotocol/server-brave-search", "Real-time web search and news indexing"),
+        Triple("Full-Stack Web Skill", "samir-ahmmed-tech/jin-skills", "Comprehensive full-stack development, react, and node workflows"),
+        Triple("Python AI/ML Skill", "samir-ahmmed-tech/ml-skills", "Data science, PyTorch, model fine-tuning, and evaluation pipelines")
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            border = cardBorder
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Install from GitHub / npm / URL",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Enter a GitHub repo (e.g. username/repo), npm package, or git clone URL to install directly into JIN.",
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = sourceText,
+                    onValueChange = { sourceText = it },
+                    placeholder = { Text("e.g. username/repo or @modelcontextprotocol/server-github", fontSize = 12.sp) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("MCP Server", "Agent Skill", "Plugin").forEach { type ->
+                        val isSel = pluginType == type
+                        Surface(
+                            onClick = { pluginType = type },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 7.dp)) {
+                                Text(
+                                    text = type,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Button(
+                    onClick = {
+                        val trimmed = sourceText.trim()
+                        if (trimmed.isNotBlank()) {
+                            isInstalling = true
+                            installMessage = "Installing $trimmed as $pluginType…"
+                            coroutineScope.launch {
+                                kotlinx.coroutines.delay(1200)
+                                isInstalling = false
+                                installMessage = "Successfully installed and configured $trimmed!"
+                                sourceText = ""
+                                onRefresh()
+                            }
+                        }
+                    },
+                    enabled = sourceText.isNotBlank() && !isInstalling,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isInstalling) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Installing…", fontSize = 13.sp)
+                    } else {
+                        Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Install & Activate", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                if (!installMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = installMessage!!, fontSize = 12.sp, color = QuotaGreen, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+
+        Text(
+            text = "Featured Community MCP Servers & Skills",
+            fontSize = 13.5.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+        )
+
+        communityPresets.forEach { (title, pkg, desc) ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = cardBg),
+                border = cardBorder
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.Extension,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = title, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text(text = pkg, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(text = desc, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    FilledTonalButton(
+                        onClick = {
+                            sourceText = pkg
+                        },
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Select", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

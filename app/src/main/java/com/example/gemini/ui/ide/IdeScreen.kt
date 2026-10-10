@@ -115,6 +115,9 @@ fun IdeScreen(
     var isCaseSensitive by remember { mutableStateOf(false) }
     var searchMatchCount by remember { mutableIntStateOf(0) }
     var currentMatchIndex by remember { mutableIntStateOf(-1) }
+    var showQuickOpenPalette by remember { mutableStateOf(false) }
+    var quickOpenQuery by remember { mutableStateOf("") }
+    var showScratchpadDialog by remember { mutableStateOf(false) }
     val tabListState = rememberLazyListState()
 
     var showRunMenu by remember { mutableStateOf(false) }
@@ -447,7 +450,7 @@ fun IdeScreen(
                     },
                     title = {
                         Text(
-                            text = activeProject?.name ?: "antiGem IDE",
+                            text = activeProject?.name ?: "JIN IDE",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -456,6 +459,33 @@ fun IdeScreen(
                         )
                     },
                     actions = {
+                        // Quick Open File Palette (Ctrl+P)
+                        IconButton(
+                            onClick = {
+                                quickOpenQuery = ""
+                                showQuickOpenPalette = true
+                            },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Quick Open Files (Ctrl+P)",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        // Scratchpad & Quick Notes
+                        IconButton(
+                            onClick = { showScratchpadDialog = true },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.EditNote,
+                                contentDescription = "Scratchpad & Notes",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
                         val isTextFile = activeTab != null && (!isImageFile || (isSvgFile && showSvgSource))
                         val isTextEditable = isTextFile && !activeTab.isReadOnly
                         var showMoreOptionsMenu by remember { mutableStateOf(false) }
@@ -1687,6 +1717,171 @@ fun IdeScreen(
                         refreshRunConfigurations()
                         selectedProfileName = newProfile.name
                         Toast.makeText(context, "Added run configuration: ${newProfile.name}", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            // Quick Open File Palette (Ctrl+P / Command Palette)
+            if (showQuickOpenPalette) {
+                val flatFiles = remember(fileTree) {
+                    val list = mutableListOf<FileNode>()
+                    fun walk(nodes: List<FileNode>) {
+                        for (n in nodes) {
+                            if (!n.isDir) list.add(n)
+                            else walk(n.children)
+                        }
+                    }
+                    walk(fileTree)
+                    list
+                }
+                val filteredFiles = remember(flatFiles, quickOpenQuery) {
+                    if (quickOpenQuery.isBlank()) flatFiles.take(30)
+                    else flatFiles.filter {
+                        it.name.contains(quickOpenQuery, ignoreCase = true) ||
+                        it.path.contains(quickOpenQuery, ignoreCase = true)
+                    }.take(30)
+                }
+
+                AlertDialog(
+                    onDismissRequest = { showQuickOpenPalette = false },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Quick Open Files (Ctrl+P)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    },
+                    text = {
+                        Column(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+                            OutlinedTextField(
+                                value = quickOpenQuery,
+                                onValueChange = { quickOpenQuery = it },
+                                placeholder = { Text("Search files by name or path...") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            if (filteredFiles.isEmpty()) {
+                                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                                    Text("No matching files found", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                }
+                            } else {
+                                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                                    filteredFiles.forEach { fileNode ->
+                                        Surface(
+                                            onClick = {
+                                                showQuickOpenPalette = false
+                                                coroutineScope.launch {
+                                                    val res = IdeApiClient.readFileDetailed(fileNode.path)
+                                                    if (res != null) {
+                                                        TermuxDaemonManager.openOrSelectTab(fileNode.path, fileNode.name, res.content)
+                                                    }
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color.Transparent,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.InsertDriveFile,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(Modifier.width(10.dp))
+                                                Column(Modifier.weight(1f)) {
+                                                    Text(fileNode.name, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
+                                                    Text(
+                                                        fileNode.path,
+                                                        fontSize = 11.sp,
+                                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                    dismissButton = {
+                        TextButton(onClick = { showQuickOpenPalette = false }) { Text("Close") }
+                    }
+                )
+            }
+
+            // Scratchpad & Quick Notes Dialog
+            if (showScratchpadDialog) {
+                val scratchFile = remember { File(context.filesDir, "jin_scratchpad.txt") }
+                var scratchText by remember {
+                    mutableStateOf(if (scratchFile.exists()) scratchFile.readText() else "")
+                }
+
+                AlertDialog(
+                    onDismissRequest = { showScratchpadDialog = false },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.EditNote, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(22.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("IDE Scratchpad & Notes", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    },
+                    text = {
+                        Column(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+                            Text(
+                                "Quick scratchpad for code snippets, temporary scripts, and persistent notes.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            OutlinedTextField(
+                                value = scratchText,
+                                onValueChange = {
+                                    scratchText = it
+                                    try { scratchFile.writeText(it) } catch (_: Exception) {}
+                                },
+                                placeholder = { Text("// Paste code, jot down notes or scratch ideas here...") },
+                                modifier = Modifier.fillMaxWidth().weight(1f, fill = false).height(240.dp),
+                                textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.5.sp),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    val clip = android.content.ClipData.newPlainText("Scratchpad", scratchText)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "Copied scratchpad to clipboard", Toast.LENGTH_SHORT).show()
+                                }
+                            ) {
+                                Text("Copy All")
+                            }
+                            Button(onClick = { showScratchpadDialog = false }) {
+                                Text("Done")
+                            }
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                scratchText = ""
+                                try { scratchFile.writeText("") } catch (_: Exception) {}
+                            }
+                        ) {
+                            Text("Clear", color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 )
             }

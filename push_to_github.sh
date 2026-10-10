@@ -43,7 +43,7 @@ if git diff --staged --quiet; then
     echo "ℹ️  No new changes to commit."
 else
     echo "💾 Creating commit..."
-    git commit -m "feat: JIN v2.0.2 - complete 5-agent architecture, direct API streaming, new 3D robot mascot & bug fixes"
+    git commit -m "feat: JIN v2.0.3 - Swarm Concurrency, Supercharged Speed, Ready-Only Model Picker & PC IDE Features"
 fi
 
 echo "🔄 Pushing to https://github.com/${REPO_OWNER}/${REPO_NAME} on branch main..."

@@ -258,6 +258,48 @@ class DirectAgentChatBackend(
                 saveConversationMeta(conv.copy(updatedAt = System.currentTimeMillis()))
             } catch (e: Exception) {
                 Log.e("DirectAgent", "Error streaming response for ${kind.name}: ${e.message}", e)
+                val errMsg = (e.message ?: "").lowercase()
+                val isQuotaOrRateLimit = errMsg.contains("429") || errMsg.contains("quota") || errMsg.contains("rate limit") ||
+                        errMsg.contains("insufficient") || errMsg.contains("credit") || errMsg.contains("exceeded")
+
+                if (isQuotaOrRateLimit && authPrefs.getAutoFailoverEnabledSync()) {
+                    val currentMId = _selectedModelId.value
+                    val fallbackModel = availableModels.value.firstOrNull { it.id != currentMId }
+                    if (fallbackModel != null) {
+                        try {
+                            _selectedModelId.value = fallbackModel.id
+                            responseBuffer.clear()
+                            responseBuffer.append("> ⚡ **Auto-Failover Activated**: Quota limit reached on `$currentMId`. Switched automatically to **${fallbackModel.displayName}**.\n\n")
+
+                            directApiClient.streamChatCompletion(
+                                agentKind = kind,
+                                modelId = fallbackModel.id,
+                                messages = history,
+                                systemPrompt = "You are JIN, an advanced agentic AI coding super-assistant created by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin). Assist the developer with clear, high-quality, production-ready code."
+                            ) { token ->
+                                responseBuffer.append(token)
+                                val updatedText = responseBuffer.toString()
+                                val liveList = _messages.value.map {
+                                    if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                                }
+                                _messages.value = liveList
+                                store.messages.value = liveList
+                            }
+
+                            val finalList = _messages.value.map {
+                                if (it.id == assistantMsgId) it.copy(content = responseBuffer.toString(), isStreaming = false) else it
+                            }
+                            _messages.value = finalList
+                            store.messages.value = finalList
+                            saveMessagesToDisk(conv.id, finalList)
+                            saveConversationMeta(conv.copy(updatedAt = System.currentTimeMillis()))
+                            return@launch
+                        } catch (fallbackEx: Exception) {
+                            Log.e("DirectAgent", "Auto-failover fallback also failed: ${fallbackEx.message}")
+                        }
+                    }
+                }
+
                 val errText = responseBuffer.toString().ifBlank {
                     "❌ **Connection Error**: ${e.localizedMessage ?: e.message ?: "Failed to receive response from provider."}"
                 }

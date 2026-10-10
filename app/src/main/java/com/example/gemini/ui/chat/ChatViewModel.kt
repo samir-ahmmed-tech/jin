@@ -778,6 +778,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     val chatFontScale = authPrefs.chatFontScale
+    val appUiScale = authPrefs.appUiScale
+    val performanceMode = authPrefs.performanceMode
+    val perfCpuThreads = authPrefs.perfCpuThreads
+    val perfCacheMb = authPrefs.perfCacheMb
+    val multiAgentConcurrency = authPrefs.multiAgentConcurrency
+    val autoFailoverEnabled = authPrefs.autoFailoverEnabled
     val themeMode: StateFlow<String> = authPrefs.themeMode
         .stateIn(viewModelScope, SharingStarted.Eagerly, authPreferences.getThemeModeSync())
     val agyHubUrl = authPrefs.agyHubUrl
@@ -1003,6 +1009,42 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun setChatFontScale(scale: Float) {
         viewModelScope.launch {
             authPrefs.saveChatFontScale(scale)
+        }
+    }
+
+    fun setAppUiScale(scale: Float) {
+        viewModelScope.launch {
+            authPrefs.saveAppUiScale(scale)
+        }
+    }
+
+    fun setPerformanceMode(mode: String) {
+        viewModelScope.launch {
+            authPrefs.savePerformanceMode(mode)
+        }
+    }
+
+    fun setPerfCpuThreads(threads: Int) {
+        viewModelScope.launch {
+            authPrefs.savePerfCpuThreads(threads)
+        }
+    }
+
+    fun setPerfCacheMb(mb: Int) {
+        viewModelScope.launch {
+            authPrefs.savePerfCacheMb(mb)
+        }
+    }
+
+    fun setMultiAgentConcurrency(count: Int) {
+        viewModelScope.launch {
+            authPrefs.saveMultiAgentConcurrency(count)
+        }
+    }
+
+    fun setAutoFailoverEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            authPrefs.saveAutoFailoverEnabled(enabled)
         }
     }
 

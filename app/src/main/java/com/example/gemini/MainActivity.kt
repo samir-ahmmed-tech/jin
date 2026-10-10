@@ -188,13 +188,23 @@ class MainActivity : ComponentActivity() {
             }
             var hasSkippedInstaller by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
-            val showFullScreenInstaller = !isInstalledState && !hasSkippedInstaller
+            val appUiScale by chatViewModel.appUiScale.collectAsState(initial = 1.0f)
+            val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+            val scaledDensity = remember(currentDensity, appUiScale) {
+                androidx.compose.ui.unit.Density(
+                    density = currentDensity.density * appUiScale.coerceIn(0.25f, 2.0f),
+                    fontScale = currentDensity.fontScale * appUiScale.coerceIn(0.25f, 2.0f)
+                )
+            }
 
             GeminiTheme(darkTheme = useDarkTheme) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                CompositionLocalProvider(
+                    androidx.compose.ui.platform.LocalDensity provides scaledDensity
                 ) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
                     if (showPermissionsDialog) {
                         com.example.gemini.ui.components.AppPermissionsDialog(
                             onDismissOrCompleted = {
@@ -422,6 +432,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
     }
 
 

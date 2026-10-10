@@ -58,35 +58,43 @@ fun AgentPicker(
     statusColors: Map<AgentKind, Color> = emptyMap()
 ) {
     if (agents.size < 2) return
-    val shape = RoundedCornerShape(20.dp)
+    val scrollState = androidx.compose.foundation.rememberScrollState()
+    val shape = RoundedCornerShape(22.dp)
     Row(
         modifier = modifier
             .clip(shape)
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), shape)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), shape)
+            .padding(4.dp)
+            .androidx.compose.foundation.horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AgentKind.entries.filter { it in agents }.forEach { agent ->
             val isSelected = agent == selected
             val accent = agent.accent()
+            val pillShape = RoundedCornerShape(18.dp)
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(17.dp))
-                    .background(if (isSelected) accent.copy(alpha = 0.16f) else Color.Transparent)
+                    .clip(pillShape)
+                    .background(if (isSelected) accent.copy(alpha = 0.18f) else Color.Transparent)
+                    .border(
+                        width = if (isSelected) 1.5.dp else 0.dp,
+                        color = if (isSelected) accent.copy(alpha = 0.7f) else Color.Transparent,
+                        shape = pillShape
+                    )
                     .clickable { onSelect(agent) }
-                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                statusColors[agent]?.let { dot ->
-                    Box(Modifier.size(7.dp).clip(CircleShape).background(dot))
-                    Spacer(Modifier.width(7.dp))
-                }
+                val dot = statusColors[agent] ?: accent
+                Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
+                Spacer(Modifier.width(7.dp))
                 Text(
                     text = agent.label(),
                     fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isSelected) accent else MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (isSelected) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
             }
         }

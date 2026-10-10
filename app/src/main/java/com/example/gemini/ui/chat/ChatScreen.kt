@@ -355,11 +355,9 @@ fun ChatScreen(
     val serverRestarting = serverStatus is com.example.gemini.data.local.LocalServerStatus.Starting ||
         serverStatus is com.example.gemini.data.local.LocalServerStatus.Stopping
     val restartLocalServer = {
-        com.example.gemini.ui.components.AppToastHelper.showToast("Restarting the local server…", com.example.gemini.ui.components.ChatToastType.INFO)
         com.example.gemini.data.local.LocalServerManager.restartServer(context)
     }
     val recheckClaude = {
-        com.example.gemini.ui.components.AppToastHelper.showToast("Checking Claude Code…", com.example.gemini.ui.components.ChatToastType.INFO)
         viewModel.claudeAccount.refreshStatus()
     }
     val agyEntry = if (com.example.gemini.domain.model.AgentKind.AGY in enabledAgents) {
@@ -372,7 +370,6 @@ fun ChatScreen(
             onSignIn = { viewModel.loginToAgyHub(force = true) },
             onCheckAuth = { viewModel.checkAgyAuthStatus(userInitiated = true) },
             onRetry = {
-                com.example.gemini.ui.components.AppToastHelper.showToast("Reconnecting to Antigravity…", com.example.gemini.ui.components.ChatToastType.INFO)
                 viewModel.retryConnections()
             },
             onRestartServer = restartLocalServer

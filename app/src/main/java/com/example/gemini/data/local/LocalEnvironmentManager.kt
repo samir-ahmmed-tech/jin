@@ -17,6 +17,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import okhttp3.ConnectionPool
+import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
@@ -72,14 +74,20 @@ object LocalEnvironmentManager {
     const val UBUNTU_ROOTFS_ASSET = "ubuntu-questing-aarch64-pd-v4.30.1.tar.xz"
     const val UBUNTU_ROOTFS_SIZE_BYTES = 35 * 1024 * 1024L
 
-    private const val NOTIFICATION_CHANNEL_ID = "antigem_bootstrap_install"
+    private const val NOTIFICATION_CHANNEL_ID = "jin_bootstrap_install"
     private const val NOTIFICATION_ID = 4096
     @Volatile
     private var lastNotificationTime = 0L
 
     private val httpClient = OkHttpClient.Builder()
+        .connectionPool(ConnectionPool(16, 5, TimeUnit.MINUTES))
+        .dispatcher(Dispatcher().apply {
+            maxRequests = 64
+            maxRequestsPerHost = 32
+        })
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(180, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
         .followRedirects(true)
         .followSslRedirects(true)
         .retryOnConnectionFailure(true)
@@ -99,7 +107,7 @@ object LocalEnvironmentManager {
             if (notificationManager != null) {
                 val channel = NotificationChannel(
                     NOTIFICATION_CHANNEL_ID,
-                    "Rootfs Installation",
+                    "JIN Rootfs Installation",
                     NotificationManager.IMPORTANCE_LOW
                 ).apply {
                     description = "Shows progress while downloading and installing the Linux rootfs"
@@ -511,7 +519,7 @@ object LocalEnvironmentManager {
             if (!bin.exists()) return
             val script = """
                 |#!$prefix/bin/bash
-                |# Claude Code launcher written by AntiGem on every start (edits are overwritten).
+                |# Claude Code launcher written by JIN on every start (edits are overwritten).
                 |# The official Claude binary needs glibc: start the newest installed version through the bundled loader.
                 |# Claude's updater only changes ~/.local/share/claude/versions and ~/.local/bin/claude, never this file.
                 |VERSIONS_DIR="$home/.local/share/claude/versions"
@@ -535,11 +543,11 @@ object LocalEnvironmentManager {
                 |    done
                 |fi
                 |if [ -z "${'$'}TARGET" ]; then
-                |    echo "Claude Code is not installed. Install it in AntiGem: Settings > Claude Code > Account & CLI." >&2
+                |    echo "Claude Code is not installed. Install it in JIN: Settings > Claude Code > Account & CLI." >&2
                 |    exit 127
                 |fi
                 |if [ ! -x "${'$'}LOADER" ]; then
-                |    echo "The glibc runtime is missing (${'$'}LOADER). Reopen AntiGem to restore it." >&2
+                |    echo "The glibc runtime is missing (${'$'}LOADER). Reopen JIN to restore it." >&2
                 |    exit 127
                 |fi
                 |# termux-exec is a bionic library: it must not be preloaded into the glibc process
@@ -882,7 +890,7 @@ object LocalEnvironmentManager {
                     val targetUrl = if (isTermux) HARDCODED_ROOTFS_URL else UBUNTU_ROOTFS_URL
                     val targetAsset = if (isTermux) HARDCODED_ROOTFS_ASSET else UBUNTU_ROOTFS_ASSET
                     val targetSizeBytes = if (isTermux) HARDCODED_ROOTFS_SIZE_BYTES else UBUNTU_ROOTFS_SIZE_BYTES
-                    val titlePrefix = if (isTermux) "AntiGem Rootfs" else "Ubuntu Rootfs"
+                    val titlePrefix = if (isTermux) "JIN Rootfs" else "Ubuntu Rootfs"
 
                     _installerState.value = LocalInstallerState.Downloading(
                         bytesDownloaded = 0L,
@@ -934,9 +942,10 @@ object LocalEnvironmentManager {
                             var bytesReadTotal = 0L
                             val startTime = System.currentTimeMillis()
 
-                            val buffer = ByteArray(64 * 1024)
-                            FileOutputStream(tempZipFile).use { outStream ->
-                                body.byteStream().use { inStream ->
+                            val bufferSize = 2 * 1024 * 1024 // 2MB high-speed buffer
+                            val buffer = ByteArray(bufferSize)
+                            BufferedOutputStream(FileOutputStream(tempZipFile), bufferSize).use { outStream ->
+                                BufferedInputStream(body.byteStream(), bufferSize).use { inStream ->
                                     var read: Int
                                     var lastUpdate = System.currentTimeMillis()
                                     while (inStream.read(buffer).also { read = it } != -1) {
@@ -944,7 +953,7 @@ object LocalEnvironmentManager {
                                         bytesReadTotal += read
 
                                         val now = System.currentTimeMillis()
-                                        if (now - lastUpdate > 120) {
+                                        if (now - lastUpdate > 250) {
                                             val elapsedSec = (now - startTime) / 1000.0
                                             val speed = if (elapsedSec > 0) bytesReadTotal / elapsedSec else 0.0
                                             val speedFormatted = "${formatFileSize(speed.toLong())}/s"
@@ -1033,32 +1042,35 @@ object LocalEnvironmentManager {
                                 var bytesReadTotal = 0L
                                 val startTime = System.currentTimeMillis()
 
-                                val buffer = ByteArray(64 * 1024)
-                                FileOutputStream(tempZipFile).use { outStream ->
+                                val bufferSize = 2 * 1024 * 1024 // 2MB high-speed buffer
+                                val buffer = ByteArray(bufferSize)
+                                BufferedOutputStream(FileOutputStream(tempZipFile), bufferSize).use { outStream ->
                                     body.byteStream().use { inStream ->
-                                        var read: Int
-                                        var lastUpdate = System.currentTimeMillis()
-                                        while (inStream.read(buffer).also { read = it } != -1) {
-                                            outStream.write(buffer, 0, read)
-                                            bytesReadTotal += read
+                                        BufferedInputStream(inStream, bufferSize).use { bufIn ->
+                                            var read: Int
+                                            var lastUpdate = System.currentTimeMillis()
+                                            while (bufIn.read(buffer).also { read = it } != -1) {
+                                                outStream.write(buffer, 0, read)
+                                                bytesReadTotal += read
 
-                                            val now = System.currentTimeMillis()
-                                            if (now - lastUpdate > 120) {
-                                                val elapsedSec = (now - startTime) / 1000.0
-                                                val speed = if (elapsedSec > 0) bytesReadTotal / elapsedSec else 0.0
-                                                val speedFormatted = "${formatFileSize(speed.toLong())}/s"
-                                                val fraction = (bytesReadTotal.toFloat() / expectedTotal.toFloat()).coerceIn(0.05f, 0.95f)
+                                                val now = System.currentTimeMillis()
+                                                if (now - lastUpdate > 250) {
+                                                    val elapsedSec = (now - startTime) / 1000.0
+                                                    val speed = if (elapsedSec > 0) bytesReadTotal / elapsedSec else 0.0
+                                                    val speedFormatted = "${formatFileSize(speed.toLong())}/s"
+                                                    val fraction = (bytesReadTotal.toFloat() / expectedTotal.toFloat()).coerceIn(0.05f, 0.95f)
 
-                                                _installerState.value = LocalInstallerState.Downloading(
-                                                    bytesDownloaded = bytesReadTotal,
-                                                    totalBytes = expectedTotal,
-                                                    progressFraction = fraction,
-                                                    speedText = speedFormatted,
-                                                    currentPackageName = "bootstrap-$arch.zip"
-                                                )
-                                                val pct = (fraction * 100).toInt()
-                                                updateInstallNotification(appContext, "Downloading Linux Rootfs ($pct%)", "$speedFormatted • bootstrap-$arch.zip", pct)
-                                                lastUpdate = now
+                                                    _installerState.value = LocalInstallerState.Downloading(
+                                                        bytesDownloaded = bytesReadTotal,
+                                                        totalBytes = expectedTotal,
+                                                        progressFraction = fraction,
+                                                        speedText = speedFormatted,
+                                                        currentPackageName = "bootstrap-$arch.zip"
+                                                    )
+                                                    val pct = (fraction * 100).toInt()
+                                                    updateInstallNotification(appContext, "Downloading JIN Rootfs ($pct%)", "$speedFormatted • bootstrap-$arch.zip", pct)
+                                                    lastUpdate = now
+                                                }
                                             }
                                         }
                                     }

@@ -425,7 +425,7 @@ fun ChatHistoryDrawer(
             },
             title = {
                 Text(
-                    text = "Exit AntiGem?",
+                    text = "Exit JIN?",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

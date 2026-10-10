@@ -61,10 +61,31 @@ fun ModelSelectorBottomSheet(
     onSelectModel: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val allModels = remember(availableModels) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val authPrefs = remember { com.example.gemini.data.preferences.AuthPreferences(context) }
+    var refreshKey by remember { mutableIntStateOf(0) }
+    val hasOpenAi = remember(refreshKey) { authPrefs.getOpenAiApiKeySync().isNotBlank() }
+    val hasDeepseek = remember(refreshKey) { authPrefs.getDeepSeekApiKeySync().isNotBlank() }
+    val hasClaude = remember(refreshKey) { authPrefs.getAnthropicApiKeySync().isNotBlank() }
+    val hasGemini = remember(refreshKey) { authPrefs.getGeminiApiKeySync().isNotBlank() }
+    val hasOpenRouter = remember(refreshKey) { authPrefs.getOpenRouterApiKeySync().isNotBlank() }
+    val hasCustom = remember(refreshKey) { authPrefs.getCustomApiKeySync().isNotBlank() }
+
+    var addKeyDialogProvider by remember { mutableStateOf<String?>(null) }
+    var enteredKeyText by remember { mutableStateOf("") }
+
+    val allModels = remember(availableModels, refreshKey) {
         val list = availableModels.toMutableList()
         for (m in AiModel.DEFAULT_MODELS) {
-            if (list.none { it.id == m.id || it.key == m.id }) {
+            val isReady = when (m.family) {
+                ModelFamily.ANTIGRAVITY -> true
+                ModelFamily.OPENAI -> hasOpenAi || list.any { it.family == ModelFamily.OPENAI }
+                ModelFamily.DEEPSEEK -> hasDeepseek || list.any { it.family == ModelFamily.DEEPSEEK }
+                ModelFamily.CLAUDE -> hasClaude || list.any { it.family == ModelFamily.CLAUDE }
+                ModelFamily.GEMINI -> hasGemini || list.any { it.family == ModelFamily.GEMINI }
+                ModelFamily.OTHER -> hasOpenRouter || hasCustom || list.any { it.family == ModelFamily.OTHER }
+            }
+            if (isReady && list.none { it.id == m.id || it.key == m.id }) {
                 list.add(m)
             }
         }
@@ -143,6 +164,11 @@ fun ModelSelectorBottomSheet(
                         isRefreshing = isRefreshing,
                         onRefresh = onRefresh,
                         onSelectCategory = { category -> activeCategory = category },
+                        hasOpenAi = hasOpenAi,
+                        hasDeepseek = hasDeepseek,
+                        hasClaude = hasClaude,
+                        hasOpenRouter = hasOpenRouter,
+                        onAddKeyRequested = { prov -> addKeyDialogProvider = prov },
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
@@ -176,6 +202,60 @@ fun ModelSelectorBottomSheet(
                 }
             }
         }
+    }
+
+    if (addKeyDialogProvider != null) {
+        val prov = addKeyDialogProvider!!
+        AlertDialog(
+            onDismissRequest = { addKeyDialogProvider = null; enteredKeyText = "" },
+            title = { Text("Unlock $prov Models", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text(
+                        "Enter your $prov API key to instantly unlock its models in the chat box.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = enteredKeyText,
+                        onValueChange = { enteredKeyText = it },
+                        placeholder = { Text("Paste $prov API Key...") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val key = enteredKeyText.trim()
+                        if (key.isNotBlank()) {
+                            coroutineScope.launch {
+                                when (prov) {
+                                    "DeepSeek" -> authPrefs.saveDeepSeekApiKey(key)
+                                    "OpenAI" -> authPrefs.saveOpenAiApiKey(key)
+                                    "Claude" -> authPrefs.saveAnthropicApiKey(key)
+                                    "OpenRouter" -> authPrefs.saveOpenRouterApiKey(key)
+                                }
+                                refreshKey++
+                                addKeyDialogProvider = null
+                                enteredKeyText = ""
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Save & Unlock")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { addKeyDialogProvider = null; enteredKeyText = "" }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -291,6 +371,11 @@ private fun MainCategoryListView(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onSelectCategory: (CategoryType) -> Unit,
+    hasOpenAi: Boolean = false,
+    hasDeepseek: Boolean = false,
+    hasClaude: Boolean = false,
+    hasOpenRouter: Boolean = false,
+    onAddKeyRequested: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -437,6 +522,68 @@ private fun MainCategoryListView(
                     brandColor = Color(0xFF8B5CF6),
                     onClick = { onSelectCategory(CategoryType.CUSTOM) }
                 )
+            }
+
+            val missingProviders = buildList {
+                if (!hasDeepseek) add("DeepSeek" to Color(0xFF3B82F6))
+                if (!hasOpenAi) add("OpenAI" to Color(0xFF10A37F))
+                if (!hasClaude) add("Claude" to Color(0xFFD97706))
+                if (!hasOpenRouter) add("OpenRouter" to Color(0xFF8B5CF6))
+            }
+            if (missingProviders.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Add API Key to Unlock More Models",
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    missingProviders.forEach { (prov, col) ->
+                        Surface(
+                            onClick = { onAddKeyRequested(prov) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(col)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "$prov Models",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = col.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = "+ Add Key",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = col,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

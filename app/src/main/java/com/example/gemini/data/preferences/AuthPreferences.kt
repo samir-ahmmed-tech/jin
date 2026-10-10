@@ -38,6 +38,12 @@ class AuthPreferences(private val context: Context) {
         val ENABLED_MODELS = androidx.datastore.preferences.core.stringSetPreferencesKey("enabled_models")
         val IS_DEV_MODE_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("is_dev_mode_enabled")
         val CHAT_FONT_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("chat_font_scale")
+        val APP_UI_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("app_ui_scale")
+        val PERFORMANCE_MODE = stringPreferencesKey("performance_mode")
+        val PERF_CPU_THREADS = androidx.datastore.preferences.core.intPreferencesKey("perf_cpu_threads")
+        val PERF_CACHE_MB = androidx.datastore.preferences.core.intPreferencesKey("perf_cache_mb")
+        val MULTI_AGENT_CONCURRENCY = androidx.datastore.preferences.core.intPreferencesKey("multi_agent_concurrency")
+        val AUTO_FAILOVER_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("auto_failover_enabled")
         val WORKING_ANIMATION_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("working_animation_enabled")
         val CHAT_DIVIDERS_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("chat_dividers_enabled")
         val IS_LOCAL_TOOLS_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("is_local_tools_enabled")
@@ -242,6 +248,23 @@ class AuthPreferences(private val context: Context) {
     val enabledModelIds: Flow<Set<String>?> = context.dataStore.data.map { it[ENABLED_MODELS] }
     val isDevModeEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_DEV_MODE_ENABLED] ?: false }
     val chatFontScale: Flow<Float> = context.dataStore.data.map { it[CHAT_FONT_SCALE] ?: 1.0f }
+    val appUiScale: Flow<Float> = context.dataStore.data.map { it[APP_UI_SCALE] ?: 1.0f }
+    fun getAppUiScaleSync(): Float = syncPrefs.getFloat("app_ui_scale", 1.0f)
+
+    val performanceMode: Flow<String> = context.dataStore.data.map { it[PERFORMANCE_MODE] ?: "TURBO" }
+    fun getPerformanceModeSync(): String = syncPrefs.getString("performance_mode", "TURBO") ?: "TURBO"
+
+    val perfCpuThreads: Flow<Int> = context.dataStore.data.map { it[PERF_CPU_THREADS] ?: Runtime.getRuntime().availableProcessors().coerceAtLeast(1) }
+    fun getPerfCpuThreadsSync(): Int = syncPrefs.getInt("perf_cpu_threads", Runtime.getRuntime().availableProcessors().coerceAtLeast(1))
+
+    val perfCacheMb: Flow<Int> = context.dataStore.data.map { it[PERF_CACHE_MB] ?: 512 }
+    fun getPerfCacheMbSync(): Int = syncPrefs.getInt("perf_cache_mb", 512)
+
+    val multiAgentConcurrency: Flow<Int> = context.dataStore.data.map { it[MULTI_AGENT_CONCURRENCY] ?: 3 }
+    fun getMultiAgentConcurrencySync(): Int = syncPrefs.getInt("multi_agent_concurrency", 3)
+
+    val autoFailoverEnabled: Flow<Boolean> = context.dataStore.data.map { it[AUTO_FAILOVER_ENABLED] ?: true }
+    fun getAutoFailoverEnabledSync(): Boolean = syncPrefs.getBoolean("auto_failover_enabled", true)
 
     /** The Claude Code-style "working" row under a running reply; off = only the "…" dots before the first output. */
     val workingAnimationEnabled: Flow<Boolean> = context.dataStore.data.map { it[WORKING_ANIMATION_ENABLED] ?: true }
@@ -487,6 +510,53 @@ class AuthPreferences(private val context: Context) {
     suspend fun saveChatFontScale(scale: Float) {
         context.dataStore.edit { prefs ->
             prefs[CHAT_FONT_SCALE] = scale
+        }
+    }
+
+    suspend fun saveAppUiScale(scale: Float) {
+        val clamped = scale.coerceIn(0.25f, 2.0f)
+        syncPrefs.edit().putFloat("app_ui_scale", clamped).apply()
+        context.dataStore.edit { prefs ->
+            prefs[APP_UI_SCALE] = clamped
+        }
+    }
+
+    suspend fun savePerformanceMode(mode: String) {
+        syncPrefs.edit().putString("performance_mode", mode).apply()
+        context.dataStore.edit { prefs ->
+            prefs[PERFORMANCE_MODE] = mode
+        }
+    }
+
+    suspend fun savePerfCpuThreads(threads: Int) {
+        val maxThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+        val clamped = threads.coerceIn(1, maxThreads)
+        syncPrefs.edit().putInt("perf_cpu_threads", clamped).apply()
+        context.dataStore.edit { prefs ->
+            prefs[PERF_CPU_THREADS] = clamped
+        }
+    }
+
+    suspend fun savePerfCacheMb(mb: Int) {
+        val clamped = mb.coerceIn(64, 4096)
+        syncPrefs.edit().putInt("perf_cache_mb", clamped).apply()
+        context.dataStore.edit { prefs ->
+            prefs[PERF_CACHE_MB] = clamped
+        }
+    }
+
+    suspend fun saveMultiAgentConcurrency(count: Int) {
+        val clamped = count.coerceIn(1, 6)
+        syncPrefs.edit().putInt("multi_agent_concurrency", clamped).apply()
+        context.dataStore.edit { prefs ->
+            prefs[MULTI_AGENT_CONCURRENCY] = clamped
+        }
+    }
+
+    suspend fun saveAutoFailoverEnabled(enabled: Boolean) {
+        syncPrefs.edit().putBoolean("auto_failover_enabled", enabled).apply()
+        context.dataStore.edit { prefs ->
+            prefs[AUTO_FAILOVER_ENABLED] = enabled
         }
     }
 

@@ -26,8 +26,19 @@ object AppToastHelper {
     fun showToast(message: String, type: ChatToastType? = null) {
         val trimmed = message.trim()
         if (trimmed.isBlank()) return
+        val lower = trimmed.lowercase()
+
+        // Suppress noisy startup / automatic background toasts (e.g. "adding two new skill", etc.)
+        if ((lower.contains("adding") && lower.contains("skill")) ||
+            lower.contains("new skill") ||
+            (lower.contains("two") && lower.contains("skill")) ||
+            lower.contains("checking claude code") ||
+            lower.contains("reconnecting to antigravity") ||
+            lower.contains("restarting the local server")
+        ) {
+            return
+        }
         val resolvedType = type ?: run {
-            val lower = trimmed.lowercase()
             when {
                 lower.contains("success") || lower.contains("signed in") || lower.contains("logged in") ||
                 lower.contains("saved") || lower.contains("switched") || lower.contains("copied") ||
