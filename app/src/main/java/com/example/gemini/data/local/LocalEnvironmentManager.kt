@@ -893,6 +893,7 @@ object LocalEnvironmentManager {
                     )
                     updateInstallNotification(appContext, "Downloading $titlePrefix", "Connecting...", -1)
 
+                    try {
                         var activeUrl = targetUrl
                         var response = httpClient.newCall(
                             Request.Builder()

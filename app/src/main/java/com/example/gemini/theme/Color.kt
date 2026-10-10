@@ -47,3 +47,4 @@ val QuotaRed = Color(0xFFEF4444)
 
 val GeminiBlue = Color(0xFF3B82F6)
 val GeminiPurple = Color(0xFF8B5CF6)
+val DeepSeekBlue = Color(0xFF3B82F6)
