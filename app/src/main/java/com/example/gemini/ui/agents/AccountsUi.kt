@@ -121,10 +121,13 @@ fun AccountsButton(
     claude: AgentStatusEntry?,
     agyAuth: AgyHubClient.AgyAuthInfo,
     claudeStatus: ClaudeCliStatus?,
+    deepseek: AgentStatusEntry? = null,
+    codex: AgentStatusEntry? = null,
+    openrouter: AgentStatusEntry? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val entries = listOfNotNull(agy, claude)
+    val entries = listOfNotNull(agy, claude, deepseek, codex, openrouter)
     val needsSignIn = entries.any { it.isSignedOut }
     val single = entries.singleOrNull()
     Surface(
@@ -138,6 +141,9 @@ fun AccountsButton(
             Row(horizontalArrangement = Arrangement.spacedBy((-7).dp)) {
                 agy?.let { AccountAvatar(AgentKind.AGY, it, agyAuth.displayName.firstOrNull(), agyAuth.profilePictureUrl?.takeIf { u -> u.isNotBlank() }) }
                 claude?.let { AccountAvatar(AgentKind.CLAUDE, it, claudeStatus?.auth?.email?.firstOrNull()) }
+                deepseek?.let { AccountAvatar(AgentKind.DEEPSEEK_LOCAL, it, 'D') }
+                codex?.let { AccountAvatar(AgentKind.CODEX, it, 'C') }
+                openrouter?.let { AccountAvatar(AgentKind.OPENROUTER, it, 'O') }
             }
             Spacer(Modifier.width(7.dp))
             val text = when {
@@ -172,6 +178,10 @@ fun AccountsDialog(
     onAgyCancelSignIn: () -> Unit,
     onClaudeSignOut: () -> Unit,
     onClaudeSettings: () -> Unit,
+    deepseek: AgentStatusEntry? = null,
+    codex: AgentStatusEntry? = null,
+    openrouter: AgentStatusEntry? = null,
+    onOpenApiKeys: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -264,6 +274,54 @@ fun AccountsDialog(
                                 onClaudeSettings()
                                 onDismiss()
                             }
+                        }
+                    }
+                }
+
+                deepseek?.let { entry ->
+                    Spacer(Modifier.height(12.dp))
+                    AccountSection(
+                        entry = entry,
+                        avatar = { AccountAvatar(AgentKind.DEEPSEEK_LOCAL, entry, 'D', size = 44.dp) },
+                        title = AgentKind.DEEPSEEK_LOCAL.label(),
+                        subtitle = entry.detail,
+                        facts = listOf("DeepSeek V3", "DeepSeek Coder")
+                    ) {
+                        SectionButton("API Keys & Settings", Icons.Outlined.Settings) {
+                            onOpenApiKeys()
+                            onDismiss()
+                        }
+                    }
+                }
+
+                codex?.let { entry ->
+                    Spacer(Modifier.height(12.dp))
+                    AccountSection(
+                        entry = entry,
+                        avatar = { AccountAvatar(AgentKind.CODEX, entry, 'C', size = 44.dp) },
+                        title = AgentKind.CODEX.label(),
+                        subtitle = entry.detail,
+                        facts = listOf("OpenAI Codex", "GPT-4o")
+                    ) {
+                        SectionButton("API Keys & Settings", Icons.Outlined.Settings) {
+                            onOpenApiKeys()
+                            onDismiss()
+                        }
+                    }
+                }
+
+                openrouter?.let { entry ->
+                    Spacer(Modifier.height(12.dp))
+                    AccountSection(
+                        entry = entry,
+                        avatar = { AccountAvatar(AgentKind.OPENROUTER, entry, 'O', size = 44.dp) },
+                        title = AgentKind.OPENROUTER.label(),
+                        subtitle = entry.detail,
+                        facts = listOf("OpenRouter Universal", "Llama 3.3", "Codestral")
+                    ) {
+                        SectionButton("API Keys & Settings", Icons.Outlined.Settings) {
+                            onOpenApiKeys()
+                            onDismiss()
                         }
                     }
                 }

@@ -821,17 +821,22 @@ fun ChatHistoryDrawer(
             }
 
             if (hasBothAgents || agentFilter != null) {
-                Row(
+                androidx.compose.foundation.lazy.LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 2.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    listOf<Pair<com.example.gemini.domain.model.AgentKind?, String>>(
+                    val filterOptions = listOf<Pair<com.example.gemini.domain.model.AgentKind?, String>>(
                         null to "All",
                         com.example.gemini.domain.model.AgentKind.AGY to "Antigravity",
-                        com.example.gemini.domain.model.AgentKind.CLAUDE to "Claude"
-                    ).forEach { (agent, label) ->
+                        com.example.gemini.domain.model.AgentKind.CLAUDE to "Claude",
+                        com.example.gemini.domain.model.AgentKind.DEEPSEEK_LOCAL to "DeepSeek",
+                        com.example.gemini.domain.model.AgentKind.CODEX to "Codex",
+                        com.example.gemini.domain.model.AgentKind.OPENROUTER to "OpenRouter"
+                    )
+                    items(filterOptions.size) { index ->
+                        val (agent, label) = filterOptions[index]
                         val selected = agentFilter == agent
                         val accent = agent?.accent() ?: ClaudeTerracotta
                         Text(
@@ -1514,8 +1519,8 @@ private fun ChatHistoryItemRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                if (conv.agent == com.example.gemini.domain.model.AgentKind.CLAUDE) {
-                    com.example.gemini.ui.components.ClaudeBadge(modifier = Modifier.padding(start = 6.dp))
+                if (conv.agent != com.example.gemini.domain.model.AgentKind.AGY) {
+                    com.example.gemini.ui.components.AgentBadge(conv.agent, modifier = Modifier.padding(start = 6.dp))
                 }
                 if (subagents.isNotEmpty()) {
                     Surface(

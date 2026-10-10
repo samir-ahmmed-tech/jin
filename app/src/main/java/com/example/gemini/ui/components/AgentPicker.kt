@@ -105,3 +105,17 @@ fun ClaudeBadge(modifier: Modifier = Modifier) {
         Text(text = "Claude", fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold, color = ClaudeAccent)
     }
 }
+
+/** Small badge marking an agent conversation in lists. */
+@Composable
+fun AgentBadge(agent: AgentKind, modifier: Modifier = Modifier) {
+    val accent = agent.accent()
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(accent.copy(alpha = 0.16f))
+            .padding(horizontal = 5.dp, vertical = 1.dp)
+    ) {
+        Text(text = agent.label(), fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold, color = accent)
+    }
+}

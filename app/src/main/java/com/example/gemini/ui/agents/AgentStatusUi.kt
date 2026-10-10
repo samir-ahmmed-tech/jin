@@ -163,6 +163,38 @@ fun claudePlanLabel(raw: String): String = when (raw.lowercase()) {
     else -> raw.replaceFirstChar { it.uppercase() }
 }
 
+fun directAgentStatusEntry(
+    agent: AgentKind,
+    apiKey: String,
+    onOpenSettings: () -> Unit
+): AgentStatusEntry {
+    val isConfigured = apiKey.isNotBlank()
+    return if (isConfigured) {
+        val detailText = when (agent) {
+            AgentKind.DEEPSEEK_LOCAL -> "DeepSeek V3 / Coder ready"
+            AgentKind.CODEX -> "OpenAI GPT-4o / Codex ready"
+            AgentKind.OPENROUTER -> "OpenRouter Universal models ready"
+            else -> "Ready"
+        }
+        AgentStatusEntry(
+            agent = agent,
+            label = "Ready",
+            color = Color(0xFF10B981), // Emerald green
+            detail = detailText,
+            isReady = true
+        )
+    } else {
+        AgentStatusEntry(
+            agent = agent,
+            label = "API Key Required",
+            color = Color(0xFFF59E0B), // Amber
+            detail = "Configure ${agent.label()} API key in Settings → API Keys & Providers",
+            action = AgentStatusAction("Set Key", onOpenSettings),
+            isSignedOut = true
+        )
+    }
+}
+
 /**
  * Connection dot for one or two agents. With two different states the upper half is [top] (Antigravity) and the
  * lower half [bottom] (Claude Code); the same state (or one agent) draws one solid dot.

@@ -71,16 +71,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: v2.0.1
-          name: "JIN v2.0.1 - AMOLED Dark & Agentic Super-Update"
+          tag_name: v2.0.2
+          name: "JIN v2.0.2 - Multi-Agent Engine & New 3D Robot Mascot"
           body: |
-            ### JIN v2.0.1 Release
-            - **AMOLED Dark Mode**: Full Pitch Black theme with high-contrast text.
-            - **New App Icon**: Integrated throughout launcher, notifications, and branding.
-            - **New Local & Remote Agents**: DeepSeek Harness, OpenAI Codex, OpenRouter universal support.
-            - **30+ Agentic Skills**: Control YouTube, Instagram, Facebook, TikTok, Docker, AWS, APIs & more.
-            - **Enhanced Voice Accuracy**: Switched to hardware-accelerated voice recognition filter.
-            - **Developer Info**: Added developer profile for Samir Ahmmed.
+            ### JIN v2.0.2 Release
+            - **Full 5-Agent Architecture**: Antigravity, Claude Code, DeepSeek (V3 & Coder), OpenAI Codex (GPT-4o), and OpenRouter Universal agents working seamlessly.
+            - **New 3D Glossy Robot Astronaut Icon**: 100% matched across launcher, adaptive icon, splash screen, onboarding, and app branding.
+            - **Direct Streaming Engine**: Real-time token streaming with full multi-turn conversational memory for direct API agents.
+            - **AMOLED Dark Theme**: Pitch black background with seamless adaptive icon integration.
+            - **Bug Fixes & Refinements**: Resolved agent routing issues, multi-agent conversation persistence, and drawer filters.
+            - **Developer**: Samir Ahmmed (https://github.com/samir-ahmmed-tech)
           files: output/*.apk
           draft: false
           prerelease: false

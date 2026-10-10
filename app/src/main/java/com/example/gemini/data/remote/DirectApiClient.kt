@@ -272,6 +272,85 @@ class DirectApiClient(
         fullResponse.toString()
     }
 
+    suspend fun streamChatMessages(
+        baseUrl: String,
+        apiKey: String,
+        model: String,
+        messages: List<Pair<String, String>>,
+        systemPrompt: String = "You are JIN, an advanced agentic AI coding super-assistant developed by Samir Ahmmed.",
+        onToken: (String) -> Unit
+    ): String = withContext(Dispatchers.IO) {
+        val cleanUrl = baseUrl.trim().trimEnd('/')
+        val completionsUrl = when {
+            cleanUrl.endsWith("/chat/completions") -> cleanUrl
+            cleanUrl.endsWith("/v1") -> "$cleanUrl/chat/completions"
+            else -> "$cleanUrl/v1/chat/completions"
+        }
+
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("stream", true)
+            put("messages", JSONArray().apply {
+                if (systemPrompt.isNotBlank()) {
+                    put(JSONObject().apply {
+                        put("role", "system")
+                        put("content", systemPrompt)
+                    })
+                }
+                messages.forEach { (role, content) ->
+                    put(JSONObject().apply {
+                        put("role", role)
+                        put("content", content)
+                    })
+                }
+            })
+        }
+
+        val reqBuilder = Request.Builder()
+            .url(completionsUrl)
+            .post(payload.toString().toRequestBody("application/json".toMediaType()))
+
+        if (apiKey.isNotBlank()) {
+            reqBuilder.header("Authorization", "Bearer $apiKey")
+        }
+
+        val fullResponse = StringBuilder()
+
+        client.newCall(reqBuilder.build()).execute().use { response ->
+            if (!response.isSuccessful) {
+                val err = response.body?.string() ?: "HTTP ${response.code}"
+                val parsed = parseErrorMessage(err, "HTTP ${response.code}")
+                throw IllegalStateException(parsed)
+            }
+
+            val source = response.body?.byteStream() ?: return@withContext ""
+            val reader = BufferedReader(InputStreamReader(source))
+
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                val l = line?.trim() ?: continue
+                if (l.startsWith("data:")) {
+                    val data = l.removePrefix("data:").trim()
+                    if (data == "[DONE]") break
+                    try {
+                        val json = JSONObject(data)
+                        val choices = json.optJSONArray("choices")
+                        if (choices != null && choices.length() > 0) {
+                            val delta = choices.getJSONObject(0).optJSONObject("delta")
+                            val content = delta?.optString("content", "") ?: ""
+                            if (content.isNotEmpty()) {
+                                fullResponse.append(content)
+                                onToken(content)
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+
+        fullResponse.toString()
+    }
+
     private fun parseErrorMessage(body: String, fallback: String): String {
         return try {
             val json = JSONObject(body)

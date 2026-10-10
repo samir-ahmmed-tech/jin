@@ -73,6 +73,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /** Dictation for Claude chats (Claude's speech-to-text through the bridge). */
     val claudeVoice = com.example.gemini.data.agent.claude.ClaudeVoiceTranscriber(claudeClient) { claudePrefs.voiceLanguage.value }
 
+    // Direct API backends for DeepSeek, OpenAI Codex, and OpenRouter
+    val directApiClient = com.example.gemini.data.remote.DirectApiClient()
+    val deepseekBackend = com.example.gemini.data.agent.direct.DirectAgentChatBackend(application, viewModelScope, store, authPrefs, directApiClient, AgentKind.DEEPSEEK_LOCAL)
+    val codexBackend = com.example.gemini.data.agent.direct.DirectAgentChatBackend(application, viewModelScope, store, authPrefs, directApiClient, AgentKind.CODEX)
+    val openrouterBackend = com.example.gemini.data.agent.direct.DirectAgentChatBackend(application, viewModelScope, store, authPrefs, directApiClient, AgentKind.OPENROUTER)
+
     /** Agent of the conversation on screen; chat actions go to that agent's backend. */
     val activeAgent: StateFlow<AgentKind> = store.currentConversation
         .map { it?.agent ?: AgentKind.AGY }
@@ -133,9 +139,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val noQuotas = MutableStateFlow<List<ModelQuota>>(emptyList())
     private val alwaysFalse = MutableStateFlow(false)
 
-    private fun <T> byAgent(agy: StateFlow<T>, claude: StateFlow<T>): StateFlow<T> =
-        combine(store.currentConversation, agy, claude) { conv, a, c -> if (conv?.agent == AgentKind.CLAUDE) c else a }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, agy.value)
+    private fun <T> byAgent(
+        agy: StateFlow<T>,
+        claude: StateFlow<T>,
+        deepseek: StateFlow<T> = agy,
+        codex: StateFlow<T> = agy,
+        openrouter: StateFlow<T> = agy
+    ): StateFlow<T> =
+        combine(store.currentConversation, agy, claude, deepseek) { conv, a, c, d ->
+            when (conv?.agent) {
+                AgentKind.CLAUDE -> c
+                AgentKind.DEEPSEEK_LOCAL -> d
+                AgentKind.CODEX -> codex.value
+                AgentKind.OPENROUTER -> openrouter.value
+                else -> a
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, agy.value)
 
     private fun isoUtc(epochSeconds: Long): String =
         java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
@@ -168,12 +187,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val isConversationsLoading = agyBackend.isConversationsLoading
     val artifacts = agyBackend.artifacts
     val pendingApprovals = agyBackend.pendingApprovals
-    val isStreaming = byAgent(agyBackend.isStreaming, claudeBackend.isStreaming)
-    val availableModels = byAgent(agyBackend.availableModels, claudeBackend.availableModels)
+    val isStreaming = byAgent(agyBackend.isStreaming, claudeBackend.isStreaming, deepseekBackend.isStreaming, codexBackend.isStreaming, openrouterBackend.isStreaming)
+    val availableModels = byAgent(agyBackend.availableModels, claudeBackend.availableModels, deepseekBackend.availableModels, codexBackend.availableModels, openrouterBackend.availableModels)
     val enabledModelIds = agyBackend.enabledModelIds
-    val enabledModels = byAgent(agyBackend.enabledModels, claudeBackend.availableModels)
+    val enabledModels = byAgent(agyBackend.enabledModels, claudeBackend.availableModels, deepseekBackend.availableModels, codexBackend.availableModels, openrouterBackend.availableModels)
     val isRefreshingModels = byAgent(agyBackend.isRefreshingModels, claudeBackend.isRefreshingModels)
-    val selectedModelId = byAgent(agyBackend.selectedModelId, claudeBackend.selectedModelId)
+    val selectedModelId = byAgent(agyBackend.selectedModelId, claudeBackend.selectedModelId, deepseekBackend.selectedModelId, codexBackend.selectedModelId, openrouterBackend.selectedModelId)
     val preferredModelName = agyBackend.preferredModelName
     /** Claude's plan windows as the model pill's quota (remaining share of the 5-hour and weekly limits). */
     private val claudeQuotas: StateFlow<List<ModelQuota>> =
@@ -195,7 +214,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val quotas = byAgent(agyBackend.quotas, claudeQuotas)
     val quotaSummary = agyBackend.quotaSummary
-    val isLoadingConversation = byAgent(agyBackend.isLoadingConversation, claudeBackend.isLoadingConversation)
+    val isLoadingConversation = byAgent(agyBackend.isLoadingConversation, claudeBackend.isLoadingConversation, deepseekBackend.isLoadingConversation, codexBackend.isLoadingConversation, openrouterBackend.isLoadingConversation)
     fun setModelEnabled(modelId: String, isEnabled: Boolean) = agyBackend.setModelEnabled(modelId, isEnabled)
     fun enableAllModels() = agyBackend.enableAllModels()
     val bridgeStatusMessage = agyBackend.bridgeStatusMessage
@@ -215,7 +234,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun logoutFromAgyHub() = agyBackend.logoutFromAgyHub()
     val activeInstances = agyBackend.activeInstances
     val isAnyGenerationOrTaskActive = agyBackend.isAnyGenerationOrTaskActive
-    val isCurrentChatActivelyRunning = byAgent(agyBackend.isCurrentChatActivelyRunning, claudeBackend.isCurrentChatActivelyRunning)
+    val isCurrentChatActivelyRunning = byAgent(agyBackend.isCurrentChatActivelyRunning, claudeBackend.isCurrentChatActivelyRunning, deepseekBackend.isCurrentChatActivelyRunning, codexBackend.isCurrentChatActivelyRunning, openrouterBackend.isCurrentChatActivelyRunning)
     val isCurrentChatBackgroundActive = byAgent(agyBackend.isCurrentChatBackgroundActive, alwaysFalse)
     val connectionState = agyBackend.connectionState
     fun refreshActiveInstances() = agyBackend.refreshActiveInstances()
@@ -227,6 +246,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun onAppForegrounded() {
         agyBackend.onAppForegrounded()
+        deepseekBackend.onAppForegrounded()
+        codexBackend.onAppForegrounded()
+        openrouterBackend.onAppForegrounded()
         if (isClaudeEnabled) {
             claudeBackend.onAppForegrounded()
             // the CLI may have been installed or signed in from a terminal meanwhile
@@ -240,40 +262,151 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             ?: if (AgentKind.AGY in enabledAgents.value) AgentKind.AGY else AgentKind.CLAUDE
     )
 
-    /** New chat with [agent] (e.g. `/clear` in a Claude chat), without changing the new-chat default. */
+    /** New chat with [agent] (without changing the new-chat default). */
     fun startNewChat(agent: AgentKind) {
-        if (agent == AgentKind.CLAUDE) {
-            agyBackend.detach()
-            claudeBackend.startNewChat()
-        } else {
-            claudeBackend.detach()
-            agyBackend.startNewChat()
+        when (agent) {
+            AgentKind.CLAUDE -> {
+                agyBackend.detach()
+                deepseekBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.detach()
+                claudeBackend.startNewChat()
+            }
+            AgentKind.DEEPSEEK_LOCAL -> {
+                agyBackend.detach()
+                claudeBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.detach()
+                deepseekBackend.startNewChat()
+            }
+            AgentKind.CODEX -> {
+                agyBackend.detach()
+                claudeBackend.detach()
+                deepseekBackend.detach()
+                openrouterBackend.detach()
+                codexBackend.startNewChat()
+            }
+            AgentKind.OPENROUTER -> {
+                agyBackend.detach()
+                claudeBackend.detach()
+                deepseekBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.startNewChat()
+            }
+            AgentKind.AGY -> {
+                claudeBackend.detach()
+                deepseekBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.detach()
+                agyBackend.startNewChat()
+            }
         }
     }
     fun selectConversation(id: String) {
-        if (agentOf(id) == AgentKind.CLAUDE) {
-            agyBackend.detach()
-            claudeBackend.selectConversation(id)
-        } else {
-            claudeBackend.detach()
-            agyBackend.selectConversation(id)
+        when (agentOf(id)) {
+            AgentKind.CLAUDE -> {
+                agyBackend.detach()
+                deepseekBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.detach()
+                claudeBackend.selectConversation(id)
+            }
+            AgentKind.DEEPSEEK_LOCAL -> {
+                agyBackend.detach()
+                claudeBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.detach()
+                deepseekBackend.selectConversation(id)
+            }
+            AgentKind.CODEX -> {
+                agyBackend.detach()
+                claudeBackend.detach()
+                deepseekBackend.detach()
+                openrouterBackend.detach()
+                codexBackend.selectConversation(id)
+            }
+            AgentKind.OPENROUTER -> {
+                agyBackend.detach()
+                claudeBackend.detach()
+                deepseekBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.selectConversation(id)
+            }
+            AgentKind.AGY -> {
+                claudeBackend.detach()
+                deepseekBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.detach()
+                agyBackend.selectConversation(id)
+            }
         }
     }
     fun startPersistentStream(conversationId: String) = agyBackend.startPersistentStream(conversationId)
-    fun deleteConversation(id: String) = if (agentOf(id) == AgentKind.CLAUDE) claudeBackend.deleteConversation(id) else agyBackend.deleteConversation(id)
-    fun forkConversation(id: String) {
-        if (agentOf(id) == AgentKind.CLAUDE) {
-            agyBackend.detach()
-            claudeBackend.forkConversation(id)
-        } else {
-            agyBackend.forkConversation(id)
+    fun deleteConversation(id: String) {
+        when (agentOf(id)) {
+            AgentKind.CLAUDE -> claudeBackend.deleteConversation(id)
+            AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.deleteConversation(id)
+            AgentKind.CODEX -> codexBackend.deleteConversation(id)
+            AgentKind.OPENROUTER -> openrouterBackend.deleteConversation(id)
+            AgentKind.AGY -> agyBackend.deleteConversation(id)
         }
     }
-    fun selectModel(modelId: String) = if (isClaudeActive) claudeBackend.selectModel(modelId) else agyBackend.selectModel(modelId)
-    fun sendMessage(content: String) = if (isClaudeActive) claudeBackend.sendMessage(content) else agyBackend.sendMessage(content)
+    fun forkConversation(id: String) {
+        when (agentOf(id)) {
+            AgentKind.CLAUDE -> {
+                agyBackend.detach()
+                claudeBackend.forkConversation(id)
+            }
+            AgentKind.DEEPSEEK_LOCAL -> {
+                agyBackend.detach()
+                deepseekBackend.forkConversation(id)
+            }
+            AgentKind.CODEX -> {
+                agyBackend.detach()
+                codexBackend.forkConversation(id)
+            }
+            AgentKind.OPENROUTER -> {
+                agyBackend.detach()
+                openrouterBackend.forkConversation(id)
+            }
+            AgentKind.AGY -> {
+                claudeBackend.detach()
+                agyBackend.forkConversation(id)
+            }
+        }
+    }
+    fun selectModel(modelId: String) {
+        val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
+        when (curAgent) {
+            AgentKind.CLAUDE -> claudeBackend.selectModel(modelId)
+            AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.selectModel(modelId)
+            AgentKind.CODEX -> codexBackend.selectModel(modelId)
+            AgentKind.OPENROUTER -> openrouterBackend.selectModel(modelId)
+            AgentKind.AGY -> agyBackend.selectModel(modelId)
+        }
+    }
+    fun sendMessage(content: String) {
+        val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
+        when (curAgent) {
+            AgentKind.CLAUDE -> claudeBackend.sendMessage(content)
+            AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.sendMessage(content)
+            AgentKind.CODEX -> codexBackend.sendMessage(content)
+            AgentKind.OPENROUTER -> openrouterBackend.sendMessage(content)
+            AgentKind.AGY -> agyBackend.sendMessage(content)
+        }
+    }
     val isTranscribingAudio = agyBackend.isTranscribingAudio
     fun transcribeAudioFile(file: java.io.File, onDone: (String) -> Unit, onError: (String) -> Unit) = agyBackend.transcribeAudioFile(file, onDone, onError)
-    fun retryMessage(messageId: String) = if (isClaudeActive) claudeBackend.regenerate(messageId) else agyBackend.retryMessage(messageId)
+    fun retryMessage(messageId: String) {
+        val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
+        when (curAgent) {
+            AgentKind.CLAUDE -> claudeBackend.regenerate(messageId)
+            AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.regenerate(messageId)
+            AgentKind.CODEX -> codexBackend.regenerate(messageId)
+            AgentKind.OPENROUTER -> openrouterBackend.regenerate(messageId)
+            AgentKind.AGY -> agyBackend.retryMessage(messageId)
+        }
+    }
     fun prepareEditMessage(messageId: String): String? {
         if (isClaudeActive) {
             claudeNotSupported("Editing a sent message")
@@ -291,9 +424,24 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun loadClaudeMessages(conversationId: String): List<ChatMessage> = claudeBackend.loadMessages(conversationId)
 
     fun renameConversation(id: String, title: String) {
-        if (agentOf(id) == AgentKind.CLAUDE) claudeBackend.renameConversation(id, title)
+        when (agentOf(id)) {
+            AgentKind.CLAUDE -> claudeBackend.renameConversation(id, title)
+            AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.renameConversation(id, title)
+            AgentKind.CODEX -> codexBackend.renameConversation(id, title)
+            AgentKind.OPENROUTER -> openrouterBackend.renameConversation(id, title)
+            AgentKind.AGY -> Unit
+        }
     }
-    fun stopStreaming() = if (isClaudeActive) claudeBackend.stopStreaming() else agyBackend.stopStreaming()
+    fun stopStreaming() {
+        val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
+        when (curAgent) {
+            AgentKind.CLAUDE -> claudeBackend.stopStreaming()
+            AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.stopStreaming()
+            AgentKind.CODEX -> codexBackend.stopStreaming()
+            AgentKind.OPENROUTER -> openrouterBackend.stopStreaming()
+            AgentKind.AGY -> agyBackend.stopStreaming()
+        }
+    }
     fun applyQuotaSummary(summary: com.example.gemini.domain.model.QuotaSummaryResponse) = agyBackend.applyQuotaSummary(summary)
     fun refreshQuotas(force: Boolean = true, showToastFeedback: Boolean = false) {
         if (isClaudeActive) {
@@ -380,10 +528,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _conversations = store.conversations
     /** Sidebar list: Antigravity and Claude Code conversations together, newest first. */
-    val conversations: StateFlow<List<Conversation>> = combine(_conversations, claudeBackend.conversations, enabledAgents) { agy, claude, enabled ->
-        // a disabled agent's chats stay on disk but are not listed
-        ((if (AgentKind.AGY in enabled) agy else emptyList()) + (if (AgentKind.CLAUDE in enabled) claude else emptyList()))
-            .sortedByDescending { it.updatedAt }
+    val conversations: StateFlow<List<Conversation>> = combine(
+        _conversations,
+        claudeBackend.conversations,
+        deepseekBackend.conversations,
+        codexBackend.conversations,
+        openrouterBackend.conversations,
+        enabledAgents
+    ) { agy, claude, deepseek, codex, openrouter, enabled ->
+        val list = mutableListOf<Conversation>()
+        if (AgentKind.AGY in enabled) list.addAll(agy)
+        if (AgentKind.CLAUDE in enabled) list.addAll(claude)
+        if (AgentKind.DEEPSEEK_LOCAL in enabled) list.addAll(deepseek)
+        if (AgentKind.CODEX in enabled) list.addAll(codex)
+        if (AgentKind.OPENROUTER in enabled) list.addAll(openrouter)
+        list.sortedByDescending { it.updatedAt }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _currentConversation = store.currentConversation
@@ -411,7 +570,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /** Antigravity's chat state (shared store); Claude Code keeps its own, see [messages]. */
     private val _messages = store.messages
     /** Messages of the chat on screen, from the agent that owns it. */
-    val messages: StateFlow<List<ChatMessage>> = byAgent(_messages, claudeBackend.messages)
+    val messages: StateFlow<List<ChatMessage>> = byAgent(
+        _messages,
+        claudeBackend.messages,
+        deepseekBackend.messages,
+        codexBackend.messages,
+        openrouterBackend.messages
+    )
 
     private val _thinkingPreference = MutableStateFlow(com.example.gemini.domain.model.ThinkingPreference())
     val thinkingPreference: StateFlow<com.example.gemini.domain.model.ThinkingPreference> = _thinkingPreference.asStateFlow()

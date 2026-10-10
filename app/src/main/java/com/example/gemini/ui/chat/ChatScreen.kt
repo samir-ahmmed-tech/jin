@@ -390,7 +390,32 @@ fun ChatScreen(
             onRetry = recheckClaude
         )
     } else null
-    val agentEntries = listOfNotNull(agyEntry, claudeEntry)
+
+    val deepseekEntry = if (com.example.gemini.domain.model.AgentKind.DEEPSEEK_LOCAL in enabledAgents) {
+        com.example.gemini.ui.agents.directAgentStatusEntry(
+            agent = com.example.gemini.domain.model.AgentKind.DEEPSEEK_LOCAL,
+            apiKey = viewModel.authPreferences.getDeepSeekApiKeySync(),
+            onOpenSettings = { showSettingsDialog = true }
+        )
+    } else null
+
+    val codexEntry = if (com.example.gemini.domain.model.AgentKind.CODEX in enabledAgents) {
+        com.example.gemini.ui.agents.directAgentStatusEntry(
+            agent = com.example.gemini.domain.model.AgentKind.CODEX,
+            apiKey = viewModel.authPreferences.getOpenAiApiKeySync(),
+            onOpenSettings = { showSettingsDialog = true }
+        )
+    } else null
+
+    val openrouterEntry = if (com.example.gemini.domain.model.AgentKind.OPENROUTER in enabledAgents) {
+        com.example.gemini.ui.agents.directAgentStatusEntry(
+            agent = com.example.gemini.domain.model.AgentKind.OPENROUTER,
+            apiKey = viewModel.authPreferences.getOpenRouterApiKeySync(),
+            onOpenSettings = { showSettingsDialog = true }
+        )
+    } else null
+
+    val agentEntries = listOfNotNull(agyEntry, claudeEntry, deepseekEntry, codexEntry, openrouterEntry)
 
     // Slash commands Claude's CLI only shows in a terminal: the app opens its own screen instead
     val handleClaudeCommand: (com.example.gemini.data.agent.claude.ClaudeAppCommand) -> Unit = { cmd ->
@@ -999,6 +1024,9 @@ fun ChatScreen(
                         claude = claudeEntry,
                         agyAuth = agyAuthInfo,
                         claudeStatus = claudeStatus,
+                        deepseek = deepseekEntry,
+                        codex = codexEntry,
+                        openrouter = openrouterEntry,
                         onClick = { showAccountsDialog = true }
                     )
                 },
@@ -2276,6 +2304,13 @@ fun ChatScreen(
             onClaudeSettings = {
                 scope.launch { drawerState.close() }
                 openClaudeSetup()
+            },
+            deepseek = deepseekEntry,
+            codex = codexEntry,
+            openrouter = openrouterEntry,
+            onOpenApiKeys = {
+                scope.launch { drawerState.close() }
+                showSettingsDialog = true
             },
             onDismiss = { showAccountsDialog = false }
         )

@@ -1,0 +1,424 @@
+package com.example.gemini.data.agent.direct
+
+import android.app.Application
+import android.util.Log
+import com.example.gemini.data.agent.AgentChatBackend
+import com.example.gemini.data.agent.ChatSessionStore
+import com.example.gemini.data.preferences.AuthPreferences
+import com.example.gemini.data.remote.DirectApiClient
+import com.example.gemini.domain.model.AgentKind
+import com.example.gemini.domain.model.AiModel
+import com.example.gemini.domain.model.ChatMessage
+import com.example.gemini.domain.model.Conversation
+import com.example.gemini.domain.model.MessageRole
+import com.example.gemini.domain.model.ModelFamily
+import com.example.gemini.ui.components.label
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.io.File
+import java.util.UUID
+
+/**
+ * Direct API chat backend for JIN.
+ * Powering DeepSeek, OpenAI Codex, and OpenRouter agents with direct API keys and streaming.
+ * Developed by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)
+ */
+class DirectAgentChatBackend(
+    val application: Application,
+    val backendScope: CoroutineScope,
+    val store: ChatSessionStore,
+    val authPrefs: AuthPreferences,
+    val directApiClient: DirectApiClient,
+    override val kind: AgentKind
+) : AgentChatBackend {
+
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; prettyPrint = true }
+    private val chatsDir = File(application.filesDir, "direct_agent_chats/${kind.name.lowercase()}").apply { mkdirs() }
+    private val conversationsFile = File(chatsDir, "conversations.json")
+
+    private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
+    override val conversations: StateFlow<List<Conversation>> = _conversations.asStateFlow()
+
+    private val _currentConversation = MutableStateFlow<Conversation?>(null)
+    override val currentConversation: StateFlow<Conversation?> = _currentConversation.asStateFlow()
+
+    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    override val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
+
+    private val _isStreaming = MutableStateFlow(false)
+    override val isStreaming: StateFlow<Boolean> = _isStreaming.asStateFlow()
+
+    private val _isLoadingConversation = MutableStateFlow(false)
+    override val isLoadingConversation: StateFlow<Boolean> = _isLoadingConversation.asStateFlow()
+
+    private val _conversationError = MutableStateFlow<String?>(null)
+    override val conversationError: StateFlow<String?> = _conversationError.asStateFlow()
+
+    val isCurrentChatActivelyRunning: StateFlow<Boolean> = _isStreaming.asStateFlow()
+
+    val availableModels: StateFlow<List<AiModel>> = MutableStateFlow(defaultModelsForKind())
+    private val _selectedModelId = MutableStateFlow(defaultModelIdForKind())
+    val selectedModelId: StateFlow<String> = _selectedModelId.asStateFlow()
+
+    private var activeStreamJob: Job? = null
+
+    init {
+        loadConversationsFromDisk()
+    }
+
+    private fun defaultModelIdForKind(): String = when (kind) {
+        AgentKind.DEEPSEEK_LOCAL -> "deepseek-chat"
+        AgentKind.CODEX -> "gpt-4o"
+        AgentKind.OPENROUTER -> "meta-llama/llama-3.3-70b-instruct:free"
+        else -> ""
+    }
+
+    private fun defaultModelsForKind(): List<AiModel> = when (kind) {
+        AgentKind.DEEPSEEK_LOCAL -> listOf(
+            AiModel("deepseek-chat", "DeepSeek V3", ModelFamily.DEEPSEEK, false, "DeepSeek 671B MoE architecture with ultra-high coding capability", isDefault = true),
+            AiModel("deepseek-coder", "DeepSeek Coder V2", ModelFamily.DEEPSEEK, false, "Dedicated coding LLM supporting 300+ programming languages"),
+            AiModel("deepseek-hermes", "DeepSeek Hermes", ModelFamily.DEEPSEEK, true, "Fine-tuned DeepSeek model for complex algorithmic reasoning and terminal tasks")
+        )
+        AgentKind.CODEX -> listOf(
+            AiModel("gpt-4o", "ChatGPT 4o", ModelFamily.OPENAI, false, "Omni-modal reasoning and software architecture model", isDefault = true),
+            AiModel("gpt-4o-mini", "ChatGPT 4o Mini", ModelFamily.OPENAI, false, "Lightweight ChatGPT model optimized for fast responses"),
+            AiModel("openai-codex", "OpenAI Codex Coder", ModelFamily.OPENAI, false, "OpenAI high-speed code synthesis and automated debugging")
+        )
+        AgentKind.OPENROUTER -> listOf(
+            AiModel("meta-llama/llama-3.3-70b-instruct:free", "Llama 3.3 70B (Free)", ModelFamily.OTHER, false, "Flagship open reasoning model via OpenRouter", isDefault = true),
+            AiModel("mistralai/codestral-2501", "Mistral Codestral 25B", ModelFamily.OTHER, false, "Mistral AI cutting-edge coding model"),
+            AiModel("qwen/qwen-2.5-coder-32b-instruct", "Qwen 2.5 Coder 32B", ModelFamily.OTHER, false, "Alibaba Cloud flagship code model for polyglot software engineering"),
+            AiModel("custom-api", "Custom OpenAI-Compatible API", ModelFamily.OTHER, false, "Connect to any custom base URL (Ollama, LM Studio, vLLM, OpenRouter)")
+        )
+        else -> emptyList()
+    }
+
+    fun selectModel(modelId: String) {
+        _selectedModelId.value = modelId
+        val cur = _currentConversation.value
+        if (cur != null && cur.agent == kind) {
+            val updated = cur.copy(modelId = modelId)
+            _currentConversation.value = updated
+            if (store.currentConversation.value?.id == cur.id) {
+                store.currentConversation.value = updated
+            }
+            saveConversationMeta(updated)
+        }
+    }
+
+    fun detach() {
+        _isStreaming.value = false
+    }
+
+    override fun startNewChat() {
+        stopStreaming()
+        val defaultProjPath = com.example.gemini.data.daemon.TermuxDaemonManager.activeProject.value?.path ?: ""
+        val defaultWorkspaceUri = if (defaultProjPath.isNotBlank()) {
+            if (defaultProjPath.startsWith("file://")) defaultProjPath else "file://$defaultProjPath"
+        } else ""
+
+        val newConv = Conversation(
+            id = UUID.randomUUID().toString(),
+            title = "New Chat",
+            modelId = _selectedModelId.value,
+            sessionId = UUID.randomUUID().toString(),
+            workspaceUri = defaultWorkspaceUri,
+            agent = kind
+        )
+        _currentConversation.value = newConv
+        _messages.value = emptyList()
+        store.currentConversation.value = newConv
+        store.messages.value = emptyList()
+        _conversationError.value = null
+    }
+
+    override fun selectConversation(id: String) {
+        stopStreaming()
+        val target = _conversations.value.find { it.id == id } ?: return
+        _currentConversation.value = target
+        store.currentConversation.value = target
+        _conversationError.value = null
+        loadMessagesForConversation(id)
+    }
+
+    override fun sendMessage(content: String) {
+        val trimmed = content.trim()
+        if (trimmed.isBlank() || _isStreaming.value) return
+
+        var conv = _currentConversation.value
+        if (conv == null || conv.agent != kind) {
+            startNewChat()
+            conv = _currentConversation.value ?: return
+        }
+
+        val apiKey = when (kind) {
+            AgentKind.DEEPSEEK_LOCAL -> authPrefs.getDeepSeekApiKeySync().trim()
+            AgentKind.CODEX -> authPrefs.getOpenAiApiKeySync().trim()
+            AgentKind.OPENROUTER -> authPrefs.getOpenRouterApiKeySync().trim()
+            else -> ""
+        }
+
+        val baseUrl = when (kind) {
+            AgentKind.DEEPSEEK_LOCAL -> "https://api.deepseek.com/v1"
+            AgentKind.CODEX -> "https://api.openai.com/v1"
+            AgentKind.OPENROUTER -> "https://openrouter.ai/api/v1"
+            else -> ""
+        }
+
+        val effectiveModel = conv.modelId.ifBlank { _selectedModelId.value }.ifBlank { defaultModelIdForKind() }
+
+        val userMsg = ChatMessage(
+            conversationId = conv.id,
+            role = MessageRole.USER,
+            content = trimmed
+        )
+
+        // Generate conversation title from first user prompt
+        val isFirstUserMsg = _messages.value.none { it.role == MessageRole.USER }
+        if (conv.title == "New Chat" || isFirstUserMsg) {
+            val autoTitle = trimmed.take(30).trimEnd() + if (trimmed.length > 30) "…" else ""
+            conv = conv.copy(title = autoTitle, updatedAt = System.currentTimeMillis())
+            _currentConversation.value = conv
+            store.currentConversation.value = conv
+            saveConversationMeta(conv)
+        }
+
+        val currentList = _messages.value + userMsg
+        _messages.value = currentList
+        store.messages.value = currentList
+        saveMessagesToDisk(conv.id, currentList)
+
+        if (apiKey.isBlank()) {
+            val missingKeyMsg = ChatMessage(
+                conversationId = conv.id,
+                role = MessageRole.ASSISTANT,
+                content = "⚠️ **API Key Missing for ${kind.label()}**\n\nTo chat with ${kind.label()}, please enter your API key:\n1. Tap **Settings** (top right icon) → **API Keys & Providers**.\n2. Enter your **${kind.label()} API key**.\n3. Tap **Test Connection** & **Save All API Keys**.\n\nOnce configured, your messages will stream instantly!"
+            )
+            val updatedWithWarning = currentList + missingKeyMsg
+            _messages.value = updatedWithWarning
+            store.messages.value = updatedWithWarning
+            saveMessagesToDisk(conv.id, updatedWithWarning)
+            return
+        }
+
+        val assistantMsgId = UUID.randomUUID().toString()
+        val assistantMsg = ChatMessage(
+            id = assistantMsgId,
+            conversationId = conv.id,
+            role = MessageRole.ASSISTANT,
+            content = "",
+            isStreaming = true,
+            modelId = effectiveModel
+        )
+
+        _messages.value = currentList + assistantMsg
+        store.messages.value = currentList + assistantMsg
+        _isStreaming.value = true
+
+        activeStreamJob = backendScope.launch(Dispatchers.IO) {
+            val responseBuffer = StringBuilder()
+            val history = currentList.filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
+                .takeLast(20)
+                .map { (if (it.role == MessageRole.USER) "user" else "assistant") to it.content }
+
+            try {
+                directApiClient.streamChatMessages(
+                    baseUrl = baseUrl,
+                    apiKey = apiKey,
+                    model = effectiveModel,
+                    messages = history,
+                    systemPrompt = "You are JIN, an advanced agentic AI coding super-assistant created by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin). Assist the developer with clear, high-quality, production-ready code, explanation, and debugging."
+                ) { token ->
+                    responseBuffer.append(token)
+                    val updatedText = responseBuffer.toString()
+                    val liveList = _messages.value.map {
+                        if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                    }
+                    _messages.value = liveList
+                    store.messages.value = liveList
+                }
+
+                val finalList = _messages.value.map {
+                    if (it.id == assistantMsgId) it.copy(content = responseBuffer.toString(), isStreaming = false) else it
+                }
+                _messages.value = finalList
+                store.messages.value = finalList
+                saveMessagesToDisk(conv.id, finalList)
+                saveConversationMeta(conv.copy(updatedAt = System.currentTimeMillis()))
+            } catch (e: Exception) {
+                Log.e("DirectAgent", "Error streaming response for ${kind.name}: ${e.message}", e)
+                val errText = responseBuffer.toString().ifBlank {
+                    "❌ **Connection Error**: ${e.localizedMessage ?: e.message ?: "Failed to receive response from provider."}"
+                }
+                val errorList = _messages.value.map {
+                    if (it.id == assistantMsgId) it.copy(content = errText, isStreaming = false) else it
+                }
+                _messages.value = errorList
+                store.messages.value = errorList
+                saveMessagesToDisk(conv.id, errorList)
+            } finally {
+                _isStreaming.value = false
+            }
+        }
+    }
+
+    override fun stopStreaming() {
+        activeStreamJob?.cancel()
+        activeStreamJob = null
+        _isStreaming.value = false
+        val currentList = _messages.value.map {
+            if (it.isStreaming) it.copy(isStreaming = false) else it
+        }
+        _messages.value = currentList
+        store.messages.value = currentList
+    }
+
+    override fun deleteConversation(id: String) {
+        val file = File(chatsDir, "msg_$id.json")
+        if (file.exists()) file.delete()
+        val updated = _conversations.value.filter { it.id != id }
+        _conversations.value = updated
+        persistConversationsList(updated)
+
+        if (_currentConversation.value?.id == id) {
+            startNewChat()
+        }
+    }
+
+    override fun forkConversation(id: String) {
+        val original = _conversations.value.find { it.id == id } ?: return
+        val forked = original.copy(
+            id = UUID.randomUUID().toString(),
+            title = "${original.title} (Fork)",
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+        val origMsgs = loadMessagesFromFile(id)
+        val forkedMsgs = origMsgs.map { it.copy(id = UUID.randomUUID().toString(), conversationId = forked.id) }
+        saveMessagesToDisk(forked.id, forkedMsgs)
+        saveConversationMeta(forked)
+        selectConversation(forked.id)
+    }
+
+    override fun retryConnections() {
+        // Direct API is stateless per request
+    }
+
+    override fun onAppForegrounded() {
+        loadConversationsFromDisk()
+    }
+
+    fun renameConversation(id: String, title: String) {
+        val cur = _conversations.value.find { it.id == id } ?: return
+        val updated = cur.copy(title = title, updatedAt = System.currentTimeMillis())
+        saveConversationMeta(updated)
+        if (_currentConversation.value?.id == id) {
+            _currentConversation.value = updated
+            store.currentConversation.value = updated
+        }
+    }
+
+    fun regenerate(messageId: String) {
+        val msgs = _messages.value
+        val idx = msgs.indexOfFirst { it.id == messageId }
+        if (idx == -1) return
+        val userPrompt = if (msgs[idx].role == MessageRole.USER) {
+            msgs[idx].content
+        } else {
+            msgs.take(idx).lastOrNull { it.role == MessageRole.USER }?.content ?: return
+        }
+        // Slice up to before target assistant reply
+        val targetIdx = if (msgs[idx].role == MessageRole.USER) idx else idx - 1
+        val sliced = msgs.take(targetIdx)
+        _messages.value = sliced
+        store.messages.value = sliced
+        sendMessage(userPrompt)
+    }
+
+    private fun loadConversationsFromDisk() {
+        backendScope.launch(Dispatchers.IO) {
+            try {
+                if (!conversationsFile.exists()) {
+                    _conversations.value = emptyList()
+                    return@launch
+                }
+                val content = conversationsFile.readText()
+                if (content.isBlank()) return@launch
+                val list = json.decodeFromString<List<Conversation>>(content)
+                _conversations.value = list.filter { it.agent == kind }.sortedByDescending { it.updatedAt }
+            } catch (e: Exception) {
+                Log.e("DirectAgent", "Failed to load conversations for ${kind.name}", e)
+            }
+        }
+    }
+
+    private fun saveConversationMeta(conv: Conversation) {
+        val current = _conversations.value.toMutableList()
+        val idx = current.indexOfFirst { it.id == conv.id }
+        if (idx >= 0) {
+            current[idx] = conv
+        } else {
+            current.add(0, conv)
+        }
+        val sorted = current.sortedByDescending { it.updatedAt }
+        _conversations.value = sorted
+        persistConversationsList(sorted)
+    }
+
+    private fun persistConversationsList(list: List<Conversation>) {
+        backendScope.launch(Dispatchers.IO) {
+            try {
+                val str = json.encodeToString(list)
+                conversationsFile.writeText(str)
+            } catch (e: Exception) {
+                Log.e("DirectAgent", "Failed to save conversations for ${kind.name}", e)
+            }
+        }
+    }
+
+    private fun loadMessagesForConversation(convId: String) {
+        _isLoadingConversation.value = true
+        backendScope.launch(Dispatchers.IO) {
+            val list = loadMessagesFromFile(convId)
+            withContext(Dispatchers.Main) {
+                _messages.value = list
+                store.messages.value = list
+                _isLoadingConversation.value = false
+            }
+        }
+    }
+
+    private fun loadMessagesFromFile(convId: String): List<ChatMessage> {
+        val file = File(chatsDir, "msg_$convId.json")
+        if (!file.exists()) return emptyList()
+        return try {
+            val text = file.readText()
+            if (text.isBlank()) emptyList() else json.decodeFromString(text)
+        } catch (e: Exception) {
+            Log.e("DirectAgent", "Failed to read messages for $convId", e)
+            emptyList()
+        }
+    }
+
+    private fun saveMessagesToDisk(convId: String, list: List<ChatMessage>) {
+        backendScope.launch(Dispatchers.IO) {
+            try {
+                val file = File(chatsDir, "msg_$convId.json")
+                file.writeText(json.encodeToString(list))
+            } catch (e: Exception) {
+                Log.e("DirectAgent", "Failed to write messages for $convId", e)
+            }
+        }
+    }
+}
