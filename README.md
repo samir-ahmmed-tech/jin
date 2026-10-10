@@ -1,51 +1,42 @@
-# JIN - AI Coding Super-Agent App
+# 🤖 JIN — AI Coding Super-Agent
 
-![JIN Logo](assets/icons/placeholder.png)
+> **Privacy-First, Autonomous Native Android Coding Agent for Termux**
 
-## Overview
-JIN is a powerful AI coding assistant designed to help developers write, debug, and explain code efficiently. It integrates multiple AI models, including Gemini, Claude, DeepSeek, and OpenAI, providing a super-agent experience right at your fingertips.
+---
 
-## Features
-- **Multi-Model Support:** Connect to cutting-edge AI models (Gemini 2.5, Claude 3.7, DeepSeek V3/R1, GPT-4o).
-- **Code Assistance:** Write, debug, and refactor code seamlessly.
-- **Beautiful UI:** A stunning dark mode interface crafted with Flutter.
-- **Secure Storage:** Keep your API keys safely stored on your device.
-- **Markdown & Highlighting:** View responses in formatted markdown with syntax highlighting.
+## 🌟 Overview
 
-## Setup Instructions
+**JIN** is a powerful, autonomous AI coding companion engineered natively for Android and Termux. Powered by multi-model intelligence and a high-performance local bridge, JIN directly interfaces with your device's filesystem, terminal, and development toolchain with **100% privacy and local-only telemetry**.
 
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/your-username/jin.git
-   cd jin
-   ```
+---
 
-2. Install dependencies:
-   ```sh
-   flutter pub get
-   ```
+## 🛡️ Privacy & Security Architecture
 
-3. Run the app:
-   ```sh
-   flutter run
-   ```
+- **🔒 100% Zero External Telemetry:** All chat history, prompt tokens, and workspace configs remain on your local device.
+- **🛡️ Encrypted Local Vault:** Keys and credentials are encrypted using Android Keystore and local preferences.
+- **⚡ Safe Execution Guard:** Autonomous tools verify and confirm destructive commands before execution.
 
-4. **Add API Keys:**
-   - When you launch the app, go to Settings.
-   - Enter your API keys for the providers you want to use (e.g., Gemini, OpenAI).
-   - Keys are stored securely on your device using `flutter_secure_storage`.
+---
 
-## Build Instructions
+## 🧠 Supported AI Models
 
-### Android APK
-To build the release APK for Android:
-```sh
-flutter build apk --release
-```
-The APK will be located at `build/app/outputs/flutter-apk/app-release.apk`.
+- **DeepSeek Reasoning (R1)** & DeepSeek Chat (V3)
+- **Anthropic Claude 3.7 Sonnet** & Claude 3.5 Haiku
+- **Google Gemini 2.5 Pro** & Flash
+- **OpenAI GPT-4o** & o3-mini
 
-### GitHub Actions (Automated Build)
-This repository includes a GitHub Actions workflow that automatically builds the Android APK on every push to the `main` branch.
+---
 
-## Screenshots
-*(Screenshots coming soon...)*
+## 🎨 Design
+
+- **Obsidian Stealth Dark Theme:** Ultra-minimalist OLED black with electric cyan accents.
+- **Maus-Inspired Icon:** Iconic smooth ceramic AI mascot with obsidian pill eyes.
+
+---
+
+## 🚀 Building the APK
+
+This repository uses automated GitHub Actions with **Java 21** and **Go 1.22** to build release APKs directly in the cloud.
+
+Artifacts generated:
+- `jin-termux-v1.0.0-release.apk` (Optimized for Termux integration)

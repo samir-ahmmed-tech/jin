@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">JIN</string>
+    <string name="anti_term_name">JIN Terminal</string>
+    <string name="termux_name">Termux</string>
+    <string name="accessibility_service_name">JIN AI Privacy Automation</string>
+    <string name="accessibility_service_description">Enables JIN AI Coding Super-Agent to inspect the screen, tap buttons, scroll, input text, and automate tasks natively with 100% privacy and local-only execution.</string>
+    <string name="copy_text">Copy</string>
+    <string name="paste_text">Paste</string>
+    <string name="text_selection_more">More</string>
+    <string name="select_all">Select All</string>
+    <string name="share_text">Share</string>
+    <string name="select_url">Select URL</string>
+    <string name="share_transcript">Share Transcript</string>
+    <string name="reset_terminal">Reset Terminal</string>
+    <string name="no_urls_found">No URLs found in transcript</string>
+</resources>
