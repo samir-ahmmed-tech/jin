@@ -15,6 +15,12 @@ class ToolCall {
     this.result,
   });
 
+  bool get hasError =>
+      result != null &&
+      (result!.toLowerCase().startsWith('error') ||
+          result!.toLowerCase().startsWith('exception') ||
+          result!.toLowerCase().startsWith('failed'));
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,

@@ -112,7 +112,10 @@ class ModelSelector extends ConsumerWidget {
                             return ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 24),
                               title: Text(model.displayName, style: const TextStyle(color: Colors.white)),
-                              subtitle: Text(model.description, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                              subtitle: model.description != null
+                                  ? Text(model.description!,
+                                      style: const TextStyle(color: Colors.white54, fontSize: 12))
+                                  : null,
                               trailing: isSelected
                                   ? const Icon(Icons.check_circle, color: Color(0xFF4FC3F7))
                                   : null,

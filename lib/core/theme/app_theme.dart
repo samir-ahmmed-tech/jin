@@ -29,7 +29,7 @@ class AppTheme {
         bodyLarge: GoogleFonts.inter(color: onSurface),
         bodyMedium: GoogleFonts.inter(color: onBackground),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surfaceCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 0,
@@ -76,7 +76,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         side: BorderSide.none,
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: surfaceCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),

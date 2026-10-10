@@ -40,4 +40,22 @@ class ChatSession {
     isPinned: json['isPinned'] as bool? ?? false,
     messageCount: json['messageCount'] as int? ?? 0,
   );
+
+  ChatSession copyWith({
+    String? id,
+    String? title,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? defaultModelId,
+    bool? isPinned,
+    int? messageCount,
+  }) => ChatSession(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    defaultModelId: defaultModelId ?? this.defaultModelId,
+    isPinned: isPinned ?? this.isPinned,
+    messageCount: messageCount ?? this.messageCount,
+  );
 }

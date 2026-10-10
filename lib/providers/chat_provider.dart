@@ -206,4 +206,14 @@ class ChatNotifier extends ChangeNotifier {
     
     notifyListeners();
   }
+
+  Future<void> clearAllChats() async {
+    for (final s in List.from(_sessions)) {
+      await StorageService.instance.deleteSession(s.id);
+    }
+    _sessions.clear();
+    _currentSessionId = null;
+    _messages.clear();
+    notifyListeners();
+  }
 }

@@ -78,8 +78,7 @@ class SettingsScreen extends ConsumerWidget {
                 isDestructive: true,
               );
               if (confirm) {
-                // Future enhancement: clear all via chatProvider (only clear messages exists on provider right now)
-                ref.read(chatProvider.notifier).clearMessages(); 
+                await ref.read(chatProvider.notifier).clearAllChats(); 
               }
             },
           ),

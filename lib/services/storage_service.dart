@@ -93,6 +93,14 @@ class StorageService {
   Future<String?> getSetting(String key) async {
     return _settingsBox.get(key) as String?;
   }
+
+  Future<void> saveSelectedModelId(String modelId) async {
+    await saveSetting('selected_model_id', modelId);
+  }
+
+  Future<String?> getSelectedModelId() async {
+    return await getSetting('selected_model_id');
+  }
   
   Future<bool> isOnboardingComplete() async {
     return _settingsBox.get('onboarding_complete') == 'true';
