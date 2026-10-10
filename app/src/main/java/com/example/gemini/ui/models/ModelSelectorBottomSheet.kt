@@ -601,6 +601,9 @@ private fun TieredModelGroupCard(
 ) {
     val isAnyVariantSelected = group.variants.any { it.model.id == selectedModelId }
     val brandColor = when (group.family) {
+        ModelFamily.ANTIGRAVITY -> Color(0xFF00E5FF)
+        ModelFamily.OPENAI -> Color(0xFF10A37F)
+        ModelFamily.DEEPSEEK -> Color(0xFF3B82F6)
         ModelFamily.CLAUDE -> ClaudeTerracotta
         ModelFamily.GEMINI -> GeminiBlue
         ModelFamily.OTHER -> MaterialTheme.colorScheme.primary
