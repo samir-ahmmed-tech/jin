@@ -37,13 +37,13 @@ fun AutomationControlsDialog(
     val authPrefs = remember { AuthPreferences(context) }
 
     var isBrowserAutomationEnabled by remember {
-        mutableStateOf(authPrefs.getBrowserAutomationToolsEnabledSync())
+        mutableStateOf(authPrefs.isBrowserAutomationEnabledSync())
     }
     var isTerminalAutomationEnabled by remember {
-        mutableStateOf(authPrefs.getTerminalAutomationToolsEnabledSync())
+        mutableStateOf(authPrefs.isTerminalAutomationEnabledSync())
     }
     var isFlowAutomationEnabled by remember {
-        mutableStateOf(authPrefs.getFlowAutomationToolsEnabledSync())
+        mutableStateOf(authPrefs.isFlowAutomationEnabledSync())
     }
 
     Dialog(
@@ -144,7 +144,7 @@ fun AutomationControlsDialog(
                                 checked = isBrowserAutomationEnabled,
                                 onCheckedChange = { checked ->
                                     isBrowserAutomationEnabled = checked
-                                    scope.launch { authPrefs.saveBrowserAutomationToolsEnabled(checked) }
+                                    scope.launch { authPrefs.setBrowserAutomationEnabled(checked) }
                                 },
                                 colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ClaudeTerracotta)
                             )
@@ -191,7 +191,7 @@ fun AutomationControlsDialog(
                                 checked = isTerminalAutomationEnabled,
                                 onCheckedChange = { checked ->
                                     isTerminalAutomationEnabled = checked
-                                    scope.launch { authPrefs.saveTerminalAutomationToolsEnabled(checked) }
+                                    scope.launch { authPrefs.setTerminalAutomationEnabled(checked) }
                                 },
                                 colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF00ACC1))
                             )
@@ -238,7 +238,7 @@ fun AutomationControlsDialog(
                                 checked = isFlowAutomationEnabled,
                                 onCheckedChange = { checked ->
                                     isFlowAutomationEnabled = checked
-                                    scope.launch { authPrefs.saveFlowAutomationToolsEnabled(checked) }
+                                    scope.launch { authPrefs.setFlowAutomationEnabled(checked) }
                                 },
                                 colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF8B5CF6))
                             )

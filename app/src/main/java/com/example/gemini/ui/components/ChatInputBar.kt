@@ -1055,6 +1055,8 @@ fun ChatInputBar(
                             }
                         }
 
+                        val activeNotebook by com.example.gemini.data.notebook.NotebookManager.getInstance(context).attachedNotebook.collectAsState()
+
                         // AI Automation Quick Button
                         Surface(
                             onClick = onOpenAutomation,
@@ -1067,7 +1069,7 @@ fun ChatInputBar(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.SmartToy,
+                                    imageVector = Icons.Default.PlayArrow,
                                     contentDescription = null,
                                     tint = Color(0xFF10B981),
                                     modifier = Modifier.size(13.dp)
@@ -1083,14 +1085,13 @@ fun ChatInputBar(
                         }
 
                         // Notebooks Quick Button
-                        val activeNb by com.example.gemini.data.notebook.NotebookManager.getInstance(context).attachedNotebook.collectAsState()
                         Surface(
                             onClick = onOpenNotebooks,
                             shape = RoundedCornerShape(12.dp),
-                            color = if (activeNb != null) GeminiBlue.copy(alpha = 0.15f) else MaterialTheme.colorScheme.background,
+                            color = if (activeNotebook != null) GeminiBlue.copy(alpha = 0.15f) else MaterialTheme.colorScheme.background,
                             border = BorderStroke(
                                 1.dp,
-                                if (activeNb != null) GeminiBlue.copy(alpha = 0.45f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                                if (activeNotebook != null) GeminiBlue.copy(alpha = 0.45f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                             )
                         ) {
                             Row(
@@ -1098,17 +1099,17 @@ fun ChatInputBar(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.AutoStories,
+                                    imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,
                                     contentDescription = null,
-                                    tint = if (activeNb != null) GeminiBlue else Color(0xFF8B5CF6),
+                                    tint = if (activeNotebook != null) GeminiBlue else Color(0xFF8B5CF6),
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (activeNb != null) "Notebook Active" else "Notebooks",
+                                    text = if (activeNotebook != null) "Notebook Active" else "Notebooks",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (activeNb != null) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    color = if (activeNotebook != null) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                 )
                             }
                         }
@@ -1142,7 +1143,7 @@ fun ChatInputBar(
                     }
 
                     // 2. Attachments & Attached Notebook Preview (if any)
-                    if (attachments.isNotEmpty() || isUploadingAttachment || activeNb != null) {
+                    if (attachments.isNotEmpty() || isUploadingAttachment || activeNotebook != null) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1151,7 +1152,7 @@ fun ChatInputBar(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            activeNb?.let { nb ->
+                            activeNotebook?.let { nb ->
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
                                     color = GeminiBlue.copy(alpha = 0.12f),
@@ -1162,7 +1163,7 @@ fun ChatInputBar(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Outlined.Book,
+                                            imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,
                                             contentDescription = null,
                                             tint = GeminiBlue,
                                             modifier = Modifier.size(13.dp)
@@ -1181,7 +1182,7 @@ fun ChatInputBar(
                                             modifier = Modifier.size(18.dp)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.Close,
+                                                imageVector = Icons.Outlined.Close,
                                                 contentDescription = "Detach",
                                                 tint = GeminiBlue,
                                                 modifier = Modifier.size(12.dp)
