@@ -2,6 +2,7 @@ package com.example.gemini.data.local
 
 import android.content.Context
 import android.os.Environment
+import android.system.Os
 import android.util.Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
