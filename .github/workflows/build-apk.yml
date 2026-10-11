@@ -34,15 +34,26 @@ jobs:
 
       - name: Setup Keystore
         run: |
-          if [ ! -f app/release.jks ]; then
-            echo "Generating release keystore..."
+          if [ -f app/release-keystore.b64 ]; then
+            echo "Restoring persistent release keystore from app/release-keystore.b64..."
+            base64 -d app/release-keystore.b64 > app/release.jks
+          elif [ -f app/release.jks ]; then
+            echo "Existing release.jks found..."
+          else
+            echo "Generating persistent release keystore..."
             keytool -genkey -v -keystore app/release.jks -alias antigem -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=JIN, OU=JIN, O=JIN, L=City, S=State, C=US"
+            base64 -w 0 app/release.jks > app/release-keystore.b64
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add app/release-keystore.b64
+            git commit -m "chore(ci): persist release keystore for reproducible APK signing [skip ci]" || true
+            git push origin main || true
           fi
 
       - name: Read Version
         id: get_version
         run: |
-          VERSION=$(python3 -c "import json; print(json.load(open('version.json')).get('version_name', '2.0.4'))")
+          VERSION=$(python3 -c "import json; print(json.load(open('version.json')).get('version_name', '2.0.9'))")
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Generate and Validate App Icons
@@ -69,7 +80,7 @@ jobs:
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: JIN-Termux-Release-APK
+          name: JIN-Release-APKs
           path: output/*.apk
           if-no-files-found: error
           retention-days: 30
@@ -79,18 +90,17 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
-          name: "JIN v${{ steps.get_version.outputs.version }} - Edge Drag, Scaled Fonts, Direct Agents & Real-Time Voice"
+          name: "JIN v${{ steps.get_version.outputs.version }} - Edge-to-Edge Setup, Google Drive Vault, Gemini Notebooks & Persistent Updates"
           body: |
-            ### 🤖 JIN v${{ steps.get_version.outputs.version }} Release
-            - 🎯 **Edge-to-Edge Draggable Floating Arrow Switcher**: Fixed pixel coordinate constraints so the floating '<' switcher dot moves smoothly across 100% of the screen width to the far right edge.
-            - 📱 **Proportional Font & Card Scaling**: Synchronized `fontScale` with `appUiScale` (85% default) so text scales down proportionally inside card containers, eliminating clipping ('DeepS...') and multi-line wrapping.
-            - ⚡ **Direct AI Agents 100% Operational**: DeepSeek, Codex, and OpenRouter now stream directly via Google AI Pro (`gemini-2.5-flash`) or custom direct API keys with 1-tap inline key management in Accounts.
-            - 🗑️ **Clean 1-Tap App Wipe & Factory Reset**: Removed the cumbersome 'iknowwhatiamdoing' password prompt from both Jin Space Manager and Settings. One-tap Material3 confirmation with 5-second countdown.
-            - 🎙️ **100% Reliable Android-Native Voice Dictation**: Bulletproof offline-capable `NativeSpeechTranscriber` utilizing hardware `SpeechRecognizer` with live RMS audio waveforms, never dropping when remote servers disconnect.
-            - 🗣️ **Natural Real-Time Text-to-Speech (TTS)**: Integrated `ChatTtsHelper` with markdown cleaning and 1-tap Read Aloud button on assistant messages for fluid, spoken responses.
-            - ❄️ **24/7 Mobile Thermal & Battery Saver Guard**: Intelligent cooling governor and CPU cycle management in PC Features Hub for non-stop mobile usage without heating or battery drain.
-            - 🔇 **Quiet Startup**: Completely suppressed noisy background reconnection, daemon check, and skill sync toasts on app launch.
-            - 🚀 **Expanded PC Features Hub**: Comprehensive 100+ desktop-grade Antigravity features including LSP diagnostics, Git Blame, Worktree branching, RAM cleaner, and Community Skills store.
+            ### 🚀 JIN v${{ steps.get_version.outputs.version }} Release
+            - 🌟 **Full-Page Edge-to-Edge Agents Setup**: Recreated the active agents screen matching Jin's dark theme into a full edge-to-edge layout with zero text wrapping/clipping, responsive agent cards, and sticky bottom continue action.
+            - ☁️ **Google Drive Cloud Vault with Direct Login**: Direct Google Account status & 1-tap sign-in inside the sync dialog, auto-refreshing OAuth tokens, backing up all direct chats, general chats, Gemini notebooks, custom folders, Termux projects workspace, and AI brain transcripts/artifacts.
+            - 📓 **Gemini-Style Notebooks**: Comprehensive notebook creation, editing, and 1-tap contextual prompt attachments with live removable chips.
+            - 🛠️ **Clickable Workspace Picker**: Restored clickable workspace selector during ongoing chats.
+            - 🤖 **Dedicated Automation Controls**: Quick-launch sheet and prompt attachment options for Browser Automation MCP, Terminal Automation, and Agentic Flow Automation.
+            - 🎛️ **Card Size & Font Size Customization**: New Card Size & Density Scale (50%–150%) and independent App Font Size Scale (50%–180%) sliders with preset quick chips in Settings.
+            - 🔄 **Persistent APK Signing & Update Fix**: Fixed the issue where updating required deleting the app first. Established persistent release keystore signing across all builds and added explicit FileProvider permissions for PackageInstaller.
+            - 📦 **Dual Flavor Release Builds**: Both `jin-termux` and `jin-standard` compiled in release mode.
             - 👨‍💻 **Lead Developer**: Samir Ahmmed (https://github.com/samir-ahmmed-tech)
           files: output/*.apk
           draft: false

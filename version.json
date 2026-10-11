@@ -1,16 +1,16 @@
 {
-  "version_code": 208,
-  "version_name": "2.0.8",
+  "version_code": 209,
+  "version_name": "2.0.9",
   "min_supported_version_code": 1,
   "changelog": [
-    "📁 Custom Folder Management System: Full custom folder creation and chat organization across the workspace while preserving the primary directory structure.",
-    "🎨 Redesigned Agent CLI Suite UI: Fixed squeezed size badge layouts, prevented ugly multi-line text wrapping ('Executio\\nn', 'Progra\\nmming'), and added DeepSeek Hermes CLI, OpenAI Codex CLI, and OpenRouter CLI suite packages.",
-    "🗑️ Permanent Chat Purge: Guaranteed disk removal of conversation artifacts (.pbtxt, .db, .lock) so deleted chats never resurrect on app restart.",
-    "🔑 Active Models Only Selector: Model picker in chat prompt bar strictly filters and displays only models with active credentials or logged-in accounts; inactive providers are tucked away into an unlock section.",
-    "⚡ 100% Working Direct APIs: Direct streaming support for Anthropic Claude (/v1/messages), OpenRouter with required headers, DeepSeek reasoner/chat routing, and OpenAI Codex routing.",
-    "☁️ Google Drive Cloud Vault: 1-Tap complete backup & restore of chats, media, projects, and application data to user's Google Drive.",
-    "🛠️ Expanded AI Suite & Creation Strip: Quick toggles for Personal Intelligence (ON/OFF), Deep Thinking mode, Web Search, Camera, Photo, File, Google Drive, NotebookLM, Create Photo/Video/Music, Canvas IDE, Deep Research, and Learning modes.",
-    "🤖 Autonomous GitHub Repo & Skill Installer Agent: Autonomous detection of GitHub repo links in chat, automatic clone into projects/, dependency installation via pnpm, and auto-registration of Antigravity skills.",
+    "🌟 Full-Page Edge-to-Edge Agents Setup: Rebuilt the active agents screen matching Jin's dark theme into a dedicated full-page setup screen with zero vertical text wrapping or badge clipping, responsive agent cards, and sticky bottom continue action.",
+    "☁️ Google Drive Cloud Vault with Direct Login: Direct Google Account connection card and 1-tap sign-in inside the vault dialog with auto-refreshing OAuth tokens, backing up all direct chats, general chats, Gemini notebooks, custom folders, Termux projects workspace, and AI brain transcripts/artifacts.",
+    "📓 Gemini-Style Notebooks: Full notebook management (creation, edit, context formatting) and 1-tap attachment to chat prompts with live removable chips.",
+    "🛠️ Clickable Workspace Selector: Workspace project selector is now always clickable even during active chats, allowing seamless workspace switching.",
+    "🤖 Dedicated Automation Controls: New dedicated Automation option and quick-launch sheet for Browser Automation MCP, Terminal Automation, and Agentic Flow Automation.",
+    "🎛️ Card Size & Font Scaling Sliders: Added independent App Font Size Scale (50%–180%) and Card Size & Density Scale (50%–150%) sliders with preset quick chips in Settings under Global App UI Scale.",
+    "🔄 Persistent APK Keystore Signing & In-App Update Fix: Fixed the issue where updating required deleting the app first. Established persistent release keystore signing across all builds and added explicit FileProvider permissions for PackageInstaller.",
+    "📦 Dual Flavor Release Builds: Both jin-termux and jin-standard flavors are compiled in release mode.",
     "👨‍💻 Lead Developer: Samir Ahmmed (https://github.com/samir-ahmmed-tech)"
   ],
   "is_critical": false

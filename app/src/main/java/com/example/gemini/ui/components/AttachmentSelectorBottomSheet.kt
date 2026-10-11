@@ -33,6 +33,8 @@ fun AttachmentSelectorBottomSheet(
     onCreateVideo: () -> Unit = {},
     onCreateMusic: () -> Unit = {},
     onOpenCanvas: () -> Unit = {},
+    onOpenWorkspaceBrowser: () -> Unit = {},
+    onOpenAutomation: () -> Unit = {},
     onDeepResearch: () -> Unit = {},
     onLearningMode: () -> Unit = {},
     onDismiss: () -> Unit
@@ -128,7 +130,7 @@ fun AttachmentSelectorBottomSheet(
                     CompactFeatureTile(
                         icon = Icons.Outlined.AutoStories,
                         iconColor = Color(0xFF8B5CF6),
-                        title = "NotebookLM",
+                        title = "Notebooks",
                         onClick = { onDismiss(); onOpenNotebookLm() }
                     )
                 }
@@ -176,14 +178,34 @@ fun AttachmentSelectorBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Section 3: Reasoning & Workspaces
+            // Section 3: Reasoning, Workspaces & Automation
             Text(
-                text = "REASONING & WORKSPACES",
+                text = "REASONING, WORKSPACES & AUTOMATION",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 letterSpacing = 0.5.sp
             )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            AttachmentOptionRow(
+                icon = Icons.Outlined.SmartToy,
+                iconColor = Color(0xFF10B981),
+                title = "AI Automation Controls",
+                subtitle = "Automate browser actions, shell commands, and background tasks",
+                onClick = { onDismiss(); onOpenAutomation() }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            AttachmentOptionRow(
+                icon = Icons.Outlined.FolderCopy,
+                iconColor = Color(0xFF0EA5E9),
+                title = "Workspace Files Browser",
+                subtitle = "Explore, select, and manage local project files and code directories",
+                onClick = { onDismiss(); onOpenWorkspaceBrowser() }
+            )
+
             Spacer(modifier = Modifier.height(8.dp))
 
             AttachmentOptionRow(

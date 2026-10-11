@@ -41,7 +41,8 @@ class GoogleOAuthManager(private val client: OkHttpClient = OkHttpClient()) {
             "https://www.googleapis.com/auth/userinfo.email",
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/cclog",
-            "https://www.googleapis.com/auth/experimentsandconfigs"
+            "https://www.googleapis.com/auth/experimentsandconfigs",
+            "https://www.googleapis.com/auth/drive.file"
         )
     }
 

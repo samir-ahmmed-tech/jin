@@ -209,6 +209,25 @@ class AppUpdateManager(private val context: Context) {
                 }
             }
 
+            // Grant read URI permission to all potential package installers
+            val resInfoList = context.packageManager.queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+            for (resolveInfo in resInfoList) {
+                val pkg = resolveInfo.activityInfo.packageName
+                try {
+                    context.grantUriPermission(pkg, apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (_: Exception) {}
+            }
+            listOf(
+                "com.google.android.packageinstaller",
+                "com.android.packageinstaller",
+                "com.miui.packageinstaller",
+                "com.samsung.android.packageinstaller"
+            ).forEach { pkg ->
+                try {
+                    context.grantUriPermission(pkg, apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (_: Exception) {}
+            }
+
             context.startActivity(intent)
             true
         } catch (e: Exception) {

@@ -39,6 +39,7 @@ class AuthPreferences(private val context: Context) {
         val IS_DEV_MODE_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("is_dev_mode_enabled")
         val CHAT_FONT_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("chat_font_scale")
         val APP_UI_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("app_ui_scale")
+        val APP_CARD_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("app_card_scale")
         val PERFORMANCE_MODE = stringPreferencesKey("performance_mode")
         val PERF_CPU_THREADS = androidx.datastore.preferences.core.intPreferencesKey("perf_cpu_threads")
         val PERF_CACHE_MB = androidx.datastore.preferences.core.intPreferencesKey("perf_cache_mb")
@@ -250,8 +251,13 @@ class AuthPreferences(private val context: Context) {
     val enabledModelIds: Flow<Set<String>?> = context.dataStore.data.map { it[ENABLED_MODELS] }
     val isDevModeEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_DEV_MODE_ENABLED] ?: false }
     val chatFontScale: Flow<Float> = context.dataStore.data.map { it[CHAT_FONT_SCALE] ?: 1.0f }
+    fun getChatFontScaleSync(): Float = syncPrefs.getFloat("chat_font_scale", 1.0f)
+
     val appUiScale: Flow<Float> = context.dataStore.data.map { it[APP_UI_SCALE] ?: 0.85f }
     fun getAppUiScaleSync(): Float = syncPrefs.getFloat("app_ui_scale", 0.85f)
+
+    val appCardScale: Flow<Float> = context.dataStore.data.map { it[APP_CARD_SCALE] ?: 1.0f }
+    fun getAppCardScaleSync(): Float = syncPrefs.getFloat("app_card_scale", 1.0f)
 
     val performanceMode: Flow<String> = context.dataStore.data.map { it[PERFORMANCE_MODE] ?: "TURBO" }
     fun getPerformanceModeSync(): String = syncPrefs.getString("performance_mode", "TURBO") ?: "TURBO"
@@ -501,6 +507,7 @@ class AuthPreferences(private val context: Context) {
 
     fun getAccessTokenSync(): String = syncPrefs.getString("access_token", "") ?: ""
     fun getRefreshTokenSync(): String = syncPrefs.getString("refresh_token", "") ?: ""
+    fun getUserEmailSync(): String = syncPrefs.getString("user_email", "") ?: ""
 
     suspend fun saveProjectInfo(projectId: String, tier: String) {
         context.dataStore.edit { prefs ->
@@ -517,8 +524,18 @@ class AuthPreferences(private val context: Context) {
 
 
     suspend fun saveChatFontScale(scale: Float) {
+        val clamped = scale.coerceIn(0.5f, 2.0f)
+        syncPrefs.edit().putFloat("chat_font_scale", clamped).apply()
         context.dataStore.edit { prefs ->
-            prefs[CHAT_FONT_SCALE] = scale
+            prefs[CHAT_FONT_SCALE] = clamped
+        }
+    }
+
+    suspend fun saveAppCardScale(scale: Float) {
+        val clamped = scale.coerceIn(0.4f, 1.8f)
+        syncPrefs.edit().putFloat("app_card_scale", clamped).apply()
+        context.dataStore.edit { prefs ->
+            prefs[APP_CARD_SCALE] = clamped
         }
     }
 

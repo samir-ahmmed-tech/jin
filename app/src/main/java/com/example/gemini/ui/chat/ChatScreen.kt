@@ -293,6 +293,8 @@ fun ChatScreen(
     var showGoogleDriveSyncDialog by remember { mutableStateOf(false) }
     var showProjectPickerDialog by remember { mutableStateOf(false) }
     var showWorkspaceFolderBrowserDialog by remember { mutableStateOf(false) }
+    var showNotebookDialog by remember { mutableStateOf(false) }
+    var showAutomationControlsDialog by remember { mutableStateOf(false) }
     var showStopConfirmDialog by remember { mutableStateOf(false) }
     var isInitialGracePeriod by remember { mutableStateOf(true) }
 
@@ -1138,8 +1140,8 @@ fun ChatScreen(
 
                                 Surface(
                                     shape = RoundedCornerShape(4.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isChatStarted) 0.4f else 0.6f),
-                                    modifier = if (isChatStarted) Modifier else Modifier.clickable {
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isChatStarted) 0.5f else 0.7f),
+                                    modifier = Modifier.clickable {
                                         showProjectPickerDialog = true
                                     }
                                 ) {
@@ -2077,10 +2079,17 @@ fun ChatScreen(
                             )
                             return@ChatInputBar
                         }
+                        val notebookManager = com.example.gemini.data.notebook.NotebookManager.getInstance(context)
+                        val attachedNb = notebookManager.attachedNotebook.value
+                        val effectiveText = if (attachedNb != null) {
+                            notebookManager.formatNotebookContext(attachedNb) + text
+                        } else {
+                            text
+                        }
                         if (appCmd != null) {
                             handleClaudeCommand(appCmd)
                         } else {
-                            viewModel.sendMessage(text)
+                            viewModel.sendMessage(effectiveText)
                             userSentMessageTrigger++
                         }
                         viewModel.clearDraft(activeConversationKey)
@@ -2106,6 +2115,8 @@ fun ChatScreen(
                     onToggleWebSearch = {
                         viewModel.setWebSearchEnabled(!webSearchEnabled)
                     },
+                    onOpenAutomation = { showAutomationControlsDialog = true },
+                    onOpenNotebooks = { showNotebookDialog = true },
                     cascadeId = activeConversationKey,
                     focusRequester = chatInputFocusRequester
                 )
@@ -2140,7 +2151,10 @@ fun ChatScreen(
             onNavigateToTerminal = onNavigateToTerminal,
             onNavigateToBrowser = onNavigateToBrowser,
             onOpenGit = onNavigateToIde,
-            onOpenSkills = { showSettingsDialog = true }
+            onOpenSkills = { showSettingsDialog = true },
+            onOpenAutomation = { showAutomationControlsDialog = true },
+            onOpenGoogleDrive = { showGoogleDriveSyncDialog = true },
+            onOpenNotebooks = { showNotebookDialog = true }
         )
     }
 
@@ -2710,27 +2724,49 @@ fun ChatScreen(
                 }
             },
             onOpenGoogleDrive = { showGoogleDriveSyncDialog = true },
-            onOpenNotebookLm = {
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://notebooklm.google.com")))
-                } catch (e: Exception) {
-                    showToast("Cannot open NotebookLM: ${e.message}", ChatToastType.ERROR)
-                }
-            },
+            onOpenNotebookLm = { showNotebookDialog = true },
             onCreatePhoto = { textFieldValue = TextFieldValue("/image ") },
             onCreateVideo = { textFieldValue = TextFieldValue("/video ") },
             onCreateMusic = { textFieldValue = TextFieldValue("/music ") },
             onOpenCanvas = { onNavigateToIde() },
+            onOpenWorkspaceBrowser = { showWorkspaceFolderBrowserDialog = true },
+            onOpenAutomation = { showAutomationControlsDialog = true },
             onDeepResearch = { textFieldValue = TextFieldValue("/research ") },
             onLearningMode = { textFieldValue = TextFieldValue("/learn ") },
             onDismiss = { showAttachmentSelector = false }
         )
     }
 
+    // Gemini Notebooks Manager & Prompt Attachment Dialog
+    if (showNotebookDialog) {
+        com.example.gemini.ui.notebook.NotebookDialog(
+            onDismiss = { showNotebookDialog = false },
+            onNotebookAttached = { attachedNb ->
+                showToast("Notebook '${attachedNb.title}' attached to chat context", ChatToastType.SUCCESS)
+            }
+        )
+    }
+
+    // AI Device & Browser Automation Controls Dialog
+    if (showAutomationControlsDialog) {
+        com.example.gemini.ui.components.AutomationControlsDialog(
+            onDismiss = { showAutomationControlsDialog = false },
+            onOpenBrowser = onNavigateToBrowser,
+            onOpenTerminal = onNavigateToTerminal
+        )
+    }
+
     // Google Drive Cloud Vault Backup & Restore Dialog
     if (showGoogleDriveSyncDialog) {
         com.example.gemini.ui.components.GoogleDriveSyncDialog(
-            onDismiss = { showGoogleDriveSyncDialog = false }
+            onDismiss = { showGoogleDriveSyncDialog = false },
+            onLoginWithGoogle = {
+                val url = viewModel.getGoogleOAuthUrl()
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            }
         )
     }
 

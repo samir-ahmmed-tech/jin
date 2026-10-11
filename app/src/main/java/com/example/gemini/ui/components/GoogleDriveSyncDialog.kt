@@ -26,13 +26,25 @@ import com.example.gemini.theme.GeminiBlue
 import com.example.gemini.theme.QuotaGreen
 import kotlinx.coroutines.launch
 
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Login
+import androidx.compose.material.icons.outlined.WarningAmber
+import com.example.gemini.data.preferences.AuthPreferences
+
 @Composable
 fun GoogleDriveSyncDialog(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onLoginWithGoogle: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val authPrefs = remember { AuthPreferences(context) }
     val syncManager = remember { GoogleDriveSyncManager.getInstance(context) }
+
+    val userEmail by authPrefs.userEmail.collectAsState(initial = null)
+    val hasToken = remember(userEmail) {
+        authPrefs.getAccessTokenSync().isNotBlank() || authPrefs.getRefreshTokenSync().isNotBlank()
+    }
 
     val isSyncing by syncManager.isSyncing.collectAsState()
     val syncStatus by syncManager.syncStatus.collectAsState()
@@ -81,7 +93,7 @@ fun GoogleDriveSyncDialog(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Backup & Restore Chats, Media & Projects",
+                            text = "Backup & Restore Chats, Notebooks & Projects",
                             fontSize = 11.5.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -95,7 +107,65 @@ fun GoogleDriveSyncDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Google Account Connection Card
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = if (hasToken) Color(0xFF10B981).copy(alpha = 0.08f) else Color(0xFFF59E0B).copy(alpha = 0.08f),
+                    border = BorderStroke(
+                        1.dp,
+                        if (hasToken) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFF59E0B).copy(alpha = 0.35f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (hasToken) Icons.Outlined.CheckCircle else Icons.Outlined.WarningAmber,
+                                contentDescription = null,
+                                tint = if (hasToken) Color(0xFF10B981) else Color(0xFFF59E0B),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (hasToken) (userEmail ?: "Google Account Connected") else "Google Account Not Connected",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (hasToken) "Drive Cloud Vault linked & verified" else "Sign in to enable automatic drive backup",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (onLoginWithGoogle != null) {
+                                TextButton(
+                                    onClick = onLoginWithGoogle,
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Login,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = if (hasToken) MaterialTheme.colorScheme.primary else Color(0xFFF59E0B)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (hasToken) "Switch" else "Sign In",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (hasToken) MaterialTheme.colorScheme.primary else Color(0xFFF59E0B)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Vault Status Card
                 Surface(
@@ -139,7 +209,7 @@ fun GoogleDriveSyncDialog(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "• Chat history & JSON transcripts\n• Workspace projects in Termux\n• Generative creations (images, audio, docs)",
+                            text = "• All chats, messages & JSON transcripts\n• Gemini Notebooks & prompt contexts\n• Workspace projects in Termux\n• Folders & AI artifacts",
                             fontSize = 11.5.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             lineHeight = 16.sp

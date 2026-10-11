@@ -401,6 +401,33 @@ object PcFeaturesRegistry {
             icon = Icons.Outlined.PlayArrow,
             badge = "TTS",
             accentColor = Color(0xFFF43F5E)
+        ),
+        PcFeatureItem(
+            id = "ai_automation",
+            title = "AI Device & Browser Automation",
+            category = "Automation",
+            description = "Autonomous browser navigation, shell commands, and automated multi-step flows.",
+            icon = Icons.Outlined.SmartToy,
+            badge = "AUTO",
+            accentColor = Color(0xFF10B981)
+        ),
+        PcFeatureItem(
+            id = "google_vault",
+            title = "Google Drive Cloud Vault",
+            category = "Backup & Cloud",
+            description = "1-Tap backup & restore of chats, notebooks, projects, and media to Google Drive.",
+            icon = Icons.Outlined.CloudUpload,
+            badge = "DRIVE",
+            accentColor = Color(0xFF3B82F6)
+        ),
+        PcFeatureItem(
+            id = "gemini_notebooks",
+            title = "Gemini Notebooks & Sources Manager",
+            category = "Workspace Tools",
+            description = "Create, edit, and attach knowledge notebooks directly to chat context.",
+            icon = Icons.Outlined.AutoStories,
+            badge = "NOTEBOOK",
+            accentColor = Color(0xFF8B5CF6)
         )
     )
 }
@@ -415,7 +442,10 @@ fun PcFeaturesHubSheet(
     onOpenGit: () -> Unit = {},
     onOpenSkills: () -> Unit = {},
     onOpenScratchpad: () -> Unit = {},
-    onOpenExport: () -> Unit = {}
+    onOpenExport: () -> Unit = {},
+    onOpenAutomation: () -> Unit = {},
+    onOpenGoogleDrive: () -> Unit = {},
+    onOpenNotebooks: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
@@ -581,6 +611,18 @@ fun PcFeaturesHubSheet(
                                     }
                                     "skills_marketplace", "mcp_explorer", "community_skills", "mcp_simulator" -> {
                                         onOpenSkills()
+                                        onDismiss()
+                                    }
+                                    "ai_automation" -> {
+                                        onOpenAutomation()
+                                        onDismiss()
+                                    }
+                                    "google_vault", "workspace_backup" -> {
+                                        onOpenGoogleDrive()
+                                        onDismiss()
+                                    }
+                                    "gemini_notebooks" -> {
+                                        onOpenNotebooks()
                                         onDismiss()
                                     }
                                     "battery_saver" -> {

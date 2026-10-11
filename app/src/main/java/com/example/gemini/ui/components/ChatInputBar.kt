@@ -183,6 +183,8 @@ fun ChatInputBar(
     onTogglePersonalIntelligence: () -> Unit = {},
     webSearchEnabled: Boolean = false,
     onToggleWebSearch: () -> Unit = {},
+    onOpenAutomation: () -> Unit = {},
+    onOpenNotebooks: () -> Unit = {},
     focusRequester: FocusRequester = remember { FocusRequester() },
     modifier: Modifier = Modifier
 ) {
@@ -1053,6 +1055,64 @@ fun ChatInputBar(
                             }
                         }
 
+                        // AI Automation Quick Button
+                        Surface(
+                            onClick = onOpenAutomation,
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.background,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.SmartToy,
+                                    contentDescription = null,
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Automation",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+
+                        // Notebooks Quick Button
+                        val activeNb by com.example.gemini.data.notebook.NotebookManager.getInstance(context).attachedNotebook.collectAsState()
+                        Surface(
+                            onClick = onOpenNotebooks,
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (activeNb != null) GeminiBlue.copy(alpha = 0.15f) else MaterialTheme.colorScheme.background,
+                            border = BorderStroke(
+                                1.dp,
+                                if (activeNb != null) GeminiBlue.copy(alpha = 0.45f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.AutoStories,
+                                    contentDescription = null,
+                                    tint = if (activeNb != null) GeminiBlue else Color(0xFF8B5CF6),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (activeNb != null) "Notebook Active" else "Notebooks",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (activeNb != null) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+
                         // AI Suite Creation & Tools Quick Button
                         Surface(
                             onClick = onAttachClick,
@@ -1081,8 +1141,8 @@ fun ChatInputBar(
                         }
                     }
 
-                    // 2. Attachments Preview (if any)
-                    if (attachments.isNotEmpty() || isUploadingAttachment) {
+                    // 2. Attachments & Attached Notebook Preview (if any)
+                    if (attachments.isNotEmpty() || isUploadingAttachment || activeNb != null) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1091,6 +1151,45 @@ fun ChatInputBar(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            activeNb?.let { nb ->
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = GeminiBlue.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, GeminiBlue.copy(alpha = 0.45f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Book,
+                                            contentDescription = null,
+                                            tint = GeminiBlue,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = "Notebook: ${nb.title}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = GeminiBlue,
+                                            maxLines = 1
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        IconButton(
+                                            onClick = { com.example.gemini.data.notebook.NotebookManager.getInstance(context).detachNotebook() },
+                                            modifier = Modifier.size(18.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Detach",
+                                                tint = GeminiBlue,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                             if (isUploadingAttachment) {
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),

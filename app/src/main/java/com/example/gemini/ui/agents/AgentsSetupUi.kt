@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -197,17 +198,34 @@ fun AgentSelector(
                     AgentMark(item.kind, size = 40.dp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(item.title, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = item.title,
+                                fontSize = 14.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
                             item.badge?.let { b ->
                                 Spacer(Modifier.width(6.dp))
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(accent.copy(alpha = 0.15f))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        .padding(horizontal = 7.dp, vertical = 2.dp)
                                 ) {
-                                    Text(b, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = accent)
+                                    Text(
+                                        text = b,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = accent,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
                                 }
                             }
                         }
@@ -261,7 +279,7 @@ fun AgentSelector(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text("Concurrent Agent Execution", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
                         Text(
                             "Maximum simultaneous running agents (1 to 6)",
@@ -269,6 +287,7 @@ fun AgentSelector(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
+                    Spacer(Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
@@ -279,7 +298,9 @@ fun AgentSelector(
                             "$concurrency Active",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -324,47 +345,92 @@ fun AgentSelector(
     }
 }
 
-/** First launch dialog: which agents the app should run (Antigravity preselected). */
+/** First launch screen: which agents the app should run (Full page recreate matching app style). */
 @Composable
 fun AgentChoiceDialog(onConfirm: (Set<AgentKind>) -> Unit) {
     var selected by remember { mutableStateOf(setOf(AgentKind.AGY)) }
     Dialog(
         onDismissRequest = {},
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false, usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
-        Card(
-            shape = RoundedCornerShape(26.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp)
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
             Column(
-                Modifier.verticalScroll(rememberScrollState()).padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier
+                    .fillMaxSize()
+                    .systemBarsPadding()
             ) {
-                Box(Modifier.size(width = 76.dp, height = 56.dp)) {
-                    AgentMark(AgentKind.AGY, size = 48.dp)
-                    AgentMark(AgentKind.DEEPSEEK_LOCAL, size = 44.dp, modifier = Modifier.offset(x = 26.dp, y = 8.dp))
+                // Scrollable list
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(Modifier.size(width = 68.dp, height = 48.dp)) {
+                            AgentMark(AgentKind.AGY, size = 44.dp)
+                            AgentMark(AgentKind.DEEPSEEK_LOCAL, size = 38.dp, modifier = Modifier.offset(x = 24.dp, y = 6.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        "Select Active Agents",
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Pick any combination of agents to run simultaneously. You can change this anytime in Settings.",
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                    )
+                    Spacer(Modifier.height(20.dp))
+                    AgentSelector(selected, { selected = it })
+                    Spacer(Modifier.height(20.dp))
                 }
-                Spacer(Modifier.height(14.dp))
-                Text("Select Active Agents", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    "Pick any combination of agents to run simultaneously. You can change this anytime in Settings.",
-                    fontSize = 12.5.sp,
-                    lineHeight = 17.sp,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                )
-                Spacer(Modifier.height(16.dp))
-                AgentSelector(selected, { selected = it })
-                Spacer(Modifier.height(18.dp))
-                Button(
-                    onClick = { onConfirm(selected) },
-                    shape = RoundedCornerShape(14.dp),
-                    contentPadding = PaddingValues(vertical = 12.dp),
+
+                // Sticky Bottom Continue Action Bar
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Continue", fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp, vertical = 12.dp)
+                    ) {
+                        Button(
+                            onClick = { onConfirm(selected) },
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = PaddingValues(vertical = 14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = com.example.gemini.theme.QuotaGreen),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Continue", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
             }
         }
     }

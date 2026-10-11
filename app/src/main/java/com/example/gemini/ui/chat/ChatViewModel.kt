@@ -847,6 +847,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     val chatFontScale = authPrefs.chatFontScale
     val appUiScale = authPrefs.appUiScale
+    val appCardScale = authPrefs.appCardScale
     val performanceMode = authPrefs.performanceMode
     val perfCpuThreads = authPrefs.perfCpuThreads
     val perfCacheMb = authPrefs.perfCacheMb

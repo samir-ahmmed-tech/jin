@@ -193,12 +193,14 @@ class MainActivity : ComponentActivity() {
             val showFullScreenInstaller = !isInstalledState && !hasSkippedInstaller
 
             val appUiScale by chatViewModel.appUiScale.collectAsState(initial = 0.85f)
+            val fontScaleSetting by chatViewModel.chatFontScale.collectAsState(initial = 1.0f)
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
-            val scaledDensity = remember(currentDensity, appUiScale) {
-                val scale = appUiScale.coerceIn(0.5f, 1.5f)
+            val scaledDensity = remember(currentDensity, appUiScale, fontScaleSetting) {
+                val scale = appUiScale.coerceIn(0.25f, 2.0f)
+                val fontMultiplier = fontScaleSetting.coerceIn(0.5f, 2.0f)
                 androidx.compose.ui.unit.Density(
                     density = currentDensity.density * scale,
-                    fontScale = currentDensity.fontScale * scale
+                    fontScale = currentDensity.fontScale * scale * fontMultiplier
                 )
             }
 

@@ -32,16 +32,15 @@ echo "📦 Version Name: v${VERSION_NAME} (Code: ${VERSION_CODE})"
 mkdir -p "${OUTPUT_DIR}"
 
 if [[ "${MODE}" == "release" ]]; then
-    # echo "🔨 Compiling Standard Release (:app:assembleStandardRelease)..."
-    # "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleStandardRelease
-    # for now let build for termux build only
+    echo "🔨 Compiling Standard Release (:app:assembleStandardRelease)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleStandardRelease
+
     echo "🔨 Compiling Termux Release (:app:assembleTermuxRelease)..."
     "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleTermuxRelease
 
     APKS_SRC="${ROOT_DIR}/app/build/outputs/apk"
-    # find "${APKS_SRC}/standard/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/antiGem-standard-v${VERSION_NAME}-release.apk" \;
     find "${APKS_SRC}/termux/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-v${VERSION_NAME}-release.apk" \;
-    find "${APKS_SRC}/standard/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-standard-v${VERSION_NAME}-release.apk" \; 2>/dev/null || true
+    find "${APKS_SRC}/standard/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-standard-v${VERSION_NAME}-release.apk" \;
 else
     echo "🔨 Compiling Standard Debug (:app:assembleStandardDebug)..."
     "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleStandardDebug

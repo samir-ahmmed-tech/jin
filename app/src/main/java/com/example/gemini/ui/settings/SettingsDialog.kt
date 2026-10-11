@@ -971,6 +971,8 @@ private fun AppearanceSubScreen(
     val authPrefs = remember { com.example.gemini.data.preferences.AuthPreferences(context) }
     val coroutineScope = rememberCoroutineScope()
     var currentUiScale by remember { mutableFloatStateOf(authPrefs.getAppUiScaleSync()) }
+    var currentFontScale by remember { mutableFloatStateOf(authPrefs.getChatFontScaleSync()) }
+    var currentCardScale by remember { mutableFloatStateOf(authPrefs.getAppCardScaleSync()) }
 
     Column(
         modifier = Modifier
@@ -1219,6 +1221,206 @@ private fun AppearanceSubScreen(
                                     fontSize = 10.5.sp,
                                     fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSel) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // App Font Size Scaling Section (50% to 180%)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "App Font Size Scale (${(currentFontScale * 100).toInt()}%)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Scales text size across chats, code blocks and labels (50% - 180%)",
+                    fontSize = 11.5.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            if (currentFontScale != 1.0f) {
+                TextButton(
+                    onClick = {
+                        currentFontScale = 1.0f
+                        coroutineScope.launch { authPrefs.saveChatFontScale(1.0f) }
+                    },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text("Reset (100%)", fontSize = 12.sp, color = ClaudeTerracotta)
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            border = cardBorder
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("50%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Slider(
+                        value = currentFontScale,
+                        onValueChange = { currentFontScale = it },
+                        onValueChangeFinished = {
+                            coroutineScope.launch { authPrefs.saveChatFontScale(currentFontScale) }
+                        },
+                        valueRange = 0.5f..1.8f,
+                        modifier = Modifier.weight(1f),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF3B82F6),
+                            activeTrackColor = Color(0xFF3B82F6)
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("180%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val fontPresets = listOf(0.7f, 0.85f, 1.0f, 1.15f, 1.3f, 1.5f)
+                    fontPresets.forEach { p ->
+                        val isSel = kotlin.math.abs(currentFontScale - p) < 0.04f
+                        Surface(
+                            onClick = {
+                                currentFontScale = p
+                                coroutineScope.launch { authPrefs.saveChatFontScale(p) }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSel) Color(0xFF3B82F6).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, if (isSel) Color(0xFF3B82F6) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = "${(p * 100).toInt()}%",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSel) Color(0xFF3B82F6) else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Card Size & Density Scaling Section (50% to 150%)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Card Size & Density Scale (${(currentCardScale * 100).toInt()}%)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Compacts or enlarges colorful cards, agent cards & action tiles",
+                    fontSize = 11.5.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            if (currentCardScale != 1.0f) {
+                TextButton(
+                    onClick = {
+                        currentCardScale = 1.0f
+                        coroutineScope.launch { authPrefs.saveAppCardScale(1.0f) }
+                    },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text("Reset (100%)", fontSize = 12.sp, color = ClaudeTerracotta)
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            border = cardBorder
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("50%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Slider(
+                        value = currentCardScale,
+                        onValueChange = { currentCardScale = it },
+                        onValueChangeFinished = {
+                            coroutineScope.launch { authPrefs.saveAppCardScale(currentCardScale) }
+                        },
+                        valueRange = 0.5f..1.5f,
+                        modifier = Modifier.weight(1f),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF10B981),
+                            activeTrackColor = Color(0xFF10B981)
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("150%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val cardPresets = listOf(0.6f, 0.8f, 1.0f, 1.2f, 1.4f)
+                    cardPresets.forEach { p ->
+                        val isSel = kotlin.math.abs(currentCardScale - p) < 0.04f
+                        Surface(
+                            onClick = {
+                                currentCardScale = p
+                                coroutineScope.launch { authPrefs.saveAppCardScale(p) }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSel) Color(0xFF10B981).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, if (isSel) Color(0xFF10B981) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = "${(p * 100).toInt()}%",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSel) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
