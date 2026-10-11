@@ -43,6 +43,7 @@ class AntigravityApiService(
 ) {
 
     companion object {
+        val instance by lazy { AntigravityApiService() }
         const val TAG = "GeminiApp"
         const val ENDPOINT_DAILY = "https://daily-cloudcode-pa.googleapis.com"
         const val ENDPOINT_PROD = "https://cloudcode-pa.googleapis.com"

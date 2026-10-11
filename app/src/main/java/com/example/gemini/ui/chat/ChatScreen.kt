@@ -3,6 +3,7 @@ package com.example.gemini.ui.chat
 import com.example.gemini.ui.components.ChatToast
 import com.example.gemini.ui.components.ChatToastType
 import com.example.gemini.ui.components.AppToastHelper
+import com.example.gemini.ui.components.label
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings

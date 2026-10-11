@@ -272,7 +272,7 @@ class DirectAgentChatBackend(
                         sessionId = conv.sessionId,
                         messages = currentList
                     ).collect { event ->
-                        if (event is StreamEvent.ContentChunk) {
+                        if (event is StreamEvent.TextChunk) {
                             responseBuffer.append(event.text)
                             val updatedText = responseBuffer.toString()
                             val liveList = _messages.value.map {

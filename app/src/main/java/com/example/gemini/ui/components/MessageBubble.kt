@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DataObject
 import androidx.compose.material.icons.outlined.Edit
@@ -325,7 +326,7 @@ fun MessageBubble(
                                 modifier = Modifier.size(28.dp)
                             ) {
                                 Icon(
-                                    imageVector = androidx.compose.material.icons.Icons.Rounded.GraphicEq,
+                                    imageVector = Icons.Rounded.GraphicEq,
                                     contentDescription = if (isThisSpeaking) "Stop speaking" else "Read aloud",
                                     tint = if (isThisSpeaking) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                     modifier = Modifier.size(16.dp)
