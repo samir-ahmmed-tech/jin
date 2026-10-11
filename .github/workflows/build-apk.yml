@@ -79,20 +79,18 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
-          name: "JIN v${{ steps.get_version.outputs.version }} - Startup Crash Fixes & Unified Jin Branding"
+          name: "JIN v${{ steps.get_version.outputs.version }} - Edge Drag, Scaled Fonts, Direct Agents & Real-Time Voice"
           body: |
             ### 🤖 JIN v${{ steps.get_version.outputs.version }} Release
-            - 🛠️ **Startup Crash Resolved**: Fixed Jetpack Compose Painter crash on launch caused by InsetDrawables and Android foreground service AdaptiveIcon crashes on Android 8+.
-            - 🎨 **Unified 'Jin' Branding Everywhere**: Standardized app name to 'Jin' (English) across launcher icons, notification bar, settings, space manager, and terminal dialogs.
-            - 🤖 **Consistent Robot Mascot**: Dedicated vector notification icon for clean status bar display and crisp 3D robot mascot for launcher and notifications.
-            - 🚀 **Swarm Multi-Agent Concurrency**: Run up to 6 concurrent agents simultaneously (AGY + DeepSeek + Claude + Codex + OpenRouter) without closing Antigravity.
-            - ⚡ **Ready-Only Model Picker**: Chat box only displays active/ready configured models; unconfigured providers show instant '+ Add Key' unlock dialogs.
-            - 🏎️ **Supercharged Network Engine**: 2MB buffered streams, connection pooling, and optimized I/O pipeline.
-            - 📱 **Global UI Scale Customization**: Granular interface zoom from 25% to 200% with quick presets for all screens.
-            - 🔄 **Automatic Model Quota Failover**: Intelligent fallback switches to available models on HTTP 429 quota exhaustion so tasks never halt.
-            - ⚙️ **Hardware Performance Tuning**: Safety-constrained CPU thread controls, memory cache sliders, and Turbo/Balanced/Power-Saver profiles.
-            - 🧩 **Dynamic Community Skills & MCP Installer**: 1-click GitHub/npm/URL skill & plugin installer with 8 curated developer presets.
-            - 🖥️ **Desktop/PC IDE Super-Features**: Quick Open File Palette (Ctrl+P fuzzy search), Scratchpad & Notes, and JIN IDE branding.
+            - 🎯 **Edge-to-Edge Draggable Floating Arrow Switcher**: Fixed pixel coordinate constraints so the floating '<' switcher dot moves smoothly across 100% of the screen width to the far right edge.
+            - 📱 **Proportional Font & Card Scaling**: Synchronized `fontScale` with `appUiScale` (85% default) so text scales down proportionally inside card containers, eliminating clipping ('DeepS...') and multi-line wrapping.
+            - ⚡ **Direct AI Agents 100% Operational**: DeepSeek, Codex, and OpenRouter now stream directly via Google AI Pro (`gemini-2.5-flash`) or custom direct API keys with 1-tap inline key management in Accounts.
+            - 🗑️ **Clean 1-Tap App Wipe & Factory Reset**: Removed the cumbersome 'iknowwhatiamdoing' password prompt from both Jin Space Manager and Settings. One-tap Material3 confirmation with 5-second countdown.
+            - 🎙️ **100% Reliable Android-Native Voice Dictation**: Bulletproof offline-capable `NativeSpeechTranscriber` utilizing hardware `SpeechRecognizer` with live RMS audio waveforms, never dropping when remote servers disconnect.
+            - 🗣️ **Natural Real-Time Text-to-Speech (TTS)**: Integrated `ChatTtsHelper` with markdown cleaning and 1-tap Read Aloud button on assistant messages for fluid, spoken responses.
+            - ❄️ **24/7 Mobile Thermal & Battery Saver Guard**: Intelligent cooling governor and CPU cycle management in PC Features Hub for non-stop mobile usage without heating or battery drain.
+            - 🔇 **Quiet Startup**: Completely suppressed noisy background reconnection, daemon check, and skill sync toasts on app launch.
+            - 🚀 **Expanded PC Features Hub**: Comprehensive 100+ desktop-grade Antigravity features including LSP diagnostics, Git Blame, Worktree branching, RAM cleaner, and Community Skills store.
             - 👨‍💻 **Lead Developer**: Samir Ahmmed (https://github.com/samir-ahmmed-tech)
           files: output/*.apk
           draft: false
