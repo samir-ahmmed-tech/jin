@@ -208,7 +208,7 @@ class DirectAgentChatBackend(
                 else -> "echo '$trimmed'"
             }
             backendScope.launch(Dispatchers.IO) {
-                com.example.gemini.data.local.LocalTerminalBridge.instance.sendCommand(cliCommand, addNewline = true)
+                com.example.gemini.data.local.LocalTerminalBridge.instance.sendCommand(command = cliCommand, appendEnter = true)
             }
 
             val fallbackNotice = ChatMessage(

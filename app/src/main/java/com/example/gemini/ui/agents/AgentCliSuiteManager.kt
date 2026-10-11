@@ -223,7 +223,7 @@ fun AgentCliSuiteDialog(
                                     isDownloadingAll = true
                                     coroutineScope.launch {
                                         val cmd = "npm install -g @anthropic-ai/claude-code openrouter-cli && pip install deepseek-coder-cli"
-                                        com.example.gemini.data.local.LocalTerminalBridge.instance.sendCommand(cmd, addNewline = true)
+                                        com.example.gemini.data.local.LocalTerminalBridge.instance.sendCommand(command = cmd, appendEnter = true)
                                         for (pkg in AgentCliSuiteRegistry.PACKAGES) {
                                             downloadingPackageId = pkg.id
                                             delay(200)
@@ -394,8 +394,8 @@ fun AgentCliSuiteDialog(
                                                 downloadingPackageId = pkg.id
                                                 coroutineScope.launch {
                                                     com.example.gemini.data.local.LocalTerminalBridge.instance.sendCommand(
-                                                        pkg.installCommand,
-                                                        addNewline = true
+                                                        command = pkg.installCommand,
+                                                        appendEnter = true
                                                     )
                                                     delay(300)
                                                     installedPackages = installedPackages + pkg.id
