@@ -211,18 +211,26 @@ class LocalPtySession(
                     "HOME=/root",
                     "USER=root",
                     "LOGNAME=root",
-                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                    "PATH=/antigem/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                     "TERM=xterm-256color",
                     "COLORTERM=truecolor",
                     "LANG=C.UTF-8",
                     "TMPDIR=/tmp"
                 )
-                val interactiveShell = if (File(ubuntuDir, "usr/bin/zsh").exists()) "/usr/bin/zsh" else "/bin/bash"
+                val interactiveShell = when {
+                    File(ubuntuDir, "usr/bin/zsh").exists() -> "/usr/bin/zsh"
+                    File(ubuntuDir, "bin/bash").exists() -> "/bin/bash"
+                    File(ubuntuDir, "usr/bin/bash").exists() -> "/usr/bin/bash"
+                    File(ubuntuDir, "bin/sh").exists() -> "/bin/sh"
+                    File(ubuntuDir, "usr/bin/sh").exists() -> "/usr/bin/sh"
+                    File(ubuntuDir, "bin/ash").exists() -> "/bin/ash"
+                    else -> "/bin/sh"
+                }
                 if (!initialCommand.isNullOrBlank()) {
                     if (execShellAfterCommand) {
-                        prootArgs.addAll(envWrapper + listOf("/bin/bash", "-c", "$initialCommand; exec $interactiveShell"))
+                        prootArgs.addAll(envWrapper + listOf(interactiveShell, "-c", "$initialCommand; exec $interactiveShell"))
                     } else {
-                        prootArgs.addAll(envWrapper + listOf("/bin/bash", "-c", initialCommand))
+                        prootArgs.addAll(envWrapper + listOf(interactiveShell, "-c", initialCommand))
                     }
                 } else {
                     prootArgs.addAll(envWrapper + listOf(interactiveShell, "--login"))
@@ -236,7 +244,7 @@ class LocalPtySession(
                         "HOME=/root",
                         "USER=root",
                         "LOGNAME=root",
-                        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                        "PATH=/antigem/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                         "TERM=xterm-256color",
                         "COLORTERM=truecolor",
                         "LANG=C.UTF-8",

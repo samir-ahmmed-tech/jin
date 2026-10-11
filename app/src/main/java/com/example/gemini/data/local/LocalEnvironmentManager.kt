@@ -415,8 +415,8 @@ object LocalEnvironmentManager {
         File(ubuntuDir, "sys").mkdirs()
         File(ubuntuDir, "root").mkdirs()
         val rootBashrc = File(File(ubuntuDir, "root"), ".bashrc")
-        if (!rootBashrc.exists() || !rootBashrc.readText().contains("/usr/local/sbin")) {
-            rootBashrc.appendText("\nexport PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\n")
+        if (!rootBashrc.exists() || !rootBashrc.readText().contains("/antigem/bin")) {
+            rootBashrc.appendText("\nexport PATH=/antigem/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\n")
         }
         // Ubuntu's /etc/zsh/zshrc compinit does ~15k fpath stats under proot (~30s first start)
         val rootZshenv = File(File(ubuntuDir, "root"), ".zshenv")
@@ -427,7 +427,7 @@ object LocalEnvironmentManager {
         val profileD = File(File(ubuntuDir, "etc"), "profile.d").apply { mkdirs() }
         val termuxProfile = File(profileD, "termux-profile.sh")
         termuxProfile.writeText(
-            "export PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n" +
+            "export PATH=\"/antigem/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n" +
             "export HOME=\"/root\"\n" +
             "export USER=\"root\"\n" +
             "export LOGNAME=\"root\"\n" +
@@ -462,9 +462,28 @@ object LocalEnvironmentManager {
                     Os.symlink(destination, link.absolutePath)
                 }
             }
-            File(ubuntuDir, "usr/bin/env").setExecutable(true, false)
-            File(ubuntuDir, "usr/bin/bash").setExecutable(true, false)
-            File(ubuntuDir, "bin/bash").exists() || File(ubuntuDir, "usr/bin/bash").exists()
+            val usrBin = File(ubuntuDir, "usr/bin")
+            val bin = File(ubuntuDir, "bin")
+            val uBash = File(usrBin, "bash")
+            val bBash = File(bin, "bash")
+            val uSh = File(usrBin, "sh")
+            val bSh = File(bin, "sh")
+            val bAsh = File(bin, "ash")
+            val availableSh = listOf(bSh, uSh, bAsh).firstOrNull { it.exists() }
+            if (!uBash.exists() && !bBash.exists() && availableSh != null) {
+                try { Os.symlink(availableSh.name, uBash.absolutePath) } catch (_: Exception) {}
+                try { Os.symlink(availableSh.name, bBash.absolutePath) } catch (_: Exception) {}
+            }
+            if (uBash.exists()) uBash.setExecutable(true, false)
+            if (bBash.exists()) bBash.setExecutable(true, false)
+            if (uSh.exists()) uSh.setExecutable(true, false)
+            if (bSh.exists()) bSh.setExecutable(true, false)
+            val envFile = File(usrBin, "env")
+            if (!envFile.exists() && availableSh != null) {
+                try { Os.symlink(availableSh.name, envFile.absolutePath) } catch (_: Exception) {}
+            }
+            if (envFile.exists()) envFile.setExecutable(true, false)
+            bBash.exists() || uBash.exists() || bSh.exists() || uSh.exists()
         }.onFailure {
             Log.e(TAG, "Failed ensuring Ubuntu compatibility links: ${it.message}")
         }.getOrDefault(false)
@@ -474,8 +493,10 @@ object LocalEnvironmentManager {
         val ubuntuDir = getUbuntuRootDir(context)
         val bash = File(ubuntuDir, "bin/bash")
         val sh = File(ubuntuDir, "bin/sh")
+        val ash = File(ubuntuDir, "bin/ash")
         val usrBash = File(ubuntuDir, "usr/bin/bash")
-        return ubuntuDir.exists() && (bash.exists() || sh.exists() || usrBash.exists())
+        val usrSh = File(ubuntuDir, "usr/bin/sh")
+        return ubuntuDir.exists() && (bash.exists() || sh.exists() || ash.exists() || usrBash.exists() || usrSh.exists())
     }
 
     fun isInstalled(context: Context): Boolean {
@@ -596,6 +617,244 @@ object LocalEnvironmentManager {
         } catch (e: Exception) {
             Log.w(TAG, "Claude launcher setup failed: ${e.message}")
         }
+    }
+
+    fun getAgentVaultDir(context: Context): File = File(context.filesDir, "agent_vault").apply { mkdirs() }
+
+    /**
+     * Preserves critical AI agent binaries (Antigravity CLI agy, Claude Code wrapper, and IDE Bridge)
+     * into a safe, permanent vault directory in app internal storage so they survive rootfs wipes,
+     * bootstrap re-installations, or custom bootstrap ZIP uploads.
+     */
+    fun preserveAgents(context: Context) {
+        val vaultDir = getAgentVaultDir(context)
+        val homeDir = getHomeDir(context)
+        val binDir = getBinDir(context)
+        val ubuntuDir = getUbuntuRootDir(context)
+
+        // 1. Preserve Antigravity (agy)
+        val agyCandidates = listOf(
+            File(vaultDir, "agy"),
+            File(homeDir, ".local/bin/agy"),
+            File(binDir, "agy"),
+            File(homeDir, "bin/agy"),
+            File(homeDir, ".gemini/bin/agy"),
+            File(homeDir, ".antigravity/bin/agy"),
+            File(ubuntuDir, "root/.local/bin/agy"),
+            File(ubuntuDir, "usr/bin/agy"),
+            File(ubuntuDir, "antigem/bin/agy"),
+            File("/data/user/0/com.termux/files/home/.local/bin/agy"),
+            File("/data/user/0/com.termux/files/agent_vault/agy")
+        )
+        val vaultAgy = File(vaultDir, "agy")
+        for (candidate in agyCandidates) {
+            if (candidate.exists() && candidate.isFile && candidate.length() > 50_000L) {
+                if (!vaultAgy.exists() || vaultAgy.length() != candidate.length()) {
+                    try {
+                        candidate.copyTo(vaultAgy, overwrite = true)
+                        vaultAgy.setExecutable(true, false)
+                        Os.chmod(vaultAgy.absolutePath, 493) // 0755
+                        Log.d(TAG, "[AgentVault] Preserved agy binary from ${candidate.absolutePath} (${formatFileSize(candidate.length())})")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "[AgentVault] Error copying agy from ${candidate.absolutePath}: ${e.message}")
+                    }
+                }
+                break
+            }
+        }
+
+        // 2. Preserve Claude wrapper if exists
+        val claudeCandidates = listOf(
+            File(binDir, "claude"),
+            File(homeDir, ".local/bin/claude"),
+            File(ubuntuDir, "root/.local/bin/claude"),
+            File(ubuntuDir, "usr/bin/claude")
+        )
+        val vaultClaude = File(vaultDir, "claude")
+        for (candidate in claudeCandidates) {
+            if (candidate.exists() && candidate.isFile && !isSymlink(candidate)) {
+                try {
+                    candidate.copyTo(vaultClaude, overwrite = true)
+                    vaultClaude.setExecutable(true, false)
+                    Os.chmod(vaultClaude.absolutePath, 493)
+                } catch (_: Exception) {}
+                break
+            }
+        }
+
+        // 3. Preserve agy_ide_bridge
+        val bridgeCandidates = listOf(
+            File(binDir, "agy_ide_bridge"),
+            File(ubuntuDir, "antigem/bin/agy_ide_bridge"),
+            File(ubuntuDir, "usr/bin/agy_ide_bridge")
+        )
+        val vaultBridge = File(vaultDir, "agy_ide_bridge")
+        for (candidate in bridgeCandidates) {
+            if (candidate.exists() && candidate.isFile && candidate.length() > 50_000L) {
+                try {
+                    candidate.copyTo(vaultBridge, overwrite = true)
+                    vaultBridge.setExecutable(true, false)
+                    Os.chmod(vaultBridge.absolutePath, 493)
+                } catch (_: Exception) {}
+                break
+            }
+        }
+    }
+
+    /**
+     * Restores preserved agent binaries into the active rootfs environment (Termux or PRoot Ubuntu),
+     * ensuring that Antigravity and other agents execute reliably across any custom bootstrap.
+     */
+    fun restoreAgentBinaries(context: Context) {
+        val vaultDir = getAgentVaultDir(context)
+        var vaultAgy = File(vaultDir, "agy")
+        val homeDir = getHomeDir(context)
+        val binDir = getBinDir(context)
+        val ubuntuDir = getUbuntuRootDir(context)
+
+        // Make sure agent vault has agy if available on system
+        if (!vaultAgy.exists() || vaultAgy.length() < 50_000L) {
+            preserveAgents(context)
+            vaultAgy = File(vaultDir, "agy")
+        }
+
+        // Ensure IDE bridge is extracted and executable
+        LocalServerManager.ensureBridgeBinary(context)
+        ensureClaudeWrapper(context)
+
+        if (isTermuxPackage(context)) {
+            val localBin = File(homeDir, ".local/bin").apply { mkdirs() }
+            val homeAgy = File(localBin, "agy")
+            val prefixAgy = File(binDir, "agy")
+
+            if (vaultAgy.exists() && vaultAgy.length() > 50_000L) {
+                if (!homeAgy.exists() || homeAgy.length() != vaultAgy.length()) {
+                    try {
+                        vaultAgy.copyTo(homeAgy, overwrite = true)
+                        homeAgy.setExecutable(true, false)
+                        Os.chmod(homeAgy.absolutePath, 493)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "[AgentVault] Error restoring agy to home: ${e.message}")
+                    }
+                }
+                if (!prefixAgy.exists() || isSymlink(prefixAgy)) {
+                    try {
+                        if (prefixAgy.exists() || isSymlink(prefixAgy)) prefixAgy.delete()
+                        Os.symlink(homeAgy.absolutePath, prefixAgy.absolutePath)
+                    } catch (_: Exception) {
+                        try {
+                            vaultAgy.copyTo(prefixAgy, overwrite = true)
+                            prefixAgy.setExecutable(true, false)
+                            Os.chmod(prefixAgy.absolutePath, 493)
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+
+            // Universal shell symlinks for lightweight / minimal Termux bootstraps
+            val bash = File(binDir, "bash")
+            val sh = File(binDir, "sh")
+            val dash = File(binDir, "dash")
+            if (!bash.exists() && sh.exists()) {
+                try { Os.symlink("sh", bash.absolutePath) } catch (_: Exception) {}
+            }
+            if (!sh.exists() && bash.exists()) {
+                try { Os.symlink("bash", sh.absolutePath) } catch (_: Exception) {}
+            }
+            if (!sh.exists() && dash.exists()) {
+                try { Os.symlink("dash", sh.absolutePath) } catch (_: Exception) {}
+            }
+        } else {
+            // PRoot / Ubuntu mode (Standard JIN)
+            val rootLocalBin = File(ubuntuDir, "root/.local/bin").apply { mkdirs() }
+            val usrBin = File(ubuntuDir, "usr/bin").apply { mkdirs() }
+            val antigemBin = File(ubuntuDir, "antigem/bin").apply { mkdirs() }
+
+            if (vaultAgy.exists() && vaultAgy.length() > 50_000L) {
+                val targets = listOf(
+                    File(rootLocalBin, "agy"),
+                    File(usrBin, "agy"),
+                    File(antigemBin, "agy")
+                )
+                for (target in targets) {
+                    try {
+                        if (!target.exists() || target.length() != vaultAgy.length()) {
+                            vaultAgy.copyTo(target, overwrite = true)
+                        }
+                        target.setExecutable(true, false)
+                        Os.chmod(target.absolutePath, 493)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "[AgentVault] Error restoring agy to ${target.absolutePath}: ${e.message}")
+                    }
+                }
+            }
+
+            // Universal shell symlinks for minimal / Alpine / BusyBox rootfs
+            val uBash = File(usrBin, "bash")
+            val bBash = File(ubuntuDir, "bin/bash")
+            val uSh = File(usrBin, "sh")
+            val bSh = File(ubuntuDir, "bin/sh")
+            val bAsh = File(ubuntuDir, "bin/ash")
+            val availableSh = listOf(bSh, uSh, bAsh).firstOrNull { it.exists() }
+            if (!uBash.exists() && !bBash.exists() && availableSh != null) {
+                try { Os.symlink(availableSh.name, uBash.absolutePath) } catch (_: Exception) {}
+                try { Os.symlink(availableSh.name, bBash.absolutePath) } catch (_: Exception) {}
+            }
+            val envFile = File(usrBin, "env")
+            if (!envFile.exists() && availableSh != null) {
+                try { Os.symlink(availableSh.name, envFile.absolutePath) } catch (_: Exception) {}
+            }
+        }
+    }
+
+    suspend fun ensureAgyBinaryAvailable(context: Context): Boolean = withContext(Dispatchers.IO) {
+        val vaultDir = getAgentVaultDir(context)
+        val vaultAgy = File(vaultDir, "agy")
+        if (vaultAgy.exists() && vaultAgy.length() > 50_000L) {
+            return@withContext true
+        }
+        preserveAgents(context)
+        if (vaultAgy.exists() && vaultAgy.length() > 50_000L) {
+            return@withContext true
+        }
+
+        // Download official Antigravity CLI arm64 archive if missing
+        try {
+            val downloadUrl = "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.1.27-5211191891591168/linux-arm/cli_linux_arm64.tar.gz"
+            log("Retrieving Antigravity CLI engine package from official repository...")
+            val req = Request.Builder()
+                .url(downloadUrl)
+                .header("User-Agent", "GeminiApp-LocalTerminal/${Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64"}")
+                .build()
+            httpClient.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return@withContext false
+                val body = resp.body ?: return@withContext false
+                val tempTarGz = File(context.cacheDir, "agy_download.tar.gz")
+                tempTarGz.outputStream().use { out -> body.byteStream().copyTo(out) }
+
+                TarArchiveInputStream(GzipCompressorInputStream(FileInputStream(tempTarGz))).use { tarIn ->
+                    var entry = tarIn.nextTarEntry
+                    while (entry != null) {
+                        if (entry.name.endsWith("antigravity") || entry.name == "agy") {
+                            vaultAgy.outputStream().use { out -> tarIn.copyTo(out) }
+                            vaultAgy.setExecutable(true, false)
+                            Os.chmod(vaultAgy.absolutePath, 493)
+                            break
+                        }
+                        entry = tarIn.nextTarEntry
+                    }
+                }
+                tempTarGz.delete()
+            }
+            if (vaultAgy.exists() && vaultAgy.length() > 50_000L) {
+                log("Antigravity CLI binary successfully installed to agent vault (${formatFileSize(vaultAgy.length())})")
+                restoreAgentBinaries(context)
+                return@withContext true
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed downloading agy binary: ${e.message}")
+        }
+        return@withContext false
     }
 
     fun ensureTermuxApiDispatcher(context: Context) {
@@ -875,6 +1134,9 @@ object LocalEnvironmentManager {
 
         clearLogs()
         log("Starting installation: arch=$arch, source=${source.javaClass.simpleName}")
+
+        // Safeguard all existing agent binaries into persistent agent_vault before reset
+        preserveAgents(appContext)
 
         // Ensure a clean slate by clearing any previous partial/broken install
         resetEnvironment(appContext)
@@ -1350,13 +1612,8 @@ object LocalEnvironmentManager {
             )
             updateInstallNotification(appContext, "Extracting Linux Rootfs (0%)", "Preparing directory structure...", 0, force = true)
 
-            // Preserve critical agent daemons (agy CLI and agy_ide_bridge) across bootstrap installs
-            val agyHomeBin = File(homeDir, ".local/bin/agy")
-            val agyPreserveCache = File(appContext.cacheDir, "agy_cache_preserve").apply { mkdirs() }
-            val agyPreservedFile = File(agyPreserveCache, "agy")
-            if (agyHomeBin.exists() && agyHomeBin.canExecute()) {
-                try { agyHomeBin.copyTo(agyPreservedFile, overwrite = true) } catch (_: Exception) {}
-            }
+            // Preserve all critical agent binaries into vault before wiping rootfs
+            preserveAgents(appContext)
 
             // Reset target directory for a clean install
             if (!isTermuxPackage(appContext)) {
@@ -1708,25 +1965,19 @@ object LocalEnvironmentManager {
             if (!isTermuxPackage(appContext)) {
                 val ubuntuDir = getUbuntuRootDir(appContext)
                 setupProotDistroUbuntuFixups(appContext, ubuntuDir)
-                log("Finalizing initial dpkg package triggers...")
-                executeCommand(
-                    command = "DEBIAN_FRONTEND=noninteractive dpkg --configure -a",
-                    context = appContext
-                )
+                if (File(ubuntuDir, "usr/bin/dpkg").exists()) {
+                    log("Finalizing initial dpkg package triggers...")
+                    executeCommand(
+                        command = "DEBIAN_FRONTEND=noninteractive dpkg --configure -a",
+                        context = appContext
+                    )
+                }
             } else {
                 configureEnvironmentFiles(appContext, prefixDir, binDir, etcDir, homeDir, projectsDir)
             }
 
-            // Guarantee agy_ide_bridge binary and agy daemon binary are present and executable
-            LocalServerManager.ensureBridgeBinary(appContext)
-            if (!agyHomeBin.exists() && agyPreservedFile.exists()) {
-                agyHomeBin.parentFile?.mkdirs()
-                try {
-                    agyPreservedFile.copyTo(agyHomeBin, overwrite = true)
-                    agyHomeBin.setExecutable(true, false)
-                    Os.chmod(agyHomeBin.absolutePath, 493) // 0755
-                } catch (_: Exception) {}
-            }
+            // Restore all critical agent binaries into the newly installed rootfs
+            restoreAgentBinaries(appContext)
 
             // STEP 4: Strict Verification
             _installerState.value = LocalInstallerState.Verifying(
@@ -2402,7 +2653,8 @@ All files created here persist inside the application.
                 "--bind=/sys",
                 "--bind=/dev/urandom:/dev/random",
                 "--bind=${shmDir.absolutePath}:/dev/shm",
-                "--bind=${prootTmpDir.absolutePath}:/tmp"
+                "--bind=${prootTmpDir.absolutePath}:/tmp",
+                "--bind=${getBinDir(context).absolutePath}:/antigem/bin"
             )
             for ((fakeFile, guestPath) in sysdataBindings) {
                 cmdList.add("--bind=${fakeFile.absolutePath}:$guestPath")
@@ -2436,11 +2688,19 @@ All files created here persist inside the application.
                 cmdList.add("-b")
                 cmdList.add("/sdcard")
             }
+            val prootShell = when {
+                File(ubuntuDir, "bin/bash").exists() -> "/bin/bash"
+                File(ubuntuDir, "usr/bin/bash").exists() -> "/usr/bin/bash"
+                File(ubuntuDir, "bin/sh").exists() -> "/bin/sh"
+                File(ubuntuDir, "usr/bin/sh").exists() -> "/usr/bin/sh"
+                File(ubuntuDir, "bin/ash").exists() -> "/bin/ash"
+                else -> "/bin/sh"
+            }
             cmdList.addAll(
                 listOf(
                     "-b", "${homeDir.absolutePath}:/root/workspace",
                     "-w", "/root",
-                    "/bin/bash", "-c", command
+                    prootShell, "-c", command
                 )
             )
             val processBuilder = ProcessBuilder(cmdList)
@@ -2448,7 +2708,7 @@ All files created here persist inside the application.
             processBuilder.environment()["USER"] = "root"
             processBuilder.environment()["TERM"] = "xterm-256color"
             processBuilder.environment()["LANG"] = "C.UTF-8"
-            processBuilder.environment()["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            processBuilder.environment()["PATH"] = "/antigem/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
             processBuilder.environment()["TMPDIR"] = "/tmp"
             processBuilder.environment()["DEBIAN_FRONTEND"] = "noninteractive"
             // processBuilder.environment()["PROOT_NO_SECCOMP"] = "1"

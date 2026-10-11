@@ -146,33 +146,43 @@ object LocalServerManager {
                     Log.w(TAG, "backup_proot_ubuntu asset not extracted", e)
                 }
 
-                // If running under PRoot Ubuntu (standard mode), ensure bridge binary is synced to ubuntu rootfs
-                if (!LocalEnvironmentManager.isTermuxPackage(context)) {
-                    try {
-                        val ubuntuDir = LocalEnvironmentManager.getUbuntuRootDir(context)
-                        if (ubuntuDir.exists()) {
-                            val uBin = File(ubuntuDir, "usr/bin/agy_ide_bridge")
-                            val uAntigem = File(ubuntuDir, "antigem/bin/agy_ide_bridge")
-                            uBin.parentFile?.mkdirs()
-                            uAntigem.parentFile?.mkdirs()
-                            if (bridgeFile.exists()) {
-                                bridgeFile.copyTo(uBin, overwrite = true)
-                                uBin.setExecutable(true, false)
-                                bridgeFile.copyTo(uAntigem, overwrite = true)
-                                uAntigem.setExecutable(true, false)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Error copying bridge binary to Ubuntu rootfs: ${e.message}")
-                    }
-                }
-
                 // Also copy agy_ide_bridge to public Downloads folder for user access
                 saveBridgeToDownloads(context)
 
                 if (currentAppUpdateTime > 0L) {
                     prefs.edit().putLong(KEY_BRIDGE_LAST_UPDATE_TIME, currentAppUpdateTime).apply()
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed extracting binaries from assets to binDir: ${e.message}", e)
+            }
+        }
+
+        // Always ensure bridge binary is synced to Ubuntu rootfs if PRoot Ubuntu environment exists
+        if (!LocalEnvironmentManager.isTermuxPackage(context)) {
+            try {
+                val ubuntuDir = LocalEnvironmentManager.getUbuntuRootDir(context)
+                if (ubuntuDir.exists()) {
+                    val uBin = File(ubuntuDir, "usr/bin/agy_ide_bridge")
+                    val uAntigem = File(ubuntuDir, "antigem/bin/agy_ide_bridge")
+                    uBin.parentFile?.mkdirs()
+                    uAntigem.parentFile?.mkdirs()
+                    if (bridgeFile.exists()) {
+                        if (!uBin.exists() || uBin.length() != bridgeFile.length()) {
+                            bridgeFile.copyTo(uBin, overwrite = true)
+                            uBin.setExecutable(true, false)
+                            Os.chmod(uBin.absolutePath, 493)
+                        }
+                        if (!uAntigem.exists() || uAntigem.length() != bridgeFile.length()) {
+                            bridgeFile.copyTo(uAntigem, overwrite = true)
+                            uAntigem.setExecutable(true, false)
+                            Os.chmod(uAntigem.absolutePath, 493)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Error copying bridge binary to Ubuntu rootfs: ${e.message}")
+            }
+        }
                 Log.d(TAG, "[ServerManager] Successfully extracted assets to ${binDir.absolutePath}")
             } catch (e: Exception) {
                 Log.e(TAG, "[ServerManager] Failed to extract assets from bin/", e)
@@ -229,8 +239,25 @@ object LocalServerManager {
         }
         val tzOffset = java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 1000
 
-        val binParam = if (agyCmd.isNotBlank()) {
-            " --bin \"$agyCmd\""
+        val isTermux = LocalEnvironmentManager.isTermuxPackage(context)
+        val homeDir = LocalEnvironmentManager.getHomeDir(context)
+        val binDir = LocalEnvironmentManager.getBinDir(context)
+        val ubuntuDir = LocalEnvironmentManager.getUbuntuRootDir(context)
+
+        LocalEnvironmentManager.restoreAgentBinaries(context)
+
+        val resolvedAgyCmd = when {
+            isTermux && File(homeDir, ".local/bin/agy").exists() -> "~/.local/bin/agy"
+            isTermux && File(binDir, "agy").exists() -> "~/../usr/bin/agy"
+            !isTermux && File(ubuntuDir, "antigem/bin/agy").exists() -> "/antigem/bin/agy"
+            !isTermux && File(ubuntuDir, "root/.local/bin/agy").exists() -> "/root/.local/bin/agy"
+            !isTermux && File(ubuntuDir, "usr/bin/agy").exists() -> "/usr/bin/agy"
+            agyCmd.isNotBlank() && (agyCmd.startsWith("/") && File(agyCmd).exists()) -> agyCmd
+            else -> if (isTermux) "~/.local/bin/agy" else "/antigem/bin/agy"
+        }
+
+        val binParam = if (resolvedAgyCmd.isNotBlank()) {
+            " --bin \"$resolvedAgyCmd\""
         } else {
             ""
         }
@@ -340,6 +367,7 @@ object LocalServerManager {
 
         val appContext = context.applicationContext
         ensureBridgeBinary(appContext)
+        LocalEnvironmentManager.restoreAgentBinaries(appContext)
         // the bridge starts Claude Code through the app's launcher (--claude-bin)
         LocalEnvironmentManager.ensureGlibcEnvironment(appContext)
         LocalEnvironmentManager.ensureClaudeWrapper(appContext)

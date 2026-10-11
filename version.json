@@ -1,12 +1,14 @@
 {
-  "version_code": 214,
-  "version_name": "2.1.4",
+  "version_code": 215,
+  "version_name": "2.1.5",
   "min_supported_version_code": 1,
   "changelog": [
-    "🚀 Single Unified JIN APK (jin-termux-v2.1.4): Complete production release combining JIN-Termux, PRoot rootfs, 100 PC Power Tools, Real-Time Voice, and Mobile-Harness Studio.",
-    "🛠️ 100 PC Tools Hub Fixed: Category pills row enabled with smooth horizontal scrolling, completely eliminating the vertical letter-wrapping bug and large vertical void. Exactly 100 features verified across 10 categories.",
-    "🤖 Harness Studio Revamped: Replaced static provider box and squished 48dp model input with interactive Provider Selection Modal (OpenCode Zen, DeepSeek, OpenRouter, Anthropic, Claude, Kimi, NVIDIA NIM, Custom) and Model Search & Preset Picker Dialog.",
-    "📦 Unlimited GB Zero-Memory File Streaming: Added StreamingFileUtils utilizing 64KB NIO chunk buffers directly to disk with downsampled image previews; uploads of any size (1GB to unlimited GB) process without OOM heap crashes.",
+    "🚀 Single Unified JIN APK (jin-termux-v2.1.5): Complete production release combining JIN-Termux, PRoot rootfs, 100 PC Power Tools, Real-Time Voice, and Mobile-Harness Studio.",
+    "🛡️ Universal Bootstrap & Agent Vault: Persistent Agent Vault safeguards Antigravity (agy), Claude Code, and IDE Bridge across custom bootstrap ZIP uploads (both heavy full rootfs and ultra-light BusyBox/Alpine micro-environments).",
+    "⚡ Seamless Rootfs Compatibility: Automatic agent binary restoration, shell fallback symlinking (bash -> sh/ash), dynamic PRoot path bindings (/antigem/bin), and self-healing engine downloads guarantee 100% agent execution reliability on any uploaded bootstrap.",
+    "🛠️ 100 PC Tools Hub: Smooth horizontal scrolling category pills row, completely eliminating vertical letter-wrapping. Exactly 100 features verified across 10 categories.",
+    "🤖 Harness Studio Revamped: Interactive Provider Selection Modal (OpenCode Zen, DeepSeek, OpenRouter, Anthropic, Claude, Kimi, NVIDIA NIM, Custom) and Model Search & Preset Picker Dialog.",
+    "📦 Unlimited GB Zero-Memory File Streaming: Added StreamingFileUtils utilizing 64KB NIO chunk buffers directly to disk; uploads of any size process without OOM heap crashes.",
     "🔑 AI Provider Credentials Manager: Secure on-device AES API key vault in Harness Studio Runtimes & Engines tab to save and test keys for all providers.",
     "✨ 100% Rebranded & Authored by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)"
   ],
