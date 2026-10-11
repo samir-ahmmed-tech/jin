@@ -147,7 +147,7 @@ object AndroidAppInstaller {
         true
     }.getOrDefault(false)
 
-    private fun archivePackageName(context: Context, apk: File): String? =
+    fun archivePackageName(context: Context, apk: File): String? =
         context.packageManager.getPackageArchiveInfo(apk.absolutePath, 0)?.packageName
 
     private fun installedFingerprint(context: Context, packageName: String): String? =

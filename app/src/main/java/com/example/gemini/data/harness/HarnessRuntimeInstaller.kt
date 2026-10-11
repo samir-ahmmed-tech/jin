@@ -136,6 +136,8 @@ class HarnessRuntimeInstaller(private val context: Context) {
         AgentKind.ANTIGRAVITY -> isBundleInstalled("agy") || File(context.filesDir, "usr/bin/agy").exists()
     }
 
+    suspend fun installCore(): Boolean = installBundle("core")
+
     suspend fun installBundle(
         bundleName: String,
         onProgress: (message: String, fraction: Float) -> Unit = { _, _ -> },

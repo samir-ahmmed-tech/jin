@@ -325,7 +325,7 @@ fun HarnessStudioScreen(
                         finalResult = finalResult,
                         onRunTask = {
                             if (runnerPrompt.isBlank()) {
-                                AppToastHelper.showToast("Please enter a task prompt for the agent", ChatToastType.WARNING)
+                                AppToastHelper.showToast("Please enter a task prompt for the agent", ChatToastType.INFO)
                                 return@AgentRunnerTab
                             }
                             isRunning = true
@@ -526,7 +526,7 @@ fun HarnessStudioScreen(
                             if (pkg != null) {
                                 AndroidAppInstaller.launch(context, pkg)
                             } else {
-                                AppToastHelper.showToast("Package name could not be resolved", ChatToastType.WARNING)
+                                AppToastHelper.showToast("Package name could not be resolved", ChatToastType.INFO)
                             }
                         }
                     )
