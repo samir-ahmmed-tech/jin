@@ -32,25 +32,41 @@ echo "📦 Version Name: v${VERSION_NAME} (Code: ${VERSION_CODE})"
 mkdir -p "${OUTPUT_DIR}"
 
 if [[ "${MODE}" == "release" ]]; then
-    echo "🔨 Compiling Standard Release (:app:assembleStandardRelease)..."
-    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleStandardRelease
+    echo "🔨 Compiling Standard Online Release (:app:assembleStandardOnlineRelease)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleStandardOnlineRelease
 
-    echo "🔨 Compiling Termux Release (:app:assembleTermuxRelease)..."
-    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleTermuxRelease
+    echo "🔨 Compiling Standard Offline Release (:app:assembleStandardOfflineRelease)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleStandardOfflineRelease
+
+    echo "🔨 Compiling Termux Online Release (:app:assembleTermuxOnlineRelease)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleTermuxOnlineRelease
+
+    echo "🔨 Compiling Termux Offline Release (:app:assembleTermuxOfflineRelease)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleTermuxOfflineRelease
 
     APKS_SRC="${ROOT_DIR}/app/build/outputs/apk"
-    find "${APKS_SRC}/termux/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-v${VERSION_NAME}-release.apk" \;
-    find "${APKS_SRC}/standard/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-standard-v${VERSION_NAME}-release.apk" \;
+    find "${APKS_SRC}/standardOnline/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-standard-online-v${VERSION_NAME}-release.apk" \; 2>/dev/null || true
+    find "${APKS_SRC}/standardOffline/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-standard-offline-v${VERSION_NAME}-release.apk" \; 2>/dev/null || true
+    find "${APKS_SRC}/termuxOnline/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-online-v${VERSION_NAME}-release.apk" \; 2>/dev/null || true
+    find "${APKS_SRC}/termuxOffline/release" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-offline-v${VERSION_NAME}-release.apk" \; 2>/dev/null || true
 else
-    echo "🔨 Compiling Standard Debug (:app:assembleStandardDebug)..."
-    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleStandardDebug
+    echo "🔨 Compiling Standard Online Debug (:app:assembleStandardOnlineDebug)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleStandardOnlineDebug
 
-    echo "🔨 Compiling Termux Debug (:app:assembleTermuxDebug)..."
-    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleTermuxDebug
+    echo "🔨 Compiling Standard Offline Debug (:app:assembleStandardOfflineDebug)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleStandardOfflineDebug
+
+    echo "🔨 Compiling Termux Online Debug (:app:assembleTermuxOnlineDebug)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleTermuxOnlineDebug
+
+    echo "🔨 Compiling Termux Offline Debug (:app:assembleTermuxOfflineDebug)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleTermuxOfflineDebug
 
     APKS_SRC="${ROOT_DIR}/app/build/outputs/apk"
-    find "${APKS_SRC}/standard/debug" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-standard-v${VERSION_NAME}-debug.apk" \;
-    find "${APKS_SRC}/termux/debug" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-v${VERSION_NAME}-debug.apk" \;
+    find "${APKS_SRC}/standardOnline/debug" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-standard-online-v${VERSION_NAME}-debug.apk" \; 2>/dev/null || true
+    find "${APKS_SRC}/standardOffline/debug" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-standard-offline-v${VERSION_NAME}-debug.apk" \; 2>/dev/null || true
+    find "${APKS_SRC}/termuxOnline/debug" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-online-v${VERSION_NAME}-debug.apk" \; 2>/dev/null || true
+    find "${APKS_SRC}/termuxOffline/debug" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-offline-v${VERSION_NAME}-debug.apk" \; 2>/dev/null || true
 
     if [[ -f "${ROOT_DIR}/app/src/main/assets/bin/agy_ide_bridge" ]]; then
         cp "${ROOT_DIR}/app/src/main/assets/bin/agy_ide_bridge" "${OUTPUT_DIR}/agy_ide_bridge-v${VERSION_NAME}-android-arm64"

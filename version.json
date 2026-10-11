@@ -1,15 +1,16 @@
 {
-  "version_code": 211,
-  "version_name": "2.1.1",
+  "version_code": 212,
+  "version_name": "2.1.2",
   "min_supported_version_code": 1,
   "changelog": [
-    "🎛️ 100 Tools & Desktop PC Power Suite: Comprehensive suite of exactly 100 enterprise desktop-grade tools across Antigravity 2.0, Cloud Code, OpenRouter, Terminal & SSH, Git DevOps, Display/Layout, and Android capabilities with detailed Bengali guidance cards ('টুলের কাজ কি', 'অন করলে কি হইবো', 'কীভাবে ব্যবহার করবেন').",
-    "🎙️ Real-Time Conversational Voice Assistant (ChatGPT Style): Hands-free 2-way vocal conversation and task execution with animated pulsing Voice Orb, real-time speech transcription, automatic silence detection, and natural vocal feedback via Text-to-Speech.",
-    "⚡ Disconnect-Proof Continuous Voice Dictation: Resolved voice input server disconnects and timeouts with intelligent auto-reconnect, extended silence buffers, and offline on-device speech recognition.",
-    "🧹 Clean History State & Lingering Chat Purge: Permanently purged lingering conversation summaries from all 4 storage layers (SQLite databases, brain directories, and proto cache) with zero skeleton lag.",
-    "📦 Universal Bootstrap ZIP Installer: Completely overhauled bootstrap extraction for JIN Standard and JIN Termux, supporting any archive from ultra-lightweight (10KB BusyBox/Alpine) to multi-GB rootfs while automatically preserving daemon binaries and agy_ide_bridge.",
-    "☁️ Advanced Google Drive Cloud Vault: Full backup and 1-tap restore covering all SQLite conversation databases, summaries, encrypted credentials, user preferences, notebooks, and projects.",
-    "🚀 Seamless In-App Updates: Updated package installer intent flags with persistent release signing so users can update seamlessly without uninstalling.",
+    "🚀 DeepSeek Harness & Mobile-Harness Unified Integration: Seamlessly combined the Mobile-Harness architecture into JIN while fully preserving ARM performance, Antigravity 2.0, Termux subsystem, 100 Tools suite, and Google Drive Cloud Vault.",
+    "📱 4 Dedicated APK Release Flavors: Distributed separate production APKs for both JIN Standard and JIN Termux in both Online and Offline editions (jin-standard-online, jin-standard-offline, jin-termux-online, jin-termux-offline).",
+    "🤖 DeepSeek Harness (DSH) Engine: Direct headless execution bridge with local reasoning streams ('dsh: reasoning:'), API provider abstraction, and autonomous tool invocation.",
+    "📦 Modular Runtime Bundle Manager: High-performance Zstandard (.tar.zst) archive decompressor supporting on-demand and offline modular bundles (Core Ubuntu 20.04 ARM64, DeepSeek Harness, Claude Code, Python 3, Android SDK 36/JDK 17, and Antigravity CLI).",
+    "🔄 Workspace Checkpoints & Diff Engine: Real-time file change tracker computing line additions, deletions, and context blocks with per-file Undo/Keep and baseline rollback.",
+    "🛠️ On-Device Android App Compilation: In-app Android project scaffolding (Jetpack Compose & Kotlin/XML) and direct build pipeline with instant APK installation via Android PackageInstaller session.",
+    "🌐 OpenRouter Routing Gateway & Local Format Adapter: Loopback HTTP proxy on 127.0.0.1 providing provider routing order with automatic fallbacks and Anthropic-to-OpenAI translation.",
+    "✨ 100% Scrubbed & Rebranded: Fully cleaned of all third-party branding and attributed exclusively to Samir Ahmmed.",
     "👨‍💻 Lead Developer: Samir Ahmmed (https://github.com/samir-ahmmed-tech)"
   ],
   "is_critical": false

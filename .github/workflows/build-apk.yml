@@ -98,16 +98,22 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
-          name: "JIN v${{ steps.get_version.outputs.version }} - 100 Tools PC Power Suite, Real-Time Conversational Voice Assistant, Disconnect-Proof Dictation & Cloud Vault"
+          name: "JIN v${{ steps.get_version.outputs.version }} - DeepSeek Harness & Mobile-Harness Integration (4 Flavors: Online & Offline)"
           body: |
             ### 🚀 JIN v${{ steps.get_version.outputs.version }} Release
-            - 🎛️ **100 Tools Desktop PC Power Suite**: Full suite of 100 desktop-grade tools across Antigravity 2.0, Cloud Code, OpenRouter, Terminal & SSH, Git DevOps, Display/Layout, and Android capabilities with detailed Bengali guidance cards ('টুলের কাজ কি', 'অন করলে কি হইবো', 'কীভাবে ব্যবহার করবেন').
+            - 📱 **4 Dedicated Production Flavors**:
+              - `jin-standard-online-v${{ steps.get_version.outputs.version }}-release.apk`: Standard edition for general Android devices with live cloud AI and on-demand bundle downloading.
+              - `jin-standard-offline-v${{ steps.get_version.outputs.version }}-release.apk`: Completely standalone standard edition running isolated local models and offline rootfs execution.
+              - `jin-termux-online-v${{ steps.get_version.outputs.version }}-release.apk`: Termux-integrated power edition with terminal PTY, Termux:API, and online AI capabilities.
+              - `jin-termux-offline-v${{ steps.get_version.outputs.version }}-release.apk`: Standalone Termux power edition configured for offline local model routing and native Linux tooling.
+            - 🤖 **DeepSeek Harness (DSH) Engine**: Direct headless execution bridge with local reasoning streams (`dsh: reasoning:`), multi-provider routing, and autonomous file modification.
+            - 📦 **Modular Runtime Bundle Manager**: Native Zstandard (`.tar.zst`) decompression engine managing isolated modular runtimes (Core Ubuntu 20.04 ARM64, DeepSeek Harness, Claude Code, Python 3, Android SDK 36/JDK 17, and Antigravity CLI).
+            - 🔄 **Workspace Checkpoints & Diff Engine**: Real-time project baseline snapshots, line diff viewer (additions, deletions, context), and per-file Undo/Keep control.
+            - 🛠️ **On-Device Android Project Builder**: In-app Android project scaffolding (Jetpack Compose & Kotlin/XML) with direct Gradle compilation and on-device APK installation via PackageInstaller session.
+            - 🌐 **OpenRouter Routing Gateway & Local Format Adapter**: Built-in 127.0.0.1 proxy providing provider routing order with automatic fallbacks and Anthropic-to-OpenAI translation.
+            - 🎛️ **100 Tools Desktop PC Power Suite**: Full suite of 100 desktop-grade tools across Antigravity 2.0, Cloud Code, OpenRouter, Terminal & SSH, Git DevOps, Display/Layout, and Android capabilities.
             - 🎙️ **Real-Time Conversational Voice Assistant (ChatGPT Style)**: Hands-free 2-way vocal conversation and task execution with animated pulsing Voice Orb, real-time speech transcription, silence detection, and natural vocal feedback via Text-to-Speech.
-            - ⚡ **Disconnect-Proof Continuous Voice Dictation**: Resolved voice input server disconnects and timeouts with intelligent auto-reconnect, extended silence buffers (3000ms), and offline on-device speech recognition.
-            - 🧹 **Lingering Chat Purge & Clean History State**: Permanently purged lingering conversation summaries from all 4 storage layers (SQLite databases, brain directories, and proto cache) with zero skeleton lag.
-            - 📦 **Universal Bootstrap ZIP Installer**: Completely overhauled bootstrap extraction for JIN Standard and JIN Termux, supporting any archive from ultra-lightweight (10KB BusyBox/Alpine) to multi-GB rootfs while automatically preserving daemon binaries and agy_ide_bridge.
             - ☁️ **Advanced Google Drive Cloud Vault**: Full backup and 1-tap restore covering all SQLite conversation databases, summaries, encrypted credentials, user preferences, notebooks, and projects.
-            - 🚀 **Seamless In-App Updates**: Persistent release keystore signing and public downloads directory integration for flawless updates without uninstallation.
             - 👨‍💻 **Lead Developer**: Samir Ahmmed (https://github.com/samir-ahmmed-tech)
           files: output/*.apk
           draft: false

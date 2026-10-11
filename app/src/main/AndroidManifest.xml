@@ -277,6 +277,15 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
         </receiver>
+
+        <!-- On-Device Android Build Package Installer Receiver -->
+        <receiver
+            android:name="com.example.gemini.data.harness.AndroidAppInstallReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.jin.action.APK_INSTALL_RESULT" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

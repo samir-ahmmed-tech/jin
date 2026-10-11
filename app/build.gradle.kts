@@ -43,7 +43,7 @@ android {
         }
     }
 
-    flavorDimensions += "mode"
+    flavorDimensions += listOf("mode", "delivery")
     productFlavors {
         // Local ports differ per app so com.antigem and com.termux can be installed and run side by side
         // (com.antigem: +2, so its bridge port never equals com.termux's hub port).
@@ -60,6 +60,16 @@ android {
             buildConfigField("int", "BRIDGE_PORT", "1234")
             buildConfigField("int", "HUB_PORT", "1235")
             buildConfigField("int", "BROWSER_MCP_PORT", "8765")
+        }
+        create("online") {
+            dimension = "delivery"
+            buildConfigField("boolean", "IS_OFFLINE_MODE", "false")
+            buildConfigField("String", "DELIVERY_TYPE", "\"online\"")
+        }
+        create("offline") {
+            dimension = "delivery"
+            buildConfigField("boolean", "IS_OFFLINE_MODE", "true")
+            buildConfigField("String", "DELIVERY_TYPE", "\"offline\"")
         }
     }
 
@@ -99,10 +109,13 @@ android {
     }
 
     androidResources {
-        noCompress += listOf("gz", "tgz", "tar.gz", "tar")
+        noCompress += listOf("gz", "tgz", "tar.gz", "tar", "zst")
     }
 
     packaging {
+      jniLibs {
+        useLegacyPackaging = true
+      }
       resources {
         excludes += "/META-INF/{AL2.0,LGPL2.1}"
         excludes += "*.xsd"
@@ -175,8 +188,9 @@ dependencies {
   implementation("io.github.Rosemoe.sora-editor:language-textmate:0.23.6")
   implementation("io.github.Rosemoe.sora-editor:language-java:0.23.6")
 
-  // Archive and Compression Utilities (Supports tar, xz, ar, deb extraction)
-  implementation("org.apache.commons:commons-compress:1.26.1")
+  // Archive and Compression Utilities (Supports tar, xz, ar, deb, zstd extraction)
+  implementation("org.apache.commons:commons-compress:1.27.1")
+  implementation("com.github.luben:zstd-jni:1.5.7-12@aar")
   implementation("org.tukaani:xz:1.9")
 
   // Termux Terminal Emulator with Native PTY Support (Terminal View is compiled from source)
@@ -220,19 +234,30 @@ wire {
   }
 }
 
-val buildAgyIdeBridge = tasks.register<Exec>("buildAgyIdeBridge") {
+val buildAgyIdeBridge = tasks.register("buildAgyIdeBridge") {
   val binDir = layout.projectDirectory.dir("src/main/assets/bin")
+  val targetBinary = binDir.file("agy_ide_bridge").asFile
   val bridgeSourceDir = layout.projectDirectory.dir("../agy_ide_bridge")
 
-  doFirst {
+  doLast {
     binDir.asFile.mkdirs()
+    if (!targetBinary.exists()) {
+      val hasGo = runCatching {
+        ProcessBuilder("go", "version").start().waitFor() == 0
+      }.getOrDefault(false)
+      if (hasGo && bridgeSourceDir.asFile.exists()) {
+        project.exec {
+          workingDir = bridgeSourceDir.asFile
+          environment("GOOS", "android")
+          environment("GOARCH", "arm64")
+          environment("CGO_ENABLED", "0")
+          commandLine("go", "build", "-ldflags=-s -w", "-o", targetBinary.absolutePath, "main.go")
+        }
+      } else {
+        println("Warning: Go compiler not found or agy_ide_bridge already present; skipping compilation.")
+      }
+    }
   }
-
-  workingDir = bridgeSourceDir.asFile
-  environment("GOOS", "android")
-  environment("GOARCH", "arm64")
-  environment("CGO_ENABLED", "0")
-  commandLine("go", "build", "-ldflags=-s -w", "-o", binDir.file("agy_ide_bridge").asFile.absolutePath, "main.go")
 }
 
 val copyScriptsToAssets = tasks.register<Copy>("copyScriptsToAssets") {
