@@ -434,6 +434,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
     fun sendMessage(content: String) {
+        val repo = com.example.gemini.data.agent.GitHubSkillInstallerAgent.extractGitHubRepo(content)
+        if (repo != null) {
+            viewModelScope.launch {
+                com.example.gemini.data.agent.GitHubSkillInstallerAgent.installRepoOrSkill(repo) { progress ->
+                    _authFeedbackMessage.tryEmit(progress)
+                }.onSuccess { summary ->
+                    _authFeedbackMessage.tryEmit(summary)
+                }.onFailure { err ->
+                    _authFeedbackMessage.tryEmit("Install failed: ${err.message}")
+                }
+            }
+        }
         val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
         when (curAgent) {
             AgentKind.CLAUDE -> claudeBackend.sendMessage(content)
@@ -821,6 +833,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val updated = conv.copy(customSystemPrompt = if (prompt.isNullOrBlank()) null else prompt.trim())
         _currentConversation.value = updated
         _conversations.value = _conversations.value.map { if (it.id == updated.id) updated else it }
+    }
+
+    val personalIntelligenceEnabled = authPrefs.personalIntelligenceEnabled
+    fun setPersonalIntelligenceEnabled(enabled: Boolean) {
+        viewModelScope.launch { authPrefs.setPersonalIntelligenceEnabled(enabled) }
+    }
+
+    val webSearchEnabled = authPrefs.webSearchEnabled
+    fun setWebSearchEnabled(enabled: Boolean) {
+        viewModelScope.launch { authPrefs.setWebSearchEnabled(enabled) }
     }
 
     val chatFontScale = authPrefs.chatFontScale

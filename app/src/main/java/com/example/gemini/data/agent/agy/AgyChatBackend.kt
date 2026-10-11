@@ -1051,6 +1051,18 @@ class AgyChatBackend(
             knownDaemonCascadeIds.remove(id)
             val hubUrl = AuthPreferences.currentHubUrl
             agyHubClient.deleteCascadeTrajectory(id, hubUrl)
+            
+            // Thoroughly clean up local Termux disk state so the chat never reappears on app restart
+            try {
+                val homeDir = System.getenv("HOME") ?: "/data/user/0/com.termux/files/home"
+                java.io.File("$homeDir/.gemini/antigravity-cli/brain/$id").deleteRecursively()
+                java.io.File("$homeDir/.gemini/antigravity-cli/conversations/$id.db").delete()
+                java.io.File("$homeDir/.gemini/antigravity-cli/annotations/$id.pbtxt").delete()
+                java.io.File("$homeDir/.gemini/antigravity-cli/presence/$id.lock").delete()
+            } catch (e: Exception) {
+                Log.w("AgyChatBackend", "Disk cleanup error for $id: ${e.message}")
+            }
+
             if (_currentConversation.value?.id == id) {
                 val remaining = _conversations.value
                 if (remaining.isNotEmpty()) {

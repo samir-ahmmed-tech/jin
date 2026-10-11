@@ -31,9 +31,12 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material3.*
@@ -176,6 +179,10 @@ fun ChatInputBar(
     offlineMessage: String = "Server is offline. Start the server to send messages.",
     /** The agent cannot read audio (Claude): the mic records and transcribes to text instead of attaching a file. */
     voiceNotesAsText: Boolean = false,
+    personalIntelligenceEnabled: Boolean = true,
+    onTogglePersonalIntelligence: () -> Unit = {},
+    webSearchEnabled: Boolean = false,
+    onToggleWebSearch: () -> Unit = {},
     focusRequester: FocusRequester = remember { FocusRequester() },
     modifier: Modifier = Modifier
 ) {
@@ -946,6 +953,133 @@ fun ChatInputBar(
                         maxLines = 6,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default)
                     )
+
+                    // Quick Action & Feature Toggles Strip
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // Personal Intelligence Toggle
+                        Surface(
+                            onClick = onTogglePersonalIntelligence,
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (personalIntelligenceEnabled) GeminiBlue.copy(alpha = 0.15f) else MaterialTheme.colorScheme.background,
+                            border = BorderStroke(
+                                1.dp,
+                                if (personalIntelligenceEnabled) GeminiBlue.copy(alpha = 0.45f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = if (personalIntelligenceEnabled) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (personalIntelligenceEnabled) "Personal Intel: ON" else "Personal Intel: OFF",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (personalIntelligenceEnabled) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+
+                        // Thinking Mode Toggle / Selector
+                        Surface(
+                            onClick = onOpenThinkingSelector,
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (thinkingPreference.level != com.example.gemini.domain.model.ThinkingLevel.OFF) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.background,
+                            border = BorderStroke(
+                                1.dp,
+                                if (thinkingPreference.level != com.example.gemini.domain.model.ThinkingLevel.OFF) ClaudeTerracotta.copy(alpha = 0.45f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Lightbulb,
+                                    contentDescription = null,
+                                    tint = if (thinkingPreference.level != com.example.gemini.domain.model.ThinkingLevel.OFF) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (thinkingPreference.level != com.example.gemini.domain.model.ThinkingLevel.OFF) "Thinking: ${thinkingPreference.level.name}" else "Thinking: OFF",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (thinkingPreference.level != com.example.gemini.domain.model.ThinkingLevel.OFF) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+
+                        // Web Search Toggle
+                        Surface(
+                            onClick = onToggleWebSearch,
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (webSearchEnabled) Color(0xFF10B981).copy(alpha = 0.15f) else MaterialTheme.colorScheme.background,
+                            border = BorderStroke(
+                                1.dp,
+                                if (webSearchEnabled) Color(0xFF10B981).copy(alpha = 0.45f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Search,
+                                    contentDescription = null,
+                                    tint = if (webSearchEnabled) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (webSearchEnabled) "Search: ON" else "Search: OFF",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (webSearchEnabled) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+
+                        // AI Suite Creation & Tools Quick Button
+                        Surface(
+                            onClick = onAttachClick,
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.background,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = ClaudeTerracotta,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "AI Suite Tools",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
 
                     // 2. Attachments Preview (if any)
                     if (attachments.isNotEmpty() || isUploadingAttachment) {

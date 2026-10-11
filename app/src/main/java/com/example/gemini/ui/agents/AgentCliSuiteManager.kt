@@ -82,22 +82,22 @@ object AgentCliSuiteRegistry {
         ),
         AgentCliPackage(
             id = "deepseek",
-            name = "DeepSeek Native CLI Suite",
+            name = "DeepSeek Hermes Native CLI Suite",
             agentKind = AgentKind.DEEPSEEK_LOCAL,
-            description = "DeepSeek V3 & Coder CLI agent engine with 671B MoE reasoning algorithms in Termux.",
+            description = "DeepSeek V3 & Hermes reasoning engine with 671B MoE algorithms running in Termux Linux.",
             sizeMb = 450.0f,
             authType = "DeepSeek Account / Subscription",
             icon = Icons.Outlined.Psychology,
             accentColor = Color(0xFF4F46E5),
-            features = listOf("DeepSeek Web Login", "Hermes Reasoning", "300+ Programming Languages", "Terminal Execution"),
+            features = listOf("DeepSeek Web Login", "Hermes Reasoning", "300+ Languages", "Terminal Execution"),
             loginUrl = "https://chat.deepseek.com",
-            installCommand = "pip install deepseek-coder-cli || npm install -g deepseek-coder-cli"
+            installCommand = "pip install --upgrade deepseek-coder-cli hermes-agent || npm install -g deepseek-coder-cli"
         ),
         AgentCliPackage(
             id = "codex",
-            name = "OpenAI Codex CLI Suite",
+            name = "OpenAI Codex CLI Suite (Termux)",
             agentKind = AgentKind.CODEX,
-            description = "OpenAI Codex and ChatGPT CLI runner for high-speed architecture and terminal planning.",
+            description = "OpenAI Codex & ChatGPT CLI runner for high-speed terminal execution & architecture in Linux.",
             sizeMb = 280.0f,
             authType = "ChatGPT Plus / Team Account",
             icon = Icons.Outlined.Code,
@@ -108,16 +108,16 @@ object AgentCliSuiteRegistry {
         ),
         AgentCliPackage(
             id = "openrouter",
-            name = "OpenRouter Universal CLI Suite",
+            name = "OpenRouter & Open Cloud CLI Suite",
             agentKind = AgentKind.OPENROUTER,
-            description = "Universal multi-model routing CLI agent with Mistral, Qwen, and Llama reasoning models.",
+            description = "Universal multi-model routing & Open Cloud agent with Mistral, Qwen, and Llama 3.3.",
             sizeMb = 180.0f,
-            authType = "OpenRouter Account Login",
+            authType = "OpenRouter / Open Cloud Account",
             icon = Icons.Outlined.Share,
             accentColor = Color(0xFFF59E0B),
-            features = listOf("OpenRouter Keyless Login", "Codestral 25B", "Qwen 2.5 Coder", "Auto Quota Failover"),
+            features = listOf("Open Cloud Login", "Codestral 25B", "Qwen 2.5 Coder", "Auto Failover"),
             loginUrl = "https://openrouter.ai",
-            installCommand = "npm install -g openrouter-cli"
+            installCommand = "npm install -g openrouter-cli opencloud-cli"
         )
     )
 }
@@ -319,24 +319,32 @@ fun AgentCliSuiteDialog(
                                     }
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
                                             Text(
                                                 text = pkg.name,
                                                 fontSize = 13.5.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
                                             Surface(
-                                                shape = RoundedCornerShape(4.dp),
-                                                color = if (isInstalled) QuotaGreen.copy(alpha = 0.15f) else Color.Gray.copy(alpha = 0.15f)
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = if (isInstalled) QuotaGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                                             ) {
                                                 Text(
-                                                    text = if (isInstalled) "READY" else "${pkg.sizeMb} MB",
-                                                    fontSize = 9.sp,
+                                                    text = if (isInstalled) "READY" else "${pkg.sizeMb.toInt()} MB",
+                                                    fontSize = 9.5.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = if (isInstalled) QuotaGreen else Color.Gray,
-                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    color = if (isInstalled) QuotaGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
                                             }
                                         }
@@ -344,7 +352,9 @@ fun AgentCliSuiteDialog(
                                             text = pkg.authType,
                                             fontSize = 10.5.sp,
                                             fontWeight = FontWeight.Medium,
-                                            color = pkg.accentColor
+                                            color = pkg.accentColor,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }
@@ -359,21 +369,25 @@ fun AgentCliSuiteDialog(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // Feature Tags
-                                Row(
+                                // Feature Tags with FlowRow so tags wrap cleanly to new lines without clipping
+                                FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
-                                    pkg.features.take(3).forEach { feat ->
+                                    pkg.features.forEach { feat ->
                                         Surface(
-                                            shape = RoundedCornerShape(4.dp),
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
                                         ) {
                                             Text(
                                                 text = feat,
                                                 fontSize = 9.5.sp,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp)
                                             )
                                         }
                                     }

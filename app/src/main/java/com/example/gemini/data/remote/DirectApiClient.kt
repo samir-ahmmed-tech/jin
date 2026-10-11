@@ -281,37 +281,70 @@ class DirectApiClient(
         onToken: (String) -> Unit
     ): String = withContext(Dispatchers.IO) {
         val cleanUrl = baseUrl.trim().trimEnd('/')
-        val completionsUrl = when {
+        val isAnthropic = cleanUrl.contains("anthropic.com")
+        val isOpenRouter = cleanUrl.contains("openrouter.ai")
+
+        val targetUrl = when {
+            isAnthropic -> if (cleanUrl.endsWith("/messages")) cleanUrl else "$cleanUrl/messages"
             cleanUrl.endsWith("/chat/completions") -> cleanUrl
             cleanUrl.endsWith("/v1") -> "$cleanUrl/chat/completions"
             else -> "$cleanUrl/v1/chat/completions"
         }
 
-        val payload = JSONObject().apply {
-            put("model", model)
-            put("stream", true)
-            put("messages", JSONArray().apply {
+        val payload = if (isAnthropic) {
+            JSONObject().apply {
+                put("model", model)
+                put("stream", true)
+                put("max_tokens", 4096)
                 if (systemPrompt.isNotBlank()) {
-                    put(JSONObject().apply {
-                        put("role", "system")
-                        put("content", systemPrompt)
-                    })
+                    put("system", systemPrompt)
                 }
-                messages.forEach { (role, content) ->
-                    put(JSONObject().apply {
-                        put("role", role)
-                        put("content", content)
-                    })
-                }
-            })
+                put("messages", JSONArray().apply {
+                    messages.forEach { (role, content) ->
+                        put(JSONObject().apply {
+                            put("role", if (role.equals("user", true)) "user" else "assistant")
+                            put("content", content)
+                        })
+                    }
+                })
+            }
+        } else {
+            JSONObject().apply {
+                put("model", model)
+                put("stream", true)
+                put("messages", JSONArray().apply {
+                    if (systemPrompt.isNotBlank()) {
+                        put(JSONObject().apply {
+                            put("role", "system")
+                            put("content", systemPrompt)
+                        })
+                    }
+                    messages.forEach { (role, content) ->
+                        put(JSONObject().apply {
+                            put("role", role)
+                            put("content", content)
+                        })
+                    }
+                })
+            }
         }
 
         val reqBuilder = Request.Builder()
-            .url(completionsUrl)
+            .url(targetUrl)
             .post(payload.toString().toRequestBody("application/json".toMediaType()))
 
         if (apiKey.isNotBlank()) {
-            reqBuilder.header("Authorization", "Bearer $apiKey")
+            if (isAnthropic) {
+                reqBuilder.header("x-api-key", apiKey)
+                reqBuilder.header("anthropic-version", "2023-06-01")
+            } else {
+                reqBuilder.header("Authorization", "Bearer $apiKey")
+            }
+        }
+
+        if (isOpenRouter) {
+            reqBuilder.header("HTTP-Referer", "https://jin.samirahmmed.tech")
+            reqBuilder.header("X-Title", "JIN AI Assistant")
         }
 
         val fullResponse = StringBuilder()
@@ -334,6 +367,7 @@ class DirectApiClient(
                     if (data == "[DONE]") break
                     try {
                         val json = JSONObject(data)
+                        // OpenAI / DeepSeek / OpenRouter format
                         val choices = json.optJSONArray("choices")
                         if (choices != null && choices.length() > 0) {
                             val delta = choices.getJSONObject(0).optJSONObject("delta")
@@ -342,6 +376,13 @@ class DirectApiClient(
                                 fullResponse.append(content)
                                 onToken(content)
                             }
+                        }
+                        // Anthropic content_block_delta format
+                        val delta = json.optJSONObject("delta")
+                        val anthropicText = delta?.optString("text", "") ?: ""
+                        if (anthropicText.isNotEmpty()) {
+                            fullResponse.append(anthropicText)
+                            onToken(anthropicText)
                         }
                     } catch (_: Exception) {}
                 }

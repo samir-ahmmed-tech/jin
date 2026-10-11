@@ -74,10 +74,18 @@ fun ModelSelectorBottomSheet(
     var addKeyDialogProvider by remember { mutableStateOf<String?>(null) }
     var enteredKeyText by remember { mutableStateOf("") }
 
-    val allModels = remember(availableModels, refreshKey) {
+    val allModels = remember(availableModels, refreshKey, hasOpenAi, hasDeepseek, hasClaude, hasOpenRouter, hasCustom) {
         val list = availableModels.toMutableList()
         for (m in AiModel.DEFAULT_MODELS) {
-            if (list.none { it.id == m.id || it.key == m.id }) {
+            val isActive = when (m.family) {
+                ModelFamily.ANTIGRAVITY -> true
+                ModelFamily.GEMINI -> true
+                ModelFamily.OPENAI -> hasOpenAi
+                ModelFamily.DEEPSEEK -> hasDeepseek
+                ModelFamily.CLAUDE -> hasClaude
+                ModelFamily.OTHER -> hasOpenRouter || hasCustom
+            }
+            if (isActive && list.none { it.id == m.id || it.key == m.id }) {
                 list.add(m)
             }
         }
@@ -85,11 +93,11 @@ fun ModelSelectorBottomSheet(
     }
 
     val antigravityModels = allModels.filter { it.family == ModelFamily.ANTIGRAVITY || it.id.contains("antigravity", true) }
-    val openAiModels = allModels.filter { it.family == ModelFamily.OPENAI || it.id.contains("codex", true) || it.id.contains("gpt", true) }
-    val deepseekModels = allModels.filter { it.family == ModelFamily.DEEPSEEK || it.id.contains("deepseek", true) || it.id.contains("hermes", true) }
-    val claudeModels = allModels.filter { it.family == ModelFamily.CLAUDE || (it.id.contains("claude", true) && !it.id.contains("gpt", true)) }
+    val openAiModels = if (hasOpenAi) allModels.filter { it.family == ModelFamily.OPENAI || it.id.contains("codex", true) || it.id.contains("gpt", true) } else emptyList()
+    val deepseekModels = if (hasDeepseek) allModels.filter { it.family == ModelFamily.DEEPSEEK || it.id.contains("deepseek", true) || it.id.contains("hermes", true) } else emptyList()
+    val claudeModels = if (hasClaude) allModels.filter { it.family == ModelFamily.CLAUDE || (it.id.contains("claude", true) && !it.id.contains("gpt", true)) } else emptyList()
     val geminiModels = allModels.filter { it.family == ModelFamily.GEMINI }
-    val customModels = allModels.filter { it.family == ModelFamily.OTHER || it.id.contains("custom", true) || it.id.contains("openrouter", true) }
+    val customModels = if (hasOpenRouter || hasCustom) allModels.filter { it.family == ModelFamily.OTHER || it.id.contains("custom", true) || it.id.contains("openrouter", true) } else emptyList()
 
     val activeModel = allModels.find { it.id == selectedModelId } ?: allModels.firstOrNull()
 

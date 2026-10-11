@@ -248,6 +248,8 @@ fun ChatScreen(
     val isTerminalLauncherEnabledPref by viewModel.authPreferences.isTerminalLauncherEnabled.collectAsState(initial = true)
     val terminalLauncherStylePref by viewModel.authPreferences.terminalLauncherStyle.collectAsState(initial = com.example.gemini.data.preferences.TerminalLauncherManager.STYLE_ANTITERM)
     val isTranscribingAudio by viewModel.isTranscribingAudio.collectAsState()
+    val personalIntelligenceEnabled by viewModel.personalIntelligenceEnabled.collectAsState(initial = true)
+    val webSearchEnabled by viewModel.webSearchEnabled.collectAsState(initial = false)
     val pendingLoginUrl by viewModel.pendingLoginUrl.collectAsState()
     val hubStatus by viewModel.hubStatus.collectAsState()
     val systemConnectionState by viewModel.systemConnectionState.collectAsState()
@@ -288,6 +290,7 @@ fun ChatScreen(
     var showChatTelemetryDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showAttachmentSelector by remember { mutableStateOf(false) }
+    var showGoogleDriveSyncDialog by remember { mutableStateOf(false) }
     var showProjectPickerDialog by remember { mutableStateOf(false) }
     var showWorkspaceFolderBrowserDialog by remember { mutableStateOf(false) }
     var showStopConfirmDialog by remember { mutableStateOf(false) }
@@ -2095,6 +2098,14 @@ fun ChatScreen(
                     isTranscribingAudio = isTranscribingAudio,
                     speechManager = if (isClaudeChat) viewModel.claudeVoice else viewModel.speechManager,
                     voiceNotesAsText = isClaudeChat,
+                    personalIntelligenceEnabled = personalIntelligenceEnabled,
+                    onTogglePersonalIntelligence = {
+                        viewModel.setPersonalIntelligenceEnabled(!personalIntelligenceEnabled)
+                    },
+                    webSearchEnabled = webSearchEnabled,
+                    onToggleWebSearch = {
+                        viewModel.setWebSearchEnabled(!webSearchEnabled)
+                    },
                     cascadeId = activeConversationKey,
                     focusRequester = chatInputFocusRequester
                 )
@@ -2690,7 +2701,36 @@ fun ChatScreen(
         AttachmentSelectorBottomSheet(
             onPickImage = { photoPickerLauncher.launch("image/*") },
             onPickFile = { filePickerLauncher.launch("*/*") },
+            onCameraCapture = {
+                try {
+                    val cameraIntent = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
+                    context.startActivity(cameraIntent)
+                } catch (e: Exception) {
+                    photoPickerLauncher.launch("image/*")
+                }
+            },
+            onOpenGoogleDrive = { showGoogleDriveSyncDialog = true },
+            onOpenNotebookLm = {
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://notebooklm.google.com")))
+                } catch (e: Exception) {
+                    showToast("Cannot open NotebookLM: ${e.message}", ChatToastType.ERROR)
+                }
+            },
+            onCreatePhoto = { textFieldValue = TextFieldValue("/image ") },
+            onCreateVideo = { textFieldValue = TextFieldValue("/video ") },
+            onCreateMusic = { textFieldValue = TextFieldValue("/music ") },
+            onOpenCanvas = { onNavigateToIde() },
+            onDeepResearch = { textFieldValue = TextFieldValue("/research ") },
+            onLearningMode = { textFieldValue = TextFieldValue("/learn ") },
             onDismiss = { showAttachmentSelector = false }
+        )
+    }
+
+    // Google Drive Cloud Vault Backup & Restore Dialog
+    if (showGoogleDriveSyncDialog) {
+        com.example.gemini.ui.components.GoogleDriveSyncDialog(
+            onDismiss = { showGoogleDriveSyncDialog = false }
         )
     }
 

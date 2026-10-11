@@ -192,15 +192,29 @@ fun ChatHistoryDrawer(
         }
     }
 
-    val grouped = remember(topLevelChats) {
-        topLevelChats.groupBy { conv ->
-            if (conv.workspaceUri.isNotBlank()) {
-                val clean = conv.workspaceUri.removePrefix("file://").trimEnd('/')
-                java.io.File(clean).name.ifBlank { "Workspace" }
-            } else {
-                "General"
-            }
+    val folderManager = remember { com.example.gemini.data.local.ChatFolderManager.getInstance(context) }
+    val customFolders by folderManager.folders.collectAsState()
+    val folderAssignments by folderManager.assignments.collectAsState()
+    var showCreateFolderDialog by remember { mutableStateOf(false) }
+    var conversationToMoveFolder by remember { mutableStateOf<Conversation?>(null) }
+
+    val grouped = remember(topLevelChats, customFolders, folderAssignments) {
+        val map = mutableMapOf<String, MutableList<Conversation>>()
+        for (f in customFolders) {
+            map[f] = mutableListOf()
         }
+        for (conv in topLevelChats) {
+            val defWs = if (conv.workspaceUri.isNotBlank()) {
+                val clean = conv.workspaceUri.removePrefix("file://").trimEnd('/')
+                java.io.File(clean).name.ifBlank { com.example.gemini.data.local.ChatFolderManager.DEFAULT_FOLDER }
+            } else {
+                com.example.gemini.data.local.ChatFolderManager.DEFAULT_FOLDER
+            }
+            val folder = folderAssignments[conv.id] ?: defWs
+            val list = map.getOrPut(folder) { mutableListOf() }
+            list.add(conv)
+        }
+        map
     }
     var expandedGroups by remember { mutableStateOf(setOf<String>()) }
 
@@ -666,6 +680,26 @@ fun ChatHistoryDrawer(
                     }
                 }
 
+                // Add Custom Folder Button
+                if (groupByWorkspace) {
+                    Surface(
+                        onClick = { showCreateFolderDialog = true },
+                        modifier = Modifier.size(36.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = ClaudeTerracotta.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Create New Folder",
+                                tint = ClaudeTerracotta,
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+                    }
+                }
+
                 // Search Toggle Button
                 Surface(
                     onClick = {
@@ -974,6 +1008,7 @@ fun ChatHistoryDrawer(
                                             onSelectConversation(conv.id)
                                         },
                                         onForkConversation = onForkConversation,
+                                        onMoveToFolder = { conversationToMoveFolder = it },
                                         onRequestDelete = { conversationToDelete = it },
                                         claudeActions = claudeActions,
                                         onTerminateInstance = { inst, title ->
@@ -1083,6 +1118,7 @@ fun ChatHistoryDrawer(
                                                 onSelectConversation(conv.id)
                                             },
                                             onForkConversation = onForkConversation,
+                                            onMoveToFolder = { conversationToMoveFolder = it },
                                             onRequestDelete = { conversationToDelete = it },
                                             claudeActions = claudeActions,
                                             onTerminateInstance = { inst, title ->
@@ -1348,6 +1384,124 @@ fun ChatHistoryDrawer(
                     onDismiss = { showFullSearchDialog = false }
                 )
             }
+
+            if (showCreateFolderDialog) {
+                var folderNameInput by remember { mutableStateOf("") }
+                AlertDialog(
+                    onDismissRequest = { showCreateFolderDialog = false },
+                    shape = RoundedCornerShape(16.dp),
+                    title = { Text("Create New Folder", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column {
+                            Text(
+                                "Enter a folder name to organize your chats and work:",
+                                fontSize = 12.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            OutlinedTextField(
+                                value = folderNameInput,
+                                onValueChange = { folderNameInput = it },
+                                placeholder = { Text("e.g. My Projects, Research...") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                val name = folderNameInput.trim()
+                                if (name.isNotBlank()) {
+                                    val ok = folderManager.createFolder(name)
+                                    if (ok) {
+                                        AppToastHelper.showToast("Created folder '$name'", ChatToastType.SUCCESS)
+                                    } else {
+                                        AppToastHelper.showToast("Folder already exists", ChatToastType.ERROR)
+                                    }
+                                }
+                                showCreateFolderDialog = false
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                        ) {
+                            Text("Create", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showCreateFolderDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            conversationToMoveFolder?.let { targetConv ->
+                AlertDialog(
+                    onDismissRequest = { conversationToMoveFolder = null },
+                    shape = RoundedCornerShape(16.dp),
+                    title = { Text("Move to Folder", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.verticalScroll(rememberScrollState())
+                        ) {
+                            Text(
+                                "Move \"${targetConv.title}\" to:",
+                                fontSize = 12.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            customFolders.forEach { fName ->
+                                val isCurrent = folderManager.getFolderForConversation(targetConv.id) == fName
+                                Surface(
+                                    onClick = {
+                                        folderManager.moveConversationToFolder(targetConv.id, fName)
+                                        AppToastHelper.showToast("Moved to '$fName'", ChatToastType.SUCCESS)
+                                        conversationToMoveFolder = null
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isCurrent) ClaudeTerracotta.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    border = BorderStroke(1.dp, if (isCurrent) ClaudeTerracotta.copy(alpha = 0.5f) else Color.Transparent),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Folder,
+                                            contentDescription = null,
+                                            tint = if (isCurrent) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = fName,
+                                            fontSize = 13.sp,
+                                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            conversationToMoveFolder = null
+                            showCreateFolderDialog = true
+                        }) {
+                            Text("+ New Folder", color = ClaudeTerracotta, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { conversationToMoveFolder = null }) {
+                            Text("Close")
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -1426,6 +1580,7 @@ private fun ChatHistoryItemRow(
     onSelectConversation: (String) -> Unit,
     onForkConversation: (String) -> Unit,
     onRequestDelete: (Conversation) -> Unit,
+    onMoveToFolder: ((Conversation) -> Unit)? = null,
     onTerminateInstance: (com.example.gemini.data.remote.AgyActiveInstance, String) -> Unit,
     claudeActions: ClaudeDrawerActions? = null
 ) {
@@ -1689,6 +1844,23 @@ private fun ChatHistoryItemRow(
                         onForkConversation(conv.id)
                     }
                 )
+                if (onMoveToFolder != null) {
+                    DropdownMenuItem(
+                        text = { Text("Move to Folder", fontSize = 13.5.sp) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription = null,
+                                tint = ClaudeTerracotta,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onMoveToFolder.invoke(conv)
+                        }
+                    )
+                }
                 if (isClaudeConv && claudeActions != null) {
                     DropdownMenuItem(
                         text = { Text("Rename", fontSize = 13.5.sp) },

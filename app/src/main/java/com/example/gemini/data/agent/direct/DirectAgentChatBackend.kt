@@ -90,13 +90,13 @@ class DirectAgentChatBackend(
     private fun defaultModelsForKind(): List<AiModel> = when (kind) {
         AgentKind.DEEPSEEK_LOCAL -> listOf(
             AiModel("deepseek-chat", "DeepSeek V3", ModelFamily.DEEPSEEK, false, "DeepSeek 671B MoE architecture with ultra-high coding capability", isDefault = true),
-            AiModel("deepseek-coder", "DeepSeek Coder V2", ModelFamily.DEEPSEEK, false, "Dedicated coding LLM supporting 300+ programming languages"),
-            AiModel("deepseek-hermes", "DeepSeek Hermes", ModelFamily.DEEPSEEK, true, "Fine-tuned DeepSeek model for complex algorithmic reasoning and terminal tasks")
+            AiModel("deepseek-reasoner", "DeepSeek R1 (Hermes)", ModelFamily.DEEPSEEK, true, "DeepSeek R1 Hermes reasoning model with deep chain-of-thought MoE"),
+            AiModel("deepseek-coder", "DeepSeek Coder", ModelFamily.DEEPSEEK, false, "Specialized programming LLM supporting 300+ programming languages")
         )
         AgentKind.CODEX -> listOf(
             AiModel("gpt-4o", "ChatGPT 4o", ModelFamily.OPENAI, false, "Omni-modal reasoning and software architecture model", isDefault = true),
             AiModel("gpt-4o-mini", "ChatGPT 4o Mini", ModelFamily.OPENAI, false, "Lightweight ChatGPT model optimized for fast responses"),
-            AiModel("openai-codex", "OpenAI Codex Coder", ModelFamily.OPENAI, false, "OpenAI high-speed code synthesis and automated debugging")
+            AiModel("o3-mini", "OpenAI o3-Mini", ModelFamily.OPENAI, true, "Advanced OpenAI reasoning model for math, coding, and architecture")
         )
         AgentKind.OPENROUTER -> listOf(
             AiModel("meta-llama/llama-3.3-70b-instruct:free", "Llama 3.3 70B (Free)", ModelFamily.OTHER, false, "Flagship open reasoning model via OpenRouter", isDefault = true),
@@ -165,21 +165,39 @@ class DirectAgentChatBackend(
             conv = _currentConversation.value ?: return
         }
 
-        val apiKey = when (kind) {
-            AgentKind.DEEPSEEK_LOCAL -> authPrefs.getDeepSeekApiKeySync().trim()
-            AgentKind.CODEX -> authPrefs.getOpenAiApiKeySync().trim()
-            AgentKind.OPENROUTER -> authPrefs.getOpenRouterApiKeySync().trim()
-            else -> ""
-        }
+        val rawModel = conv.modelId.ifBlank { _selectedModelId.value }.ifBlank { defaultModelIdForKind() }
 
-        val baseUrl = when (kind) {
-            AgentKind.DEEPSEEK_LOCAL -> "https://api.deepseek.com/v1"
-            AgentKind.CODEX -> "https://api.openai.com/v1"
-            AgentKind.OPENROUTER -> "https://openrouter.ai/api/v1"
-            else -> ""
+        val (baseUrl, apiKey, effectiveModel) = when (kind) {
+            AgentKind.DEEPSEEK_LOCAL -> {
+                val key = authPrefs.getDeepSeekApiKeySync().trim()
+                val m = when {
+                    rawModel.contains("hermes", ignoreCase = true) || rawModel.contains("reasoner", ignoreCase = true) -> "deepseek-reasoner"
+                    else -> "deepseek-chat"
+                }
+                Triple("https://api.deepseek.com", key, m)
+            }
+            AgentKind.CODEX -> {
+                val key = authPrefs.getOpenAiApiKeySync().trim()
+                val m = when {
+                    rawModel.equals("openai-codex", ignoreCase = true) -> "gpt-4o"
+                    else -> rawModel.ifBlank { "gpt-4o" }
+                }
+                Triple("https://api.openai.com/v1", key, m)
+            }
+            AgentKind.OPENROUTER -> {
+                if (rawModel == "custom-api") {
+                    val key = authPrefs.getCustomApiKeySync().trim()
+                    val url = authPrefs.getCustomApiBaseUrlSync().trim()
+                    val m = authPrefs.getCustomApiModelNameSync().trim().ifBlank { "gpt-4o" }
+                    Triple(url, key, m)
+                } else {
+                    val key = authPrefs.getOpenRouterApiKeySync().trim()
+                    val m = rawModel.ifBlank { "meta-llama/llama-3.3-70b-instruct:free" }
+                    Triple("https://openrouter.ai/api/v1", key, m)
+                }
+            }
+            else -> Triple("", "", rawModel)
         }
-
-        val effectiveModel = conv.modelId.ifBlank { _selectedModelId.value }.ifBlank { defaultModelIdForKind() }
 
         val userMsg = ChatMessage(
             conversationId = conv.id,

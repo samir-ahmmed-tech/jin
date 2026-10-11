@@ -97,6 +97,8 @@ class AuthPreferences(private val context: Context) {
         val CUSTOM_API_KEY = stringPreferencesKey("custom_api_key")
         val CUSTOM_API_BASE_URL = stringPreferencesKey("custom_api_base_url")
         val CUSTOM_API_MODEL_NAME = stringPreferencesKey("custom_api_model_name")
+        val PERSONAL_INTELLIGENCE_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("personal_intelligence_enabled")
+        val WEB_SEARCH_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("web_search_enabled")
 
         const val DEFAULT_BRIDGE_BINARY_PATH = "~/../usr/bin/agy_ide_bridge"
         const val DEFAULT_UBUNTU_BRIDGE_BINARY_PATH = "/antigem/bin/agy_ide_bridge"
@@ -479,6 +481,10 @@ class AuthPreferences(private val context: Context) {
     }
 
     suspend fun saveTokens(accessToken: String, refreshToken: String?, email: String? = null, expiresInSeconds: Long? = 3600) {
+        val editor = syncPrefs.edit().putString("access_token", accessToken)
+        if (refreshToken != null) editor.putString("refresh_token", refreshToken)
+        if (email != null) editor.putString("user_email", email)
+        editor.apply()
         context.dataStore.edit { prefs ->
             prefs[ACCESS_TOKEN] = accessToken
             if (refreshToken != null) {
@@ -492,6 +498,9 @@ class AuthPreferences(private val context: Context) {
             }
         }
     }
+
+    fun getAccessTokenSync(): String = syncPrefs.getString("access_token", "") ?: ""
+    fun getRefreshTokenSync(): String = syncPrefs.getString("refresh_token", "") ?: ""
 
     suspend fun saveProjectInfo(projectId: String, tier: String) {
         context.dataStore.edit { prefs ->
@@ -967,7 +976,26 @@ class AuthPreferences(private val context: Context) {
         context.dataStore.edit { it[CUSTOM_API_MODEL_NAME] = trimmed }
     }
 
+    val personalIntelligenceEnabled: Flow<Boolean> = context.dataStore.data.map { it[PERSONAL_INTELLIGENCE_ENABLED] ?: getPersonalIntelligenceEnabledSync() }
+    fun getPersonalIntelligenceEnabledSync(): Boolean = syncPrefs.getBoolean("personal_intelligence_enabled", true)
+    suspend fun setPersonalIntelligenceEnabled(enabled: Boolean) {
+        syncPrefs.edit().putBoolean("personal_intelligence_enabled", enabled).apply()
+        context.dataStore.edit { it[PERSONAL_INTELLIGENCE_ENABLED] = enabled }
+    }
+
+    val webSearchEnabled: Flow<Boolean> = context.dataStore.data.map { it[WEB_SEARCH_ENABLED] ?: getWebSearchEnabledSync() }
+    fun getWebSearchEnabledSync(): Boolean = syncPrefs.getBoolean("web_search_enabled", false)
+    suspend fun setWebSearchEnabled(enabled: Boolean) {
+        syncPrefs.edit().putBoolean("web_search_enabled", enabled).apply()
+        context.dataStore.edit { it[WEB_SEARCH_ENABLED] = enabled }
+    }
+
     suspend fun clearAuth() {
+        syncPrefs.edit()
+            .remove("access_token")
+            .remove("refresh_token")
+            .remove("user_email")
+            .apply()
         context.dataStore.edit { prefs ->
             prefs.remove(ACCESS_TOKEN)
             prefs.remove(REFRESH_TOKEN)
