@@ -1228,6 +1228,18 @@ object PcFeaturesRegistry {
             whatItDoes = "অ্যাপ আপডেটের সময় সিগনেচার অমিল হওয়া পুরোপুরি বন্ধ করে নির্বিঘ্নে আপডেট দেওয়া।",
             onEnableEffect = "অ্যাপ ডিলিট না করেই সরাসরি আপডেট ইনস্টল করা যায়।",
             howToUse = "ইন-অ্যাপ আপডেটার বা ক্রোম থেকে নতুন APK সরাসরি ইনস্টল করুন।"
+        ),
+        PcFeatureItem(
+            id = "unlimited_stream_file_uploader",
+            title = "Zero-Memory Unlimited-GB Stream File Uploader",
+            category = "Security & Backup",
+            description = "NIO 64KB chunked file streamer supporting uploads of any size (1GB to unlimited GB) without OOM heap crashes.",
+            icon = Icons.Outlined.CloudUpload,
+            badge = "UNLIMITED GB",
+            accentColor = Color(0xFF10B981),
+            whatItDoes = "যেকোনো সাইজের বড় ফাইল (১ জিবি, ১০ জিবি বা তার চেয়েও বড়) র‍্যাম ক্র্যাশ ছাড়া নিমেষেই আপলোড ও প্রসেস করা।",
+            onEnableEffect = "ফোনের মেমরি কখনই ফুল হবে না বা OutOfMemoryError ক্র্যাশ খাবে না।",
+            howToUse = "ফাইল আপলোড বা চ্যাটে এটাচ করার সময় এটি সরাসরি ব্যাকগ্রাউন্ড চাঙ্ক স্ট্রিমিং ব্যবহার করে।"
         )
     )
 }

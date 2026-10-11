@@ -1184,13 +1184,23 @@ class AgyChatBackend(
 
             for (att in currentAtts) {
                 var hostPath = if (att.path.isNotBlank() && !att.path.startsWith("/data/") && !att.path.startsWith("content://")) att.path else ""
+                val fileObj = if (att.path.isNotBlank()) java.io.File(att.path) else null
+                val localUriFile = if (!att.localUri.isNullOrBlank()) java.io.File(android.net.Uri.parse(att.localUri).path ?: "") else null
                 val b64 = when {
                     !att.base64.isNullOrBlank() -> att.base64
-                    att.path.isNotBlank() && java.io.File(att.path).exists() -> {
-                        android.util.Base64.encodeToString(java.io.File(att.path).readBytes(), android.util.Base64.NO_WRAP)
+                    fileObj != null && fileObj.exists() && fileObj.length() <= 4 * 1024 * 1024 -> {
+                        try {
+                            android.util.Base64.encodeToString(fileObj.readBytes(), android.util.Base64.NO_WRAP)
+                        } catch (e: Throwable) {
+                            null
+                        }
                     }
-                    !att.localUri.isNullOrBlank() && java.io.File(android.net.Uri.parse(att.localUri).path ?: "").exists() -> {
-                        android.util.Base64.encodeToString(java.io.File(android.net.Uri.parse(att.localUri).path ?: "").readBytes(), android.util.Base64.NO_WRAP)
+                    localUriFile != null && localUriFile.exists() && localUriFile.length() <= 4 * 1024 * 1024 -> {
+                        try {
+                            android.util.Base64.encodeToString(localUriFile.readBytes(), android.util.Base64.NO_WRAP)
+                        } catch (e: Throwable) {
+                            null
+                        }
                     }
                     else -> null
                 }
@@ -1218,6 +1228,9 @@ class AgyChatBackend(
                     } catch (e: Exception) {
                         Log.w("ChatViewModel", "SaveMediaAsArtifact failed: ${e.message}")
                     }
+                }
+                if (hostPath.isBlank() && att.path.isNotBlank()) {
+                    hostPath = att.path
                 }
 
                 val isImageOrAudio = resolvedMime.startsWith("image/") || resolvedMime.startsWith("audio/")

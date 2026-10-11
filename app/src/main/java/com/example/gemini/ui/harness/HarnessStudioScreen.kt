@@ -28,10 +28,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.harness.*
+import com.example.gemini.data.preferences.AuthPreferences
 import com.example.gemini.theme.ChatGptEmerald
 import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.QuotaGreen
@@ -220,6 +222,7 @@ fun HarnessStudioScreen(
                             text = "💬 JIN Classic",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             modifier = Modifier.padding(vertical = 5.dp),
                             maxLines = 1,
@@ -240,6 +243,7 @@ fun HarnessStudioScreen(
                             text = "⚡ JIN Fusion",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             modifier = Modifier.padding(vertical = 5.dp),
                             maxLines = 1,
@@ -256,6 +260,7 @@ fun HarnessStudioScreen(
                             text = "🚀 Harness Studio",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
                             color = Color.White,
                             modifier = Modifier.padding(vertical = 5.dp),
                             maxLines = 1,
@@ -335,12 +340,15 @@ fun HarnessStudioScreen(
 
                             coroutineScope.launch(Dispatchers.IO) {
                                 try {
+                                    val authPrefs = AuthPreferences(context)
                                     val bridge = DshRuntimeBridge(context) { profile ->
-                                        // Auto-fetch configured API keys or provide defaults
                                         when (profile.kind) {
                                             ProviderKind.OPENCODE_ZEN -> "free-opencode-zen"
-                                            ProviderKind.LLM_ROUTER -> "openrouter-default"
-                                            else -> "api-secret"
+                                            ProviderKind.DEEPSEEK -> authPrefs.getDeepSeekApiKeySync().ifBlank { "deepseek-default" }
+                                            ProviderKind.LLM_ROUTER -> authPrefs.getOpenRouterApiKeySync().ifBlank { "openrouter-default" }
+                                            ProviderKind.ANTHROPIC, ProviderKind.CLAUDE -> authPrefs.getAnthropicApiKeySync().ifBlank { "anthropic-default" }
+                                            ProviderKind.CUSTOM -> authPrefs.getCustomApiKeySync().ifBlank { "custom-default" }
+                                            else -> authPrefs.getCustomApiKeySync().ifBlank { "default-key" }
                                         }
                                     }
 
@@ -624,46 +632,118 @@ private fun AgentRunnerTab(
                 Divider(modifier = Modifier.padding(vertical = 2.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
 
                 // Provider Kind & Model
+                var showProviderDialog by remember { mutableStateOf(false) }
+                var showModelDialog by remember { mutableStateOf(false) }
+
+                if (showProviderDialog) {
+                    ProviderSelectionDialog(
+                        currentProvider = selectedProvider,
+                        onSelectProvider = { prov ->
+                            onProviderChange(prov)
+                        },
+                        onDismiss = { showProviderDialog = false }
+                    )
+                }
+
+                if (showModelDialog) {
+                    ModelSelectionDialog(
+                        provider = selectedProvider,
+                        currentModel = modelName,
+                        onSelectModel = { model ->
+                            onModelNameChange(model)
+                        },
+                        onDismiss = { showModelDialog = false }
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Provider Kind Selector
+                    // Provider Kind Selector (Interactive Clickable Card)
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.4f)),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 52.dp)
+                            .clickable { showProviderDialog = true }
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "Provider: ",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                            Text(
-                                text = selectedProvider.title,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = ClaudeTerracotta
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "PROVIDER",
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                                Text(
+                                    text = selectedProvider.title,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ClaudeTerracotta,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Outlined.ArrowDropDown,
+                                contentDescription = "Select Provider",
+                                tint = ClaudeTerracotta,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
 
-                    // Model Name input
-                    OutlinedTextField(
-                        value = modelName,
-                        onValueChange = onModelNameChange,
-                        label = { Text("Model", fontSize = 10.sp) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1.2f).height(48.dp),
-                        textStyle = LocalTextStyle.current.copy(fontSize = 11.5.sp)
-                    )
+                    // Model Name Selector (Interactive Clickable Card)
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)),
+                        modifier = Modifier
+                            .weight(1.15f)
+                            .heightIn(min = 52.dp)
+                            .clickable { showModelDialog = true }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "MODEL",
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                                Text(
+                                    text = modelName.ifBlank { "Select Model" },
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Outlined.Tune,
+                                contentDescription = "Edit Model",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                 }
 
                 Text(
@@ -819,6 +899,307 @@ private fun AgentRunnerTab(
             }
         }
     }
+}
+
+// -----------------------------------------------------------------------------
+// PROVIDER & MODEL SELECTION DIALOGS
+// -----------------------------------------------------------------------------
+
+fun getPresetModelsForProvider(provider: ProviderKind): List<String> = when (provider) {
+    ProviderKind.OPENCODE_ZEN -> listOf(
+        "deepseek-v4-flash",
+        "deepseek-chat",
+        "deepseek-reasoner",
+        "qwen-2.5-coder-32b",
+        "minimax-01"
+    )
+    ProviderKind.DEEPSEEK -> listOf(
+        "deepseek-chat",
+        "deepseek-reasoner",
+        "deepseek-coder"
+    )
+    ProviderKind.LLM_ROUTER -> listOf(
+        "anthropic/claude-3.7-sonnet",
+        "deepseek/deepseek-r1",
+        "deepseek/deepseek-chat",
+        "google/gemini-2.0-flash-001",
+        "openai/gpt-4o",
+        "meta-llama/llama-3.3-70b-instruct"
+    )
+    ProviderKind.CLAUDE, ProviderKind.ANTHROPIC -> listOf(
+        "claude-3-7-sonnet-20250219",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-haiku-20241022",
+        "claude-3-opus-20240229"
+    )
+    ProviderKind.KIMI -> listOf(
+        "kimi-k2.6",
+        "moonshot-v1-8k",
+        "moonshot-v1-32k",
+        "moonshot-v1-128k"
+    )
+    ProviderKind.NVIDIA_NIM -> listOf(
+        "qwen/qwen2.5-coder-32b-instruct",
+        "meta/llama-3.3-70b-instruct",
+        "deepseek-ai/deepseek-r1"
+    )
+    ProviderKind.CUSTOM -> listOf(
+        "custom-model"
+    )
+}
+
+@Composable
+fun ProviderSelectionDialog(
+    currentProvider: ProviderKind,
+    onSelectProvider: (ProviderKind) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Dns,
+                    contentDescription = null,
+                    tint = ClaudeTerracotta,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Select AI Provider",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(ProviderKind.entries) { provider ->
+                    val isSelected = provider == currentProvider
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSelected) ClaudeTerracotta.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSelectProvider(provider)
+                                onDismiss()
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = provider.title,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = ClaudeTerracotta.copy(alpha = 0.12f)
+                                    ) {
+                                        Text(
+                                            text = provider.protocol.name,
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = ClaudeTerracotta,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = provider.subtitle,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                                if (provider.defaultBaseUrl.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = provider.defaultBaseUrl,
+                                        fontSize = 9.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CheckCircle,
+                                    contentDescription = "Selected",
+                                    tint = ClaudeTerracotta,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = ClaudeTerracotta, fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+@Composable
+fun ModelSelectionDialog(
+    provider: ProviderKind,
+    currentModel: String,
+    onSelectModel: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var searchOrCustom by remember { mutableStateOf(currentModel) }
+    val presets = remember(provider) { getPresetModelsForProvider(provider) }
+    val filteredPresets = remember(presets, searchOrCustom) {
+        val q = searchOrCustom.trim()
+        if (q.isBlank()) presets else presets.filter { it.contains(q, ignoreCase = true) }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = ClaudeTerracotta,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Select / Custom Model",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "For ${provider.title}",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchOrCustom,
+                    onValueChange = { searchOrCustom = it },
+                    label = { Text("Model Name / ID", fontSize = 11.sp) },
+                    placeholder = { Text("e.g. deepseek-v4-flash", fontSize = 11.sp) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    trailingIcon = {
+                        if (searchOrCustom.isNotBlank()) {
+                            IconButton(onClick = {
+                                if (searchOrCustom.isNotBlank()) {
+                                    onSelectModel(searchOrCustom.trim())
+                                    onDismiss()
+                                }
+                            }) {
+                                Icon(
+                                    Icons.Outlined.Check,
+                                    contentDescription = "Apply",
+                                    tint = ClaudeTerracotta,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Recommended for ${provider.title}:",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 220.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(filteredPresets) { preset ->
+                        val isCurrent = preset == currentModel
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isCurrent) ClaudeTerracotta.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, if (isCurrent) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onSelectModel(preset)
+                                    onDismiss()
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = preset,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isCurrent) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (isCurrent) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Check,
+                                        contentDescription = "Selected",
+                                        tint = ClaudeTerracotta,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (searchOrCustom.isNotBlank()) {
+                        onSelectModel(searchOrCustom.trim())
+                    }
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+            ) {
+                Text("Apply Model", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", fontSize = 12.sp)
+            }
+        }
+    )
 }
 
 // -----------------------------------------------------------------------------
@@ -1461,6 +1842,79 @@ private fun RuntimesAndEnginesTab(context: Context) {
                 Text("Verifying Runtimes...", fontSize = 12.sp)
             } else {
                 Text("🔄 Verify & Update Runtime Bundles", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // AI Provider Keys Section
+        Text(
+            text = "🔑 AI Provider API Keys",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Text(
+            text = "Configure API keys for DeepSeek, OpenRouter, Anthropic, or OpenCode Zen.",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+
+        val authPrefs = remember { AuthPreferences(context) }
+        var deepseekKey by remember { mutableStateOf(authPrefs.getDeepSeekApiKeySync()) }
+        var openRouterKey by remember { mutableStateOf(authPrefs.getOpenRouterApiKeySync()) }
+        var anthropicKey by remember { mutableStateOf(authPrefs.getAnthropicApiKeySync()) }
+
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = deepseekKey,
+                    onValueChange = { deepseekKey = it },
+                    label = { Text("DeepSeek API Key (sk-...)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                OutlinedTextField(
+                    value = openRouterKey,
+                    onValueChange = { openRouterKey = it },
+                    label = { Text("OpenRouter API Key (sk-or-...)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                OutlinedTextField(
+                    value = anthropicKey,
+                    onValueChange = { anthropicKey = it },
+                    label = { Text("Anthropic API Key (sk-ant-...)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            authPrefs.saveDeepSeekApiKey(deepseekKey)
+                            authPrefs.saveOpenRouterApiKey(openRouterKey)
+                            authPrefs.saveAnthropicApiKey(anthropicKey)
+                            AppToastHelper.showToast("API keys saved successfully!", ChatToastType.SUCCESS)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                ) {
+                    Text("💾 Save API Keys", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

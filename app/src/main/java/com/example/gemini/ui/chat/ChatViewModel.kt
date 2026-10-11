@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gemini.data.media.StreamingFileUtils
 import com.example.gemini.data.preferences.AuthPreferences
 import com.example.gemini.data.remote.AgyHubClient
 import com.example.gemini.data.remote.AntigravityApiService
@@ -729,22 +730,44 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val isImg = mimeType.startsWith("image/")
             val isAud = mimeType.startsWith("audio/")
 
-            val bytes = withContext(Dispatchers.IO) {
-                contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            val safeDir = java.io.File(context.cacheDir, "attachments").apply { mkdirs() }
+            val cleanName = fileName.replace("[^a-zA-Z0-9._-]".toRegex(), "_")
+            val destFile = java.io.File(safeDir, "${System.currentTimeMillis()}_$cleanName")
+
+            val bytesWritten = withContext(Dispatchers.IO) {
+                StreamingFileUtils.streamUriToFile(context, uri, destFile)
             }
 
-            if (bytes != null) {
-                val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-                // Antigravity keeps attachments as hub artifacts; a Claude chat sends them itself (inline or saved
-                // on the bridge when the message is sent), so nothing goes to the AGY hub
-                val savedHostUri = if (isClaudeActive) uri.toString() else {
-                    agyHubClient.saveMediaAsArtifact(
-                        mimeType = mimeType,
-                        base64Data = base64,
-                        description = fileName,
-                        thumbnailBase64 = if (isImg) base64 else "",
-                        hubUrl = AuthPreferences.currentHubUrl
-                    ).getOrNull() ?: uri.toString()
+            if (bytesWritten > 0L) {
+                val effectiveSize = if (fileSize > 0) fileSize else bytesWritten
+                val isMemorySafe = effectiveSize <= 4 * 1024 * 1024 // 4 MB
+
+                val previewBase64 = withContext(Dispatchers.IO) {
+                    if (isImg) {
+                        StreamingFileUtils.getSafeDownsampledImageBase64(context, uri, 512)
+                    } else if (isAud && isMemorySafe) {
+                        try {
+                            android.util.Base64.encodeToString(destFile.readBytes(), android.util.Base64.NO_WRAP)
+                        } catch (e: Throwable) {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                }
+
+                val savedHostUri = if (isClaudeActive) destFile.absolutePath else {
+                    if (isMemorySafe && previewBase64 != null) {
+                        agyHubClient.saveMediaAsArtifact(
+                            mimeType = mimeType,
+                            base64Data = previewBase64,
+                            description = fileName,
+                            thumbnailBase64 = if (isImg) previewBase64 else "",
+                            hubUrl = AuthPreferences.currentHubUrl
+                        ).getOrNull() ?: destFile.absolutePath
+                    } else {
+                        destFile.absolutePath
+                    }
                 }
 
                 val att = com.example.gemini.domain.model.ChatAttachment(
@@ -754,9 +777,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     isImage = isImg,
                     isAudio = isAud,
                     localUri = uri.toString(),
-                    size = if (fileSize > 0) fileSize else bytes.size.toLong(),
+                    size = effectiveSize,
                     mimeType = mimeType,
-                    base64 = base64
+                    base64 = previewBase64
                 )
                 _attachments.value = _attachments.value + att
             }
@@ -766,15 +789,25 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addProjectFileAttachment(filePath: String, fileName: String) {
+        val context = getApplication<Application>()
         viewModelScope.launch {
             val file = java.io.File(filePath)
             val ext = fileName.substringAfterLast('.', "").lowercase()
             val mimeType = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
             val isImg = mimeType.startsWith("image/")
             val isAud = mimeType.startsWith("audio/")
-            val b64 = if (file.exists()) {
-                android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP)
-            } else ""
+            val isMemorySafe = file.exists() && file.length() <= 4 * 1024 * 1024
+            val b64 = if (isMemorySafe) {
+                try {
+                    android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP)
+                } catch (e: Throwable) {
+                    null
+                }
+            } else if (file.exists() && isImg) {
+                withContext(Dispatchers.IO) {
+                    StreamingFileUtils.getSafeDownsampledImageBase64(context, Uri.fromFile(file), 512)
+                }
+            } else null
 
             val att = com.example.gemini.domain.model.ChatAttachment(
                 id = "att_${System.currentTimeMillis()}_${(0..999).random()}",
@@ -782,9 +815,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 path = filePath,
                 isImage = isImg,
                 isAudio = isAud,
-                size = file.length(),
+                size = if (file.exists()) file.length() else 0L,
                 mimeType = mimeType,
-                base64 = b64.ifBlank { null }
+                base64 = b64
             )
             _attachments.value = _attachments.value + att
         }

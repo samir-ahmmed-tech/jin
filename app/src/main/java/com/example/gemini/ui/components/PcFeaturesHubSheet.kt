@@ -5,7 +5,9 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -147,7 +149,7 @@ fun PcFeaturesHubSheet(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .heightIn(min = 48.dp)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -203,14 +205,15 @@ fun PcFeaturesHubSheet(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Category Filter Pills
+            // Category Filter Pills (Horizontal Scrolling - No Vertical Wrapping!)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
                     .padding(bottom = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                categories.take(5).forEach { cat ->
+                categories.forEach { cat ->
                     val isSel = (cat == "All" && selectedCategory == null) || selectedCategory == cat
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -222,10 +225,12 @@ fun PcFeaturesHubSheet(
                     ) {
                         Text(
                             text = cat,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
                             color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.5.dp)
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.5.dp)
                         )
                     }
                 }
