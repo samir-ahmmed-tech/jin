@@ -30,7 +30,8 @@ enum class AppViewMode {
     CHAT,
     IDE,
     TERMINAL,
-    BROWSER
+    BROWSER,
+    HARNESS
 }
 
 class MainActivity : ComponentActivity() {
@@ -90,6 +91,7 @@ class MainActivity : ComponentActivity() {
                     "IDE" -> AppViewMode.IDE
                     "TERMINAL" -> AppViewMode.TERMINAL
                     "BROWSER" -> AppViewMode.BROWSER
+                    "HARNESS" -> AppViewMode.HARNESS
                     else -> AppViewMode.CHAT
                 }
             }
@@ -117,6 +119,11 @@ class MainActivity : ComponentActivity() {
                         "BROWSER" -> {
                             previousViewMode = currentViewMode
                             currentViewMode = AppViewMode.BROWSER
+                        }
+
+                        "HARNESS" -> {
+                            previousViewMode = currentViewMode
+                            currentViewMode = AppViewMode.HARNESS
                         }
                     }
                     chatViewModel.consumeRequestedViewMode()
@@ -296,6 +303,10 @@ class MainActivity : ComponentActivity() {
                                         onNavigateToBrowser = {
                                             previousViewMode = currentViewMode
                                             currentViewMode = AppViewMode.BROWSER
+                                        },
+                                        onNavigateToHarness = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.HARNESS
                                         }
                                     )
                                 }
@@ -370,6 +381,40 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
 
+                                // Persistent Harness Studio Screen (Retains workspace diffs, agent runner & state)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            val isVisible = currentViewMode == AppViewMode.HARNESS
+                                            alpha = if (isVisible) 1f else 0f
+                                            translationX = if (isVisible) 0f else 20000f
+                                        }
+                                ) {
+                                    com.example.gemini.ui.harness.HarnessStudioScreen(
+                                        onClose = {
+                                            currentViewMode =
+                                                if (previousViewMode == AppViewMode.HARNESS) AppViewMode.CHAT else previousViewMode
+                                        },
+                                        onNavigateToChat = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.CHAT
+                                        },
+                                        onNavigateToIde = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.IDE
+                                        },
+                                        onNavigateToTerminal = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.TERMINAL
+                                        },
+                                        onSwitchToFusion = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.CHAT
+                                        }
+                                    )
+                                }
+
                                 // Floating App Switcher Across Whole App (Renders on top of Chat, IDE, Terminal, Browser)
                                 if (isFloatingSwitcherEnabled) {
                                     com.example.gemini.ui.components.FloatingSwitcherWidget(
@@ -436,6 +481,10 @@ class MainActivity : ComponentActivity() {
                                         onNavigateToBrowser = {
                                             previousViewMode = currentViewMode
                                             currentViewMode = AppViewMode.BROWSER
+                                        },
+                                        onNavigateToHarness = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.HARNESS
                                         }
                                     )
                                 }

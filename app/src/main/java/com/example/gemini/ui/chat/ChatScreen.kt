@@ -132,7 +132,8 @@ fun ChatScreen(
     onMinimizeWindow: () -> Unit = {},
     onNavigateToIde: () -> Unit = {},
     onNavigateToTerminal: () -> Unit = {},
-    onNavigateToBrowser: () -> Unit = {}
+    onNavigateToBrowser: () -> Unit = {},
+    onNavigateToHarness: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -1276,6 +1277,33 @@ fun ChatScreen(
                                 )
                             }
                         }
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onNavigateToHarness() }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.SmartToy,
+                                    contentDescription = null,
+                                    tint = ClaudeTerracotta,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "Harness",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
                         if (isDevModeEnabled) {
                             IconButton(onClick = { showChatTelemetryDialog = true }) {
                                 Icon(
@@ -2153,6 +2181,7 @@ fun ChatScreen(
             onNavigateToIde = onNavigateToIde,
             onNavigateToTerminal = onNavigateToTerminal,
             onNavigateToBrowser = onNavigateToBrowser,
+            onNavigateToHarness = onNavigateToHarness,
             onOpenGit = onNavigateToIde,
             onOpenSkills = { showSettingsDialog = true },
             onOpenAutomation = { showAutomationControlsDialog = true },

@@ -1,17 +1,16 @@
 {
-  "version_code": 212,
-  "version_name": "2.1.2",
+  "version_code": 213,
+  "version_name": "2.1.3",
   "min_supported_version_code": 1,
   "changelog": [
-    "🚀 DeepSeek Harness & Mobile-Harness Unified Integration: Seamlessly combined the Mobile-Harness architecture into JIN while fully preserving ARM performance, Antigravity 2.0, Termux subsystem, 100 Tools suite, and Google Drive Cloud Vault.",
-    "📱 4 Dedicated APK Release Flavors: Distributed separate production APKs for both JIN Standard and JIN Termux in both Online and Offline editions (jin-standard-online, jin-standard-offline, jin-termux-online, jin-termux-offline).",
-    "🤖 DeepSeek Harness (DSH) Engine: Direct headless execution bridge with local reasoning streams ('dsh: reasoning:'), API provider abstraction, and autonomous tool invocation.",
-    "📦 Modular Runtime Bundle Manager: High-performance Zstandard (.tar.zst) archive decompressor supporting on-demand and offline modular bundles (Core Ubuntu 20.04 ARM64, DeepSeek Harness, Claude Code, Python 3, Android SDK 36/JDK 17, and Antigravity CLI).",
-    "🔄 Workspace Checkpoints & Diff Engine: Real-time file change tracker computing line additions, deletions, and context blocks with per-file Undo/Keep and baseline rollback.",
-    "🛠️ On-Device Android App Compilation: In-app Android project scaffolding (Jetpack Compose & Kotlin/XML) and direct build pipeline with instant APK installation via Android PackageInstaller session.",
-    "🌐 OpenRouter Routing Gateway & Local Format Adapter: Loopback HTTP proxy on 127.0.0.1 providing provider routing order with automatic fallbacks and Anthropic-to-OpenAI translation.",
-    "✨ 100% Scrubbed & Rebranded: Fully cleaned of all third-party branding and attributed exclusively to Samir Ahmmed.",
-    "👨‍💻 Lead Developer: Samir Ahmmed (https://github.com/samir-ahmmed-tech)"
+    "🚀 Single Unified JIN APK (jin-termux-v2.1.3): Fully merged JIN and Mobile-Harness into a single complete production release, dropping cumbersome multi-flavor splits.",
+    "🎛️ 3-Way Mode Switcher: Toggle effortlessly between JIN Classic, JIN+Harness Fusion, and Harness Studio from the header banner.",
+    "🛠️ 100 Tools UI & Card Density Modes: Completely fixed badge letter-wrapping bugs; added Compact, Comfortable, and 2-Column Grid density toggles for maximum mobile usability.",
+    "🤖 Harness Studio: Autonomous coding turns powered by DeepSeek Harness, OpenCode Zen, Claude Code, and Antigravity CLI with live reasoning accordion.",
+    "📁 On-Device Android App Scaffolder: 1-Tap Jetpack Compose and XML project generation attributed to Samir Ahmmed.",
+    "🔍 Real-Time Workspace Changes Diff: Line-by-line colored diffs with per-file 'Undo Change' and 'Keep Change' buttons powered by WorkspaceCheckpoints.",
+    "🔨 Gradle On-Device Build & Rootless Installer: Compile debug APKs on-device and install instantly using Android PackageInstaller Session API.",
+    "✨ 100% Rebranded & Authored by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)"
   ],
   "is_critical": false
 }

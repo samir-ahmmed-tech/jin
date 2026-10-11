@@ -98,22 +98,26 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
-          name: "JIN v${{ steps.get_version.outputs.version }} - DeepSeek Harness & Mobile-Harness Integration (4 Flavors: Online & Offline)"
+          name: "JIN v${{ steps.get_version.outputs.version }} - Single Unified Complete Release (JIN + Mobile-Harness)"
           body: |
-            ### 🚀 JIN v${{ steps.get_version.outputs.version }} Release
-            - 📱 **4 Dedicated Production Flavors**:
-              - `jin-standard-online-v${{ steps.get_version.outputs.version }}-release.apk`: Standard edition for general Android devices with live cloud AI and on-demand bundle downloading.
-              - `jin-standard-offline-v${{ steps.get_version.outputs.version }}-release.apk`: Completely standalone standard edition running isolated local models and offline rootfs execution.
-              - `jin-termux-online-v${{ steps.get_version.outputs.version }}-release.apk`: Termux-integrated power edition with terminal PTY, Termux:API, and online AI capabilities.
-              - `jin-termux-offline-v${{ steps.get_version.outputs.version }}-release.apk`: Standalone Termux power edition configured for offline local model routing and native Linux tooling.
-            - 🤖 **DeepSeek Harness (DSH) Engine**: Direct headless execution bridge with local reasoning streams (`dsh: reasoning:`), multi-provider routing, and autonomous file modification.
-            - 📦 **Modular Runtime Bundle Manager**: Native Zstandard (`.tar.zst`) decompression engine managing isolated modular runtimes (Core Ubuntu 20.04 ARM64, DeepSeek Harness, Claude Code, Python 3, Android SDK 36/JDK 17, and Antigravity CLI).
-            - 🔄 **Workspace Checkpoints & Diff Engine**: Real-time project baseline snapshots, line diff viewer (additions, deletions, context), and per-file Undo/Keep control.
-            - 🛠️ **On-Device Android Project Builder**: In-app Android project scaffolding (Jetpack Compose & Kotlin/XML) with direct Gradle compilation and on-device APK installation via PackageInstaller session.
-            - 🌐 **OpenRouter Routing Gateway & Local Format Adapter**: Built-in 127.0.0.1 proxy providing provider routing order with automatic fallbacks and Anthropic-to-OpenAI translation.
-            - 🎛️ **100 Tools Desktop PC Power Suite**: Full suite of 100 desktop-grade tools across Antigravity 2.0, Cloud Code, OpenRouter, Terminal & SSH, Git DevOps, Display/Layout, and Android capabilities.
-            - 🎙️ **Real-Time Conversational Voice Assistant (ChatGPT Style)**: Hands-free 2-way vocal conversation and task execution with animated pulsing Voice Orb, real-time speech transcription, silence detection, and natural vocal feedback via Text-to-Speech.
-            - ☁️ **Advanced Google Drive Cloud Vault**: Full backup and 1-tap restore covering all SQLite conversation databases, summaries, encrypted credentials, user preferences, notebooks, and projects.
+            ### 🚀 JIN v${{ steps.get_version.outputs.version }} Complete Release
+            - 📱 **Single Unified Production APK (`jin-termux-v${{ steps.get_version.outputs.version }}-release.apk`)**:
+              - Complete unified edition combining Termux terminal environment, native PRoot rootfs, 100 PC Power Tools, Real-Time Voice, and Mobile-Harness autonomous coding engine into one single complete app.
+            - 🎛️ **3-Way Studio Modes (JIN Classic | JIN Fusion | Harness Studio)**:
+              - Switch dynamically between Classic JIN chat, JIN+Harness Fusion hybrid mode, and standalone Harness Studio via header banner.
+            - 🛠️ **100 Tools Card Layout & Density Optimization**:
+              - Completely resolved badge text wrapping bugs (`SUBMODULE`, `MERGE`, `FETCH`).
+              - Added Compact, Comfortable, and 2-Column Grid density toggles for optimal mobile UI size.
+            - 🤖 **Harness Studio Autonomous Coding**:
+              - Autonomous coding turns powered by DeepSeek Harness, OpenCode Zen, Claude Code, and Antigravity CLI with real-time reasoning stream accordion.
+            - 🔄 **Interactive Workspace Checkpoints & Diff Engine**:
+              - Line-by-line visual diffs with per-file 'Undo Change' and 'Keep Change' buttons.
+            - 🔨 **On-Device Android Scaffolding & Build**:
+              - Scaffolds Jetpack Compose and XML apps, compiles debug APKs on-device, and installs via PackageInstaller Session API.
+            - 🎙️ **Real-Time Conversational Voice Assistant (ChatGPT Style)**:
+              - 2-way vocal conversation and hands-free coding task execution with animated Voice Orb.
+            - ☁️ **Advanced Google Drive Cloud Vault**:
+              - Full backup and 1-tap restore for SQLite databases, encrypted credentials, preferences, notebooks, and projects.
             - 👨‍💻 **Lead Developer**: Samir Ahmmed (https://github.com/samir-ahmmed-tech)
           files: output/*.apk
           draft: false

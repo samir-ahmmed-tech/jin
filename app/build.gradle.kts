@@ -22,11 +22,21 @@ android {
     namespace = "com.example.gemini"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.antigem"
+        applicationId = "com.termux"
         minSdk = 24
         targetSdk = 28
         versionCode = appVersionCode
         versionName = appVersionName
+
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
+
+        buildConfigField("int", "BRIDGE_PORT", "1234")
+        buildConfigField("int", "HUB_PORT", "1235")
+        buildConfigField("int", "BROWSER_MCP_PORT", "8765")
+        buildConfigField("boolean", "IS_OFFLINE_MODE", "false")
+        buildConfigField("String", "DELIVERY_TYPE", "\"termux\"")
     }
 
     signingConfigs {
@@ -40,36 +50,6 @@ android {
             } else {
                 initWith(signingConfigs.getByName("debug"))
             }
-        }
-    }
-
-    flavorDimensions += listOf("mode", "delivery")
-    productFlavors {
-        // Local ports differ per app so com.antigem and com.termux can be installed and run side by side
-        // (com.antigem: +2, so its bridge port never equals com.termux's hub port).
-        create("standard") {
-            dimension = "mode"
-            applicationId = "com.antigem"
-            buildConfigField("int", "BRIDGE_PORT", "1236")
-            buildConfigField("int", "HUB_PORT", "1237")
-            buildConfigField("int", "BROWSER_MCP_PORT", "8767")
-        }
-        create("termux") {
-            dimension = "mode"
-            applicationId = "com.termux"
-            buildConfigField("int", "BRIDGE_PORT", "1234")
-            buildConfigField("int", "HUB_PORT", "1235")
-            buildConfigField("int", "BROWSER_MCP_PORT", "8765")
-        }
-        create("online") {
-            dimension = "delivery"
-            buildConfigField("boolean", "IS_OFFLINE_MODE", "false")
-            buildConfigField("String", "DELIVERY_TYPE", "\"online\"")
-        }
-        create("offline") {
-            dimension = "delivery"
-            buildConfigField("boolean", "IS_OFFLINE_MODE", "true")
-            buildConfigField("String", "DELIVERY_TYPE", "\"offline\"")
         }
     }
 
