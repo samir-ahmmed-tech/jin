@@ -891,8 +891,8 @@ fun ChatHistoryDrawer(
 
             val isEngineConnecting = agyEnabled && (systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.STARTING ||
                     systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.ACQUIRING_CSRF) && conversations.isEmpty()
-            val isEngineActive = systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.RUNNING ||
-                    systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.CONNECTED
+            val isEngineActive = systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.READY ||
+                    systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.CHECKING_AUTH
             val showSkeleton =
                 agyEnabled && isEngineActive && (!hasReceivedInitialSync || isLoading) && conversations.isEmpty() && errorMessage.isNullOrBlank()
 

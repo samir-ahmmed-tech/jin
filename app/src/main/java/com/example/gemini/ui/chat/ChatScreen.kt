@@ -2119,7 +2119,7 @@ fun ChatScreen(
                     onOpenAutomation = { showAutomationControlsDialog = true },
                     onOpenNotebooks = { showNotebookDialog = true },
                     onOpenVoiceAssistant = { showRealtimeVoiceDialog = true },
-                    onOpenPcFeatures = { showPcFeaturesHubSheet = true },
+                    onOpenPcFeatures = { showPcFeaturesHub = true },
                     cascadeId = activeConversationKey,
                     focusRequester = chatInputFocusRequester
                 )
@@ -2785,10 +2785,10 @@ fun ChatScreen(
     // Real-Time ChatGPT-Style Conversational Voice Assistant
     if (showRealtimeVoiceDialog) {
         val latestAssistantMsg = remember(messages) {
-            messages.lastOrNull { !it.isUser }?.content
+            messages.lastOrNull { it.role != com.example.gemini.domain.model.MessageRole.USER }?.content
         }
         com.example.gemini.ui.components.RealtimeVoiceAssistantDialog(
-            modelDisplayName = selectedModel.displayName,
+            modelDisplayName = currentModel.displayName,
             latestAssistantMessage = latestAssistantMsg,
             isStreaming = isActivelyRunning,
             onSendMessage = { voicePrompt ->
