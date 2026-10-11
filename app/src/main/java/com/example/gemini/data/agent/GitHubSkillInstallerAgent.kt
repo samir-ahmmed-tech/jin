@@ -61,13 +61,13 @@ object GitHubSkillInstallerAgent {
             if (targetDir.exists()) {
                 onProgress("📂 Repository already exists in projects/${repo.repoName}, updating latest changes...")
                 LocalTerminalBridge.instance.sendCommand(
-                    "cd \"${targetDir.absolutePath}\" && git pull",
+                    command = "cd \"${targetDir.absolutePath}\" && git pull",
                     appendEnter = true
                 )
             } else {
                 onProgress("⬇️ Cloning repository from GitHub into projects/${repo.repoName}...")
                 LocalTerminalBridge.instance.sendCommand(
-                    "git clone \"${repo.fullUrl}\" \"${targetDir.absolutePath}\"",
+                    command = "git clone \"${repo.fullUrl}\" \"${targetDir.absolutePath}\"",
                     appendEnter = true
                 )
             }
@@ -88,7 +88,7 @@ object GitHubSkillInstallerAgent {
                 if (!skillsDir.exists()) skillsDir.mkdirs()
                 val skillTarget = File(skillsDir, repo.repoName)
                 LocalTerminalBridge.instance.sendCommand(
-                    "cp -r \"${targetDir.absolutePath}\" \"${skillTarget.absolutePath}\"",
+                    command = "cp -r \"${targetDir.absolutePath}\" \"${skillTarget.absolutePath}\"",
                     appendEnter = true
                 )
                 installedCapabilities.add("Antigravity Custom Skill (SKILL.md registered)")
@@ -99,7 +99,7 @@ object GitHubSkillInstallerAgent {
             if (hasPackageJson) {
                 onProgress("📦 Node.js environment detected. Installing dependencies via pnpm...")
                 LocalTerminalBridge.instance.sendCommand(
-                    "cd \"${targetDir.absolutePath}\" && (command -v pnpm >/dev/null && pnpm install || npm install)",
+                    command = "cd \"${targetDir.absolutePath}\" && (command -v pnpm >/dev/null && pnpm install || npm install)",
                     appendEnter = true
                 )
                 installedCapabilities.add("Node.js Dependencies installed via pnpm")
@@ -110,7 +110,7 @@ object GitHubSkillInstallerAgent {
             if (hasRequirements || hasPyproject) {
                 onProgress("🐍 Python environment detected. Installing dependencies via pip...")
                 LocalTerminalBridge.instance.sendCommand(
-                    "cd \"${targetDir.absolutePath}\" && pip install -r requirements.txt",
+                    command = "cd \"${targetDir.absolutePath}\" && pip install -r requirements.txt",
                     appendEnter = true
                 )
                 installedCapabilities.add("Python Dependencies installed")

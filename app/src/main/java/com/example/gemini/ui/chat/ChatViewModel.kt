@@ -438,11 +438,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         if (repo != null) {
             viewModelScope.launch {
                 com.example.gemini.data.agent.GitHubSkillInstallerAgent.installRepoOrSkill(repo) { progress ->
-                    _authFeedbackMessage.tryEmit(progress)
+                    agyBackend.emitFeedback(progress)
                 }.onSuccess { summary ->
-                    _authFeedbackMessage.tryEmit(summary)
+                    agyBackend.emitFeedback(summary)
                 }.onFailure { err ->
-                    _authFeedbackMessage.tryEmit("Install failed: ${err.message}")
+                    agyBackend.emitFeedback("Install failed: ${err.message}")
                 }
             }
         }

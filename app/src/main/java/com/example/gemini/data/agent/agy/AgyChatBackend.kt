@@ -210,6 +210,10 @@ class AgyChatBackend(
     private val _authFeedbackMessage = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 1)
     val authFeedbackMessage: SharedFlow<String> = _authFeedbackMessage.asSharedFlow()
 
+    fun emitFeedback(message: String) {
+        _authFeedbackMessage.tryEmit(message)
+    }
+
     private val _pendingLoginUrl = MutableStateFlow<String?>(null)
     val pendingLoginUrl: StateFlow<String?> = _pendingLoginUrl.asStateFlow()
 
