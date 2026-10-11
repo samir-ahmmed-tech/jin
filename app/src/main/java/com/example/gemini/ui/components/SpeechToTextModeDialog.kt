@@ -26,6 +26,7 @@ import com.example.gemini.theme.GeminiBlue
 
 @Composable
 fun SpeechToTextModeDialog(
+    onSelectRealtimeVoiceAssistant: () -> Unit = {},
     onSelectAutoTranscribe: () -> Unit,
     onSelectLiveDictation: () -> Unit,
     onDismiss: () -> Unit
@@ -50,14 +51,14 @@ fun SpeechToTextModeDialog(
                 ) {
                     Column {
                         Text(
-                            text = "Speech to Text",
+                            text = "Voice Modes & Speech",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Select speech recognition method",
+                            text = "Select conversational voice or speech recognition",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
@@ -76,15 +77,15 @@ fun SpeechToTextModeDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Option 1: Auto Transcribe (Record & Transcribe via AGY Hub)
+                // Option 1: ChatGPT-Style Realtime Voice Assistant
                 SpeechModeOptionCard(
-                    title = "Auto Transcribe",
-                    subtitle = "Record a voice clip and convert it into text using AGY transcription",
+                    title = "Conversational Voice (ChatGPT Style)",
+                    subtitle = "মুখে কথা বলুন, এআই নিজে মুখে উত্তর দিবে ও সরাসরি কোড বা টাস্ক রান করবে",
                     icon = Icons.Rounded.GraphicEq,
-                    accentColor = ClaudeTerracotta,
-                    onClick = onSelectAutoTranscribe
+                    accentColor = Color(0xFF10B981),
+                    onClick = onSelectRealtimeVoiceAssistant
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -96,6 +97,17 @@ fun SpeechToTextModeDialog(
                     icon = Icons.Rounded.Mic,
                     accentColor = GeminiBlue,
                     onClick = onSelectLiveDictation
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Option 3: Auto Transcribe (Record & Transcribe via AGY Hub)
+                SpeechModeOptionCard(
+                    title = "Audio Note",
+                    subtitle = "Record a voice clip and convert it into text or audio file",
+                    icon = Icons.Rounded.GraphicEq,
+                    accentColor = ClaudeTerracotta,
+                    onClick = onSelectAutoTranscribe
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))

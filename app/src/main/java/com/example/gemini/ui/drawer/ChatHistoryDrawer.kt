@@ -890,10 +890,11 @@ fun ChatHistoryDrawer(
             }
 
             val isEngineConnecting = agyEnabled && (systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.STARTING ||
-                    systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.ACQUIRING_CSRF ||
-                    (systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.OFFLINE && isInitialGracePeriod)) && conversations.isEmpty()
+                    systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.ACQUIRING_CSRF) && conversations.isEmpty()
+            val isEngineActive = systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.RUNNING ||
+                    systemConnectionState.status == com.example.gemini.data.remote.SystemStatus.CONNECTED
             val showSkeleton =
-                agyEnabled && (!hasReceivedInitialSync || isLoading) && conversations.isEmpty() && errorMessage.isNullOrBlank()
+                agyEnabled && isEngineActive && (!hasReceivedInitialSync || isLoading) && conversations.isEmpty() && errorMessage.isNullOrBlank()
 
             Crossfade(
                 targetState = when {

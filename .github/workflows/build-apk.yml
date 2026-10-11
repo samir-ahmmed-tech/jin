@@ -72,6 +72,14 @@ jobs:
                   print('Error on', p, e)
           "
 
+      - name: Compile agy_ide_bridge for Android ARM64
+        run: |
+          mkdir -p app/src/main/assets/bin
+          cd agy_ide_bridge
+          CGO_ENABLED=0 GOOS=android GOARCH=arm64 go build -ldflags="-s -w" -o ../app/src/main/assets/bin/agy_ide_bridge main.go
+          chmod +x ../app/src/main/assets/bin/agy_ide_bridge
+          ls -lh ../app/src/main/assets/bin/agy_ide_bridge
+
       - name: Build Release APKs
         run: |
           chmod +x gradlew scripts/build_all_apks.sh
@@ -90,17 +98,16 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
-          name: "JIN v${{ steps.get_version.outputs.version }} - Enterprise Security, Privacy & Terms, Mobile Workspace Picker, 4MB High-Speed I/O & Unlimited PC Power Suite"
+          name: "JIN v${{ steps.get_version.outputs.version }} - 100 Tools PC Power Suite, Real-Time Conversational Voice Assistant, Disconnect-Proof Dictation & Cloud Vault"
           body: |
             ### 🚀 JIN v${{ steps.get_version.outputs.version }} Release
-            - 🔒 **Enterprise On-Device Security & AES-256-GCM Vault**: Hardware-salted on-device encryption for all sensitive API keys (OpenAI, DeepSeek, Claude, Gemini, OpenRouter, Custom proxy), SSH passwords, and session tokens. Frontend secret masking (`••••••••••••sk-****`), strict TLS/HTTPS transport enforcement, script/XSS sanitization, and zero secret leakage in logs.
-            - 🛡️ **Sovereign Privacy Policy & Terms of Service**: Dedicated in-app dialogs guaranteeing 100% on-device data sovereignty, zero telemetry, zero analytics tracking, and local sandboxing.
-            - 📁 **Fresh Mobile Folder Creation & Multi-Storage Workspace Picker**: '+ New Folder' modal to create brand new directories anywhere in Termux (`~/projects`) or Phone Storage (`/storage/emulated/0`), with 1-tap jump chips for Projects, Termux, Phone Storage, Documents, and Downloads.
-            - ⚡ **4MB Ultra High-Speed Stream Buffer**: Boosted download engine to 4MB chunked stream buffers with rolling instantaneous throughput measurement, delivering high-speed 20-30+ MB/s downloads.
-            - 🎛️ **Unlimited PC Power Features & Guidance Suite**: Comprehensive suite of 45+ PC tools with detailed instructions on what each tool does ('টুলের কাজ কি'), what happens when activated ('অন করলে কি হইবো'), and how to use it ('কীভাবে ব্যবহার করবেন').
-            - 🔋 **Hardware, Thermal & Idle Governor**: CPU execution core scaling, RAM cache governor, low-battery/thermal throttle protection, and background idle execution limits to protect mobile hardware.
-            - 🌐 **Full Autonomous AI Agent Browser Control**: In-app WebView sidebar with autonomous DOM inspection, clicking, typing, screenshots, and multi-tab control via local MCP server.
-            - 📦 **Dual Flavor Release Builds**: Both `jin-termux` and `jin-standard` compiled in release mode with persistent signing.
+            - 🎛️ **100 Tools Desktop PC Power Suite**: Full suite of 100 desktop-grade tools across Antigravity 2.0, Cloud Code, OpenRouter, Terminal & SSH, Git DevOps, Display/Layout, and Android capabilities with detailed Bengali guidance cards ('টুলের কাজ কি', 'অন করলে কি হইবো', 'কীভাবে ব্যবহার করবেন').
+            - 🎙️ **Real-Time Conversational Voice Assistant (ChatGPT Style)**: Hands-free 2-way vocal conversation and task execution with animated pulsing Voice Orb, real-time speech transcription, silence detection, and natural vocal feedback via Text-to-Speech.
+            - ⚡ **Disconnect-Proof Continuous Voice Dictation**: Resolved voice input server disconnects and timeouts with intelligent auto-reconnect, extended silence buffers (3000ms), and offline on-device speech recognition.
+            - 🧹 **Lingering Chat Purge & Clean History State**: Permanently purged lingering conversation summaries from all 4 storage layers (SQLite databases, brain directories, and proto cache) with zero skeleton lag.
+            - 📦 **Universal Bootstrap ZIP Installer**: Completely overhauled bootstrap extraction for JIN Standard and JIN Termux, supporting any archive from ultra-lightweight (10KB BusyBox/Alpine) to multi-GB rootfs while automatically preserving daemon binaries and agy_ide_bridge.
+            - ☁️ **Advanced Google Drive Cloud Vault**: Full backup and 1-tap restore covering all SQLite conversation databases, summaries, encrypted credentials, user preferences, notebooks, and projects.
+            - 🚀 **Seamless In-App Updates**: Persistent release keystore signing and public downloads directory integration for flawless updates without uninstallation.
             - 👨‍💻 **Lead Developer**: Samir Ahmmed (https://github.com/samir-ahmmed-tech)
           files: output/*.apk
           draft: false

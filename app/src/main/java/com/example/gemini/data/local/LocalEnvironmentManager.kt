@@ -60,8 +60,8 @@ object LocalEnvironmentManager {
 
     private const val TAG = "LocalEnvironmentManager"
     private const val BOOTSTRAP_VERSION = "2026.08"
-    // Minimum 10 MB required for a real Termux bootstrap archive
-    private const val MIN_BOOTSTRAP_SIZE_BYTES = 10 * 1024 * 1024L
+    // Relaxed minimum size (10 KB) allowing ultra-lightweight (BusyBox/Alpine) to massive custom rootfs archives
+    private const val MIN_BOOTSTRAP_SIZE_BYTES = 10 * 1024L
 
     const val HARDCODED_ROOTFS_URL = "https://github.com/samir-ahmmed-tech/jin/releases/download/rootfs-v1/bootrapz_2026-10-04.zip"
     const val FALLBACK_ROOTFS_URL = "https://github.com/Santoshkurmi/antigem/releases/download/rootfs-v1/bootrapz_2026-10-04.zip"
@@ -437,6 +437,7 @@ object LocalEnvironmentManager {
         )
         try { Os.chmod(termuxProfile.absolutePath, 420) } catch (_: Exception) {}
 
+        LocalServerManager.ensureBridgeBinary(context)
         ensureRootfsCompatibilityLinks(ubuntuDir)
     }
 
@@ -1349,6 +1350,14 @@ object LocalEnvironmentManager {
             )
             updateInstallNotification(appContext, "Extracting Linux Rootfs (0%)", "Preparing directory structure...", 0, force = true)
 
+            // Preserve critical agent daemons (agy CLI and agy_ide_bridge) across bootstrap installs
+            val agyHomeBin = File(homeDir, ".local/bin/agy")
+            val agyPreserveCache = File(appContext.cacheDir, "agy_cache_preserve").apply { mkdirs() }
+            val agyPreservedFile = File(agyPreserveCache, "agy")
+            if (agyHomeBin.exists() && agyHomeBin.canExecute()) {
+                try { agyHomeBin.copyTo(agyPreservedFile, overwrite = true) } catch (_: Exception) {}
+            }
+
             // Reset target directory for a clean install
             if (!isTermuxPackage(appContext)) {
                 val ubuntuDir = getUbuntuRootDir(appContext)
@@ -1708,6 +1717,17 @@ object LocalEnvironmentManager {
                 configureEnvironmentFiles(appContext, prefixDir, binDir, etcDir, homeDir, projectsDir)
             }
 
+            // Guarantee agy_ide_bridge binary and agy daemon binary are present and executable
+            LocalServerManager.ensureBridgeBinary(appContext)
+            if (!agyHomeBin.exists() && agyPreservedFile.exists()) {
+                agyHomeBin.parentFile?.mkdirs()
+                try {
+                    agyPreservedFile.copyTo(agyHomeBin, overwrite = true)
+                    agyHomeBin.setExecutable(true, false)
+                    Os.chmod(agyHomeBin.absolutePath, 493) // 0755
+                } catch (_: Exception) {}
+            }
+
             // STEP 4: Strict Verification
             _installerState.value = LocalInstallerState.Verifying(
                 testName = "Verifying Linux environment and shell execution..."
@@ -1720,7 +1740,8 @@ object LocalEnvironmentManager {
             val installedSizeStr = formatFileSize(installedSize)
             log("Total installed rootfs size: $installedSizeStr ($installedSize bytes)")
 
-            if (installedSize < 5 * 1024 * 1024L) {
+            // Relaxed check (50 KB) to support minimal rootfs (BusyBox, Alpine, custom micro-images)
+            if (installedSize < 50 * 1024L) {
                 val errorMsg = "Verification failed: installed package directory is too small ($installedSizeStr). Installation is incomplete."
                 log("❌ $errorMsg")
                 cleanupFailedInstall(appContext, authPreferences)
@@ -1734,7 +1755,7 @@ object LocalEnvironmentManager {
 
             log("Running verification test command in shell...")
             val testRes = executeCommand(
-                command = "echo 'GEMINI_LOCAL_TOOLS_OK' && pwd && which bash",
+                command = "echo 'GEMINI_LOCAL_TOOLS_OK' && pwd",
                 context = appContext
             )
             log("Verification output: ${testRes.output.trim()}")

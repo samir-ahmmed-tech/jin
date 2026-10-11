@@ -1,16 +1,15 @@
 {
-  "version_code": 210,
-  "version_name": "2.1.0",
+  "version_code": 211,
+  "version_name": "2.1.1",
   "min_supported_version_code": 1,
   "changelog": [
-    "🔒 Enterprise On-Device Security & AES-256-GCM Vault: Hardware-salted on-device encryption for all API keys, tokens, and SSH credentials. Frontend secret masking, strict TLS/HTTPS transport, prompt sanitization/XSS protection, and zero secret leakage in logs.",
-    "🛡️ Sovereign Privacy Policy & Terms of Service: Dedicated in-app dialogs guaranteeing 100% on-device data sovereignty, zero telemetry, zero tracking, and local sandboxing.",
-    "📁 Fresh Mobile Folder Creation & Quick Storage Chips: '+ New Folder' dialog to create brand new directories in Termux or phone storage (/storage/emulated/0), with 1-tap jump chips for Projects, Termux, Phone Storage, Documents, and Downloads.",
-    "⚡ 4MB Ultra High-Speed Stream Buffer: Boosted download engine to 4MB chunked stream buffers with rolling throughput measurement, achieving high-speed 20-30+ MB/s downloads.",
-    "🎛️ Unlimited PC Power Features & Guidance Cards: Comprehensive suite of 45+ PC tools with full instructions on what each does ('টুলের কাজ কি'), what happens when activated ('অন করলে কি হইবো'), and how to use it ('কীভাবে ব্যবহার করবেন').",
-    "🔋 Hardware, Thermal & Idle Governor: CPU core and RAM cache customization, thermal hardware protection, and background idle runtime limiters to protect mobile battery and performance.",
-    "🌐 Autonomous Sidebar Browser Agent Control: Full AI agent browser automation via local MCP server (DOM inspection, clicks, form fills, screenshots, tab management).",
-    "📦 Dual Flavor Release: jin-termux and jin-standard APKs with persistent release signing.",
+    "🎛️ 100 Tools & Desktop PC Power Suite: Comprehensive suite of exactly 100 enterprise desktop-grade tools across Antigravity 2.0, Cloud Code, OpenRouter, Terminal & SSH, Git DevOps, Display/Layout, and Android capabilities with detailed Bengali guidance cards ('টুলের কাজ কি', 'অন করলে কি হইবো', 'কীভাবে ব্যবহার করবেন').",
+    "🎙️ Real-Time Conversational Voice Assistant (ChatGPT Style): Hands-free 2-way vocal conversation and task execution with animated pulsing Voice Orb, real-time speech transcription, automatic silence detection, and natural vocal feedback via Text-to-Speech.",
+    "⚡ Disconnect-Proof Continuous Voice Dictation: Resolved voice input server disconnects and timeouts with intelligent auto-reconnect, extended silence buffers, and offline on-device speech recognition.",
+    "🧹 Clean History State & Lingering Chat Purge: Permanently purged lingering conversation summaries from all 4 storage layers (SQLite databases, brain directories, and proto cache) with zero skeleton lag.",
+    "📦 Universal Bootstrap ZIP Installer: Completely overhauled bootstrap extraction for JIN Standard and JIN Termux, supporting any archive from ultra-lightweight (10KB BusyBox/Alpine) to multi-GB rootfs while automatically preserving daemon binaries and agy_ide_bridge.",
+    "☁️ Advanced Google Drive Cloud Vault: Full backup and 1-tap restore covering all SQLite conversation databases, summaries, encrypted credentials, user preferences, notebooks, and projects.",
+    "🚀 Seamless In-App Updates: Updated package installer intent flags with persistent release signing so users can update seamlessly without uninstalling.",
     "👨‍💻 Lead Developer: Samir Ahmmed (https://github.com/samir-ahmmed-tech)"
   ],
   "is_critical": false

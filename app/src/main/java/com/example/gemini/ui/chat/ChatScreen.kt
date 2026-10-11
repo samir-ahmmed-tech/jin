@@ -295,6 +295,7 @@ fun ChatScreen(
     var showWorkspaceFolderBrowserDialog by remember { mutableStateOf(false) }
     var showNotebookDialog by remember { mutableStateOf(false) }
     var showAutomationControlsDialog by remember { mutableStateOf(false) }
+    var showRealtimeVoiceDialog by remember { mutableStateOf(false) }
     var showStopConfirmDialog by remember { mutableStateOf(false) }
     var isInitialGracePeriod by remember { mutableStateOf(true) }
 
@@ -1268,7 +1269,7 @@ fun ChatScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "20 Tools",
+                                    text = "${com.example.gemini.ui.components.PcFeaturesRegistry.FEATURES.size} Tools",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = ClaudeTerracotta
@@ -2117,6 +2118,8 @@ fun ChatScreen(
                     },
                     onOpenAutomation = { showAutomationControlsDialog = true },
                     onOpenNotebooks = { showNotebookDialog = true },
+                    onOpenVoiceAssistant = { showRealtimeVoiceDialog = true },
+                    onOpenPcFeatures = { showPcFeaturesHubSheet = true },
                     cascadeId = activeConversationKey,
                     focusRequester = chatInputFocusRequester
                 )
@@ -2776,6 +2779,30 @@ fun ChatScreen(
             conversation = currentConv,
             messages = messages,
             onDismiss = { showChatTelemetryDialog = false }
+        )
+    }
+
+    // Real-Time ChatGPT-Style Conversational Voice Assistant
+    if (showRealtimeVoiceDialog) {
+        val latestAssistantMsg = remember(messages) {
+            messages.lastOrNull { !it.isUser }?.content
+        }
+        com.example.gemini.ui.components.RealtimeVoiceAssistantDialog(
+            modelDisplayName = selectedModel.displayName,
+            latestAssistantMessage = latestAssistantMsg,
+            isStreaming = isActivelyRunning,
+            onSendMessage = { voicePrompt ->
+                val notebookManager = com.example.gemini.data.notebook.NotebookManager.getInstance(context)
+                val attachedNb = notebookManager.attachedNotebook.value
+                val effectiveText = if (attachedNb != null) {
+                    notebookManager.formatNotebookContext(attachedNb) + voicePrompt
+                } else {
+                    voicePrompt
+                }
+                viewModel.sendMessage(effectiveText)
+                userSentMessageTrigger++
+            },
+            onDismiss = { showRealtimeVoiceDialog = false }
         )
     }
 

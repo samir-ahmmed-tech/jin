@@ -79,7 +79,7 @@ object LocalServerManager {
         }
     }
 
-    private fun ensureBridgeBinary(context: Context) {
+    fun ensureBridgeBinary(context: Context) {
         val binDir = LocalEnvironmentManager.getBinDir(context)
         val bridgeFile = File(binDir, "agy_ide_bridge")
         val backupFile = File(binDir, "backup_bootstrap")
@@ -144,6 +144,27 @@ object LocalServerManager {
                     extractAssetToBin(context, binDir, "backup_proot_ubuntu")
                 } catch (e: Exception) {
                     Log.w(TAG, "backup_proot_ubuntu asset not extracted", e)
+                }
+
+                // If running under PRoot Ubuntu (standard mode), ensure bridge binary is synced to ubuntu rootfs
+                if (!LocalEnvironmentManager.isTermuxPackage(context)) {
+                    try {
+                        val ubuntuDir = LocalEnvironmentManager.getUbuntuRootDir(context)
+                        if (ubuntuDir.exists()) {
+                            val uBin = File(ubuntuDir, "usr/bin/agy_ide_bridge")
+                            val uAntigem = File(ubuntuDir, "antigem/bin/agy_ide_bridge")
+                            uBin.parentFile?.mkdirs()
+                            uAntigem.parentFile?.mkdirs()
+                            if (bridgeFile.exists()) {
+                                bridgeFile.copyTo(uBin, overwrite = true)
+                                uBin.setExecutable(true, false)
+                                bridgeFile.copyTo(uAntigem, overwrite = true)
+                                uAntigem.setExecutable(true, false)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error copying bridge binary to Ubuntu rootfs: ${e.message}")
+                    }
                 }
 
                 // Also copy agy_ide_bridge to public Downloads folder for user access

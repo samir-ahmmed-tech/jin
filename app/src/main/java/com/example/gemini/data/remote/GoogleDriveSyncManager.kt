@@ -255,7 +255,7 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
             addDirectoryToZip(projectsDir, "projects", zos)
         }
 
-        // 6. Gemini brain & annotations in Termux home
+        // 6. Gemini brain, conversations, summaries DB, annotations & skills in Termux home
         val geminiDir = File(homeDir, ".gemini/antigravity-cli")
         if (geminiDir.exists() && geminiDir.isDirectory) {
             val brain = File(geminiDir, "brain")
@@ -266,12 +266,41 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
             if (annotations.exists() && annotations.isDirectory) {
                 addDirectoryToZip(annotations, ".gemini/antigravity-cli/annotations", zos)
             }
+            val conversations = File(geminiDir, "conversations")
+            if (conversations.exists() && conversations.isDirectory) {
+                addDirectoryToZip(conversations, ".gemini/antigravity-cli/conversations", zos)
+            }
+            val skills = File(geminiDir, "skills")
+            if (skills.exists() && skills.isDirectory) {
+                addDirectoryToZip(skills, ".gemini/antigravity-cli/skills", zos)
+            }
+            val workflows = File(geminiDir, "workflows")
+            if (workflows.exists() && workflows.isDirectory) {
+                addDirectoryToZip(workflows, ".gemini/antigravity-cli/workflows", zos)
+            }
+            listOf("conversation_summaries.db", "conversation_summaries.db-wal", "conversation_summaries.db-shm").forEach { dbFile ->
+                val f = File(geminiDir, dbFile)
+                if (f.exists() && f.isFile) {
+                    addFileToZip(f, ".gemini/antigravity-cli/$dbFile", zos)
+                }
+            }
         }
 
         // 7. Claude workspace state/configs if present
         val claudeDir = File(homeDir, ".claude")
         if (claudeDir.exists() && claudeDir.isDirectory) {
             addDirectoryToZip(claudeDir, ".claude", zos)
+        }
+
+        // 8. App preferences and SQLite databases from internal storage
+        val appDataDir = File(context.applicationInfo.dataDir)
+        val sharedPrefsDir = File(appDataDir, "shared_prefs")
+        if (sharedPrefsDir.exists() && sharedPrefsDir.isDirectory) {
+            addDirectoryToZip(sharedPrefsDir, "app_data/shared_prefs", zos)
+        }
+        val databasesDir = File(appDataDir, "databases")
+        if (databasesDir.exists() && databasesDir.isDirectory) {
+            addDirectoryToZip(databasesDir, "app_data/databases", zos)
         }
 
         zos.close()
@@ -305,11 +334,14 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
 
     private fun unzipUserData(zipFile: File) {
         val homeDir = System.getenv("HOME") ?: "/data/user/0/com.termux/files/home"
+        val appDataDir = File(context.applicationInfo.dataDir)
         val zis = ZipInputStream(FileInputStream(zipFile))
         var entry: ZipEntry? = zis.nextEntry
         while (entry != null) {
             val name = entry.name
             val destFile = when {
+                name.startsWith("app_data/shared_prefs/") -> File(appDataDir, name.removePrefix("app_data/"))
+                name.startsWith("app_data/databases/") -> File(appDataDir, name.removePrefix("app_data/"))
                 name.startsWith("direct_chats/") -> File(context.filesDir, name)
                 name.startsWith("chats/") -> File(context.filesDir, name)
                 name.startsWith("notebooks/") -> File(context.filesDir, name)

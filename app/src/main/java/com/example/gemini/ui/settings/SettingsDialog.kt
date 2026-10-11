@@ -628,13 +628,13 @@ private fun MainSettingsMenu(
             onClick = { onNavigate(SettingsSection.API_KEYS) }
         )
 
-        SettingsGroupHeader("PC Power Tools", Color(0xFF00E5FF), "20 Desktop-grade Antigravity IDE capabilities natively optimized for mobile")
+        SettingsGroupHeader("PC Power Tools", Color(0xFF00E5FF), "100 Desktop-grade Antigravity IDE capabilities natively optimized for mobile")
         SettingsCategoryCard(
             icon = Icons.Outlined.Devices,
             iconTint = Color(0xFF00E5FF),
-            title = "PC Features Suite (20 Tools)",
-            subtitle = "Quick Open, Git Diff, Multi-Tab Terminal, Swarm HUD, Scratchpad, Zen Mode & more",
-            badgeText = "20 Features",
+            title = "PC Features Suite (100 Tools)",
+            subtitle = "Quick Open, Git Diff, Multi-Tab Terminal, Swarm HUD, Scratchpad, Zen Mode & 100+ Pro Features",
+            badgeText = "100 Features",
             badgeColor = Color(0xFF00E5FF),
             cardBg = cardBg,
             cardBorder = cardBorder,
@@ -10828,7 +10828,7 @@ private fun PcFeaturesSubScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "PC Power Features Suite (20 Tools)",
+                    text = "PC Power Features Suite (100 Tools)",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

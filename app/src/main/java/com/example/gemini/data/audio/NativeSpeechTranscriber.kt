@@ -111,13 +111,33 @@ class NativeSpeechTranscriber(
                         SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech input"
                         else -> "Speech recognition error ($error)"
                     }
-                    Log.w(TAG, "Recognition error: $errMsg")
+                    Log.w(TAG, "Recognition error ($error): $errMsg")
 
-                    if (isListening.get() && !isPaused.get() &&
-                        (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
-                    ) {
+                    if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                        isListening.set(false)
+                        onErrorCallback?.invoke(errMsg)
+                        return
+                    }
+
+                    // Auto-recover from disconnects, server drops, busy recognizer, and speech timeouts
+                    if (isListening.get() && !isPaused.get()) {
                         sessionScope?.launch(Dispatchers.Main) {
-                            startListeningIntent()
+                            kotlinx.coroutines.delay(180)
+                            if (isListening.get() && !isPaused.get()) {
+                                if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ||
+                                    error == SpeechRecognizer.ERROR_SERVER ||
+                                    error == SpeechRecognizer.ERROR_CLIENT
+                                ) {
+                                    try {
+                                        speechRecognizer?.cancel()
+                                        speechRecognizer?.destroy()
+                                    } catch (_: Exception) {}
+                                    speechRecognizer = null
+                                    initAndStartRecognizer()
+                                } else {
+                                    startListeningIntent()
+                                }
+                            }
                         }
                     } else if (isListening.get()) {
                         onErrorCallback?.invoke(errMsg)
@@ -133,7 +153,10 @@ class NativeSpeechTranscriber(
                     }
                     if (isListening.get() && !isPaused.get()) {
                         sessionScope?.launch(Dispatchers.Main) {
-                            startListeningIntent()
+                            kotlinx.coroutines.delay(120)
+                            if (isListening.get() && !isPaused.get()) {
+                                startListeningIntent()
+                            }
                         }
                     }
                 }
@@ -166,6 +189,14 @@ class NativeSpeechTranscriber(
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
                 putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
+                // Prevent premature disconnects during speech pauses or long sentences
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 2000L)
+                putExtra("android.speech.extra.DICTATION_MODE", true)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+                }
             }
             recognizer.startListening(intent)
         } catch (e: Exception) {

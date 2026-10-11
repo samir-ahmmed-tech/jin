@@ -150,12 +150,14 @@ class AppUpdateManager(private val context: Context) {
             val body = response.body ?: return@withContext Result.failure(Exception("Empty download body"))
             val totalBytes = body.contentLength()
 
-            val targetDir = context.externalCacheDir ?: context.cacheDir
+            val targetDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+                ?: context.externalCacheDir
+                ?: context.cacheDir
             val targetFile = File(targetDir, "jin_update_${System.currentTimeMillis()}.apk")
 
             body.byteStream().use { input ->
                 targetFile.outputStream().use { output ->
-                    val buffer = ByteArray(32 * 1024)
+                    val buffer = ByteArray(64 * 1024)
                     var bytesRead: Int
                     var downloadedBytes = 0L
 
@@ -195,6 +197,7 @@ class AppUpdateManager(private val context: Context) {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
 
             // Android 8.0+ Unknown sources permission check

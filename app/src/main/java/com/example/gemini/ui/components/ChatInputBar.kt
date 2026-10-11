@@ -185,6 +185,8 @@ fun ChatInputBar(
     onToggleWebSearch: () -> Unit = {},
     onOpenAutomation: () -> Unit = {},
     onOpenNotebooks: () -> Unit = {},
+    onOpenVoiceAssistant: () -> Unit = {},
+    onOpenPcFeatures: () -> Unit = {},
     focusRequester: FocusRequester = remember { FocusRequester() },
     modifier: Modifier = Modifier
 ) {
@@ -957,7 +959,7 @@ fun ChatInputBar(
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default)
                     )
 
-                    // Quick Action & Feature Toggles Strip
+                    // Quick Action & Feature Toggles Strip (Single Line, Never Wraps)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -966,6 +968,35 @@ fun ChatInputBar(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        // Real-Time Conversational Voice Assistant (ChatGPT Style)
+                        Surface(
+                            onClick = onOpenVoiceAssistant,
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF10B981).copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.45f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.GraphicEq,
+                                    contentDescription = null,
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Voice Mode",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF10B981),
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+
                         // Personal Intelligence Toggle
                         Surface(
                             onClick = onTogglePersonalIntelligence,
@@ -988,10 +1019,12 @@ fun ChatInputBar(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (personalIntelligenceEnabled) "Personal Intel: ON" else "Personal Intel: OFF",
+                                    text = if (personalIntelligenceEnabled) "Intel: ON" else "Intel: OFF",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (personalIntelligenceEnabled) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    color = if (personalIntelligenceEnabled) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
@@ -1021,7 +1054,9 @@ fun ChatInputBar(
                                     text = if (thinkingPreference.level != com.example.gemini.domain.model.ThinkingLevel.OFF) "Thinking: ${thinkingPreference.level.name}" else "Thinking: OFF",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (thinkingPreference.level != com.example.gemini.domain.model.ThinkingLevel.OFF) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    color = if (thinkingPreference.level != com.example.gemini.domain.model.ThinkingLevel.OFF) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
@@ -1048,10 +1083,12 @@ fun ChatInputBar(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (webSearchEnabled) "Search: ON" else "Search: OFF",
+                                    text = if (webSearchEnabled) "Web: ON" else "Web: OFF",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (webSearchEnabled) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    color = if (webSearchEnabled) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
@@ -1075,10 +1112,12 @@ fun ChatInputBar(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Automation",
+                                    text = "Auto",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
@@ -1108,14 +1147,16 @@ fun ChatInputBar(
                                     text = if (activeNotebook != null) "Notebook Active" else "Notebooks",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (activeNotebook != null) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    color = if (activeNotebook != null) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
 
-                        // AI Suite Creation & Tools Quick Button
+                        // 100 PC Features Hub Button
                         Surface(
-                            onClick = onAttachClick,
+                            onClick = onOpenPcFeatures,
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.background,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
@@ -1132,10 +1173,12 @@ fun ChatInputBar(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "AI Suite Tools",
+                                    text = "100 Tools",
                                     fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
@@ -1559,6 +1602,10 @@ fun ChatInputBar(
 
     if (showSpeechModeDialog) {
         SpeechToTextModeDialog(
+            onSelectRealtimeVoiceAssistant = {
+                showSpeechModeDialog = false
+                onOpenVoiceAssistant()
+            },
             onSelectAutoTranscribe = {
                 showSpeechModeDialog = false
                 startAutoTranscribe()
