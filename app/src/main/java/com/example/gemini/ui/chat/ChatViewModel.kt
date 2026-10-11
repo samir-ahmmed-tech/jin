@@ -193,6 +193,26 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val availableModels = byAgent(agyBackend.availableModels, claudeBackend.availableModels, deepseekBackend.availableModels, codexBackend.availableModels, openrouterBackend.availableModels)
     val enabledModelIds = agyBackend.enabledModelIds
     val enabledModels = byAgent(agyBackend.enabledModels, claudeBackend.availableModels, deepseekBackend.availableModels, codexBackend.availableModels, openrouterBackend.availableModels)
+    val allUnifiedModels: StateFlow<List<AiModel>> = combine(
+        agyBackend.enabledModels,
+        claudeBackend.availableModels,
+        deepseekBackend.availableModels,
+        codexBackend.availableModels,
+        openrouterBackend.availableModels
+    ) { agy, claude, deepseek, codex, openrouter ->
+        val merged = mutableListOf<AiModel>()
+        merged.addAll(agy)
+        merged.addAll(claude)
+        merged.addAll(deepseek)
+        merged.addAll(codex)
+        merged.addAll(openrouter)
+        for (def in AiModel.DEFAULT_MODELS) {
+            if (merged.none { it.id == def.id || it.key == def.id }) {
+                merged.add(def)
+            }
+        }
+        merged
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, AiModel.DEFAULT_MODELS)
     val isRefreshingModels = byAgent(agyBackend.isRefreshingModels, claudeBackend.isRefreshingModels)
     val selectedModelId = byAgent(agyBackend.selectedModelId, claudeBackend.selectedModelId, deepseekBackend.selectedModelId, codexBackend.selectedModelId, openrouterBackend.selectedModelId)
     val preferredModelName = agyBackend.preferredModelName
@@ -378,14 +398,40 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     fun selectModel(modelId: String) {
-        val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
-        when (curAgent) {
+        val targetAgent = when {
+            modelId.contains("claude", ignoreCase = true) -> AgentKind.CLAUDE
+            modelId.contains("deepseek", ignoreCase = true) || modelId.contains("hermes", ignoreCase = true) -> AgentKind.DEEPSEEK_LOCAL
+            modelId.contains("codex", ignoreCase = true) || modelId.contains("gpt", ignoreCase = true) || modelId.contains("openai", ignoreCase = true) -> AgentKind.CODEX
+            modelId.contains("openrouter", ignoreCase = true) || modelId.contains("codestral", ignoreCase = true) || modelId.contains("qwen", ignoreCase = true) || modelId.contains("custom", ignoreCase = true) -> AgentKind.OPENROUTER
+            else -> AgentKind.AGY
+        }
+
+        val cur = store.currentConversation.value
+        if (cur != null && cur.agent != targetAgent) {
+            val updated = cur.copy(agent = targetAgent)
+            store.currentConversation.value = updated
+        }
+
+        when (targetAgent) {
             AgentKind.CLAUDE -> claudeBackend.selectModel(modelId)
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.selectModel(modelId)
             AgentKind.CODEX -> codexBackend.selectModel(modelId)
             AgentKind.OPENROUTER -> openrouterBackend.selectModel(modelId)
             AgentKind.AGY -> agyBackend.selectModel(modelId)
         }
+
+        val modelName = AiModel.DEFAULT_MODELS.find { it.id == modelId }?.displayName ?: modelId
+        val agentLabel = when (targetAgent) {
+            AgentKind.AGY -> "Antigravity"
+            AgentKind.CLAUDE -> "Claude Code"
+            AgentKind.DEEPSEEK_LOCAL -> "DeepSeek"
+            AgentKind.CODEX -> "OpenAI Codex"
+            AgentKind.OPENROUTER -> "OpenRouter"
+        }
+        com.example.gemini.ui.components.AppToastHelper.showToast(
+            "Switched to $modelName ($agentLabel)",
+            com.example.gemini.ui.components.ChatToastType.INFO
+        )
     }
     fun sendMessage(content: String) {
         val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY

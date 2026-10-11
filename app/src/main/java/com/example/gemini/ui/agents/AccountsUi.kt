@@ -204,6 +204,59 @@ fun AccountsDialog(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                 )
+                Spacer(Modifier.height(10.dp))
+
+                var showCliSuiteDialog by remember { mutableStateOf(false) }
+                if (showCliSuiteDialog) {
+                    AgentCliSuiteDialog(
+                        onDismiss = { showCliSuiteDialog = false },
+                        onOpenOAuthLogin = {
+                            agy?.action?.onClick?.invoke()
+                            showCliSuiteDialog = false
+                        }
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = ClaudeTerracotta.copy(alpha = 0.10f),
+                    border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.25f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showCliSuiteDialog = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Layers,
+                            contentDescription = null,
+                            tint = ClaudeTerracotta,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Agent CLI Suite & Keyless Logins",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "1-Click download CLIs & sign in with subscriptions (Google, Claude, DeepSeek, OpenAI)",
+                                fontSize = 10.5.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                            contentDescription = null,
+                            tint = ClaudeTerracotta,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                }
                 Spacer(Modifier.height(14.dp))
 
                 agy?.let { entry ->

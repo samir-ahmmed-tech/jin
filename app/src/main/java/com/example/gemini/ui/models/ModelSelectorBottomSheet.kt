@@ -77,15 +77,7 @@ fun ModelSelectorBottomSheet(
     val allModels = remember(availableModels, refreshKey) {
         val list = availableModels.toMutableList()
         for (m in AiModel.DEFAULT_MODELS) {
-            val isReady = when (m.family) {
-                ModelFamily.ANTIGRAVITY -> true
-                ModelFamily.OPENAI -> hasOpenAi || list.any { it.family == ModelFamily.OPENAI }
-                ModelFamily.DEEPSEEK -> hasDeepseek || list.any { it.family == ModelFamily.DEEPSEEK }
-                ModelFamily.CLAUDE -> hasClaude || list.any { it.family == ModelFamily.CLAUDE }
-                ModelFamily.GEMINI -> hasGemini || list.any { it.family == ModelFamily.GEMINI }
-                ModelFamily.OTHER -> hasOpenRouter || hasCustom || list.any { it.family == ModelFamily.OTHER }
-            }
-            if (isReady && list.none { it.id == m.id || it.key == m.id }) {
+            if (list.none { it.id == m.id || it.key == m.id }) {
                 list.add(m)
             }
         }

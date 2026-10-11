@@ -190,7 +190,7 @@ class MainActivity : ComponentActivity() {
 
             val showFullScreenInstaller = !isInstalledState && !hasSkippedInstaller
 
-            val appUiScale by chatViewModel.appUiScale.collectAsState(initial = 1.0f)
+            val appUiScale by chatViewModel.appUiScale.collectAsState(initial = 0.85f)
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
             val scaledDensity = remember(currentDensity, appUiScale) {
                 androidx.compose.ui.unit.Density(

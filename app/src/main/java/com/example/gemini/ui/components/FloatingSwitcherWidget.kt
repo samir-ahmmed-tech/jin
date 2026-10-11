@@ -71,28 +71,24 @@ fun FloatingSwitcherWidget(
         }
     }
 
-    // Stable in-memory pixel offset position & anchors
+    // Stable in-memory pixel offset position
     var isPositionInitialized by remember { mutableStateOf(false) }
-    var anchorRightX by remember { mutableFloatStateOf(0f) }
-    var anchorLeftX by remember { mutableFloatStateOf(0f) }
-    var anchorBottomY by remember { mutableFloatStateOf(0f) }
-    var anchorTopY by remember { mutableFloatStateOf(0f) }
+    var posX by remember { mutableFloatStateOf(0f) }
+    var posY by remember { mutableFloatStateOf(0f) }
 
-    LaunchedEffect(screenWidthPx, screenHeightPx) {
+    LaunchedEffect(screenWidthPx, screenHeightPx, savedPosXRatio, savedPosYRatio) {
         if (screenWidthPx > 0 && screenHeightPx > 0 && (!isPositionInitialized || !isDragging)) {
-            val posX = (savedPosXRatio * screenWidthPx).coerceIn(0f, (screenWidthPx - 50f).coerceAtLeast(0f))
-            val posY = (savedPosYRatio * screenHeightPx).coerceIn(0f, (screenHeightPx - 80f).coerceAtLeast(0f))
-            anchorLeftX = posX
-            anchorRightX = posX + (if (widgetSize.width > 0) widgetSize.width else 40)
-            anchorTopY = posY
-            anchorBottomY = posY + (if (widgetSize.height > 0) widgetSize.height else 40)
+            val initialX = (savedPosXRatio * screenWidthPx).coerceIn(0f, (screenWidthPx - 50f).coerceAtLeast(0f))
+            val initialY = (savedPosYRatio * screenHeightPx).coerceIn(0f, (screenHeightPx - 80f).coerceAtLeast(0f))
+            posX = initialX
+            posY = initialY
             isPositionInitialized = true
         }
     }
 
     val isVertical = orientation.equals("VERTICAL", ignoreCase = true)
-    val isNearRightEdge = anchorRightX > (screenWidthPx / 2)
-    val isNearBottom = anchorBottomY > (screenHeightPx / 2)
+    val isNearRightEdge = posX > (screenWidthPx / 2)
+    val isNearBottom = posY > (screenHeightPx / 2)
 
     // Directional arrows:
     // Vertical layout extends vertically -> UP / DOWN arrows (^ / v)
@@ -123,26 +119,12 @@ fun FloatingSwitcherWidget(
                 .offset {
                     val maxX = (screenWidthPx - widgetSize.width).coerceAtLeast(0f)
                     val maxY = (screenHeightPx - widgetSize.height - effectiveBottomInset).coerceAtLeast(0f)
-                    val targetX = if (isNearRightEdge) (anchorRightX - widgetSize.width) else anchorLeftX
-                    val targetY = if (isNearBottom) (anchorBottomY - widgetSize.height) else anchorTopY
-                    val clampedX = targetX.coerceIn(0f, maxX)
-                    val clampedY = targetY.coerceIn(0f, maxY)
+                    val clampedX = posX.coerceIn(0f, maxX)
+                    val clampedY = posY.coerceIn(0f, maxY)
                     IntOffset(clampedX.roundToInt(), clampedY.roundToInt())
                 }
                 .onSizeChanged { newSize ->
                     if (newSize.width > 0 && newSize.height > 0) {
-                        if (!isDragging) {
-                            if (isNearRightEdge) {
-                                anchorLeftX = anchorRightX - newSize.width
-                            } else {
-                                anchorRightX = anchorLeftX + newSize.width
-                            }
-                            if (isNearBottom) {
-                                anchorTopY = anchorBottomY - newSize.height
-                            } else {
-                                anchorBottomY = anchorTopY + newSize.height
-                            }
-                        }
                         widgetSize = newSize
                     }
                 }
@@ -151,29 +133,15 @@ fun FloatingSwitcherWidget(
                         onDragStart = {
                             isDragging = true
                             lastInteractionTimestamp = System.currentTimeMillis()
-                            val maxX = (screenWidthPx - widgetSize.width).coerceAtLeast(0f)
-                            val maxY = (screenHeightPx - widgetSize.height - effectiveBottomInset).coerceAtLeast(0f)
-                            val currentX = (if (isNearRightEdge) (anchorRightX - widgetSize.width) else anchorLeftX).coerceIn(0f, maxX)
-                            val currentY = (if (isNearBottom) (anchorBottomY - widgetSize.height) else anchorTopY).coerceIn(0f, maxY)
-                            anchorLeftX = currentX
-                            anchorRightX = currentX + widgetSize.width
-                            anchorTopY = currentY
-                            anchorBottomY = currentY + widgetSize.height
                         },
                         onDragEnd = {
                             isDragging = false
                             val maxX = (screenWidthPx - widgetSize.width).coerceAtLeast(0f)
                             val maxY = (screenHeightPx - widgetSize.height - effectiveBottomInset).coerceAtLeast(0f)
-                            val targetX = if (isNearRightEdge) (anchorRightX - widgetSize.width) else anchorLeftX
-                            val targetY = if (isNearBottom) (anchorBottomY - widgetSize.height) else anchorTopY
-                            val clampedX = targetX.coerceIn(0f, maxX)
-                            val clampedY = targetY.coerceIn(0f, maxY)
-                            anchorLeftX = clampedX
-                            anchorRightX = clampedX + widgetSize.width
-                            anchorTopY = clampedY
-                            anchorBottomY = clampedY + widgetSize.height
-                            val ratioX = if (screenWidthPx > 0) (clampedX / screenWidthPx).coerceIn(0f, 1f) else 0.95f
-                            val ratioY = if (screenHeightPx > 0) (clampedY / screenHeightPx).coerceIn(0f, 1f) else 0.50f
+                            posX = posX.coerceIn(0f, maxX)
+                            posY = posY.coerceIn(0f, maxY)
+                            val ratioX = if (screenWidthPx > 0) (posX / screenWidthPx).coerceIn(0f, 1f) else 0.96f
+                            val ratioY = if (screenHeightPx > 0) (posY / screenHeightPx).coerceIn(0f, 1f) else 0.22f
                             onPositionSaved(ratioX, ratioY)
                         },
                         onDragCancel = {
@@ -184,10 +152,8 @@ fun FloatingSwitcherWidget(
                             lastInteractionTimestamp = System.currentTimeMillis()
                             val maxX = (screenWidthPx - widgetSize.width).coerceAtLeast(0f)
                             val maxY = (screenHeightPx - widgetSize.height - effectiveBottomInset).coerceAtLeast(0f)
-                            anchorLeftX = (anchorLeftX + dragAmount.x).coerceIn(0f, maxX)
-                            anchorRightX = anchorLeftX + widgetSize.width
-                            anchorTopY = (anchorTopY + dragAmount.y).coerceIn(0f, maxY)
-                            anchorBottomY = anchorTopY + widgetSize.height
+                            posX = (posX + dragAmount.x).coerceIn(0f, maxX)
+                            posY = (posY + dragAmount.y).coerceIn(0f, maxY)
                         }
                     )
                 }

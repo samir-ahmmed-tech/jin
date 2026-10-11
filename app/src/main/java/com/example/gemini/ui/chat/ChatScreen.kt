@@ -272,6 +272,7 @@ fun ChatScreen(
     }
 
     var showModelSelector by remember { mutableStateOf(false) }
+    var showPcFeaturesHub by remember { mutableStateOf(false) }
     var showThinkingSelector by remember { mutableStateOf(false) }
     var showTerminalInspector by remember { mutableStateOf(false) }
     var showLocalTerminalDialog by rememberSaveable { mutableStateOf(false) }
@@ -1236,6 +1237,13 @@ fun ChatScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
+                        IconButton(onClick = { showPcFeaturesHub = true }) {
+                            Icon(
+                                imageVector = Icons.Outlined.AutoAwesome,
+                                contentDescription = "JIN PC Power Features (20+)",
+                                tint = ClaudeTerracotta
+                            )
+                        }
                         if (isDevModeEnabled) {
                             IconButton(onClick = { showChatTelemetryDialog = true }) {
                                 Icon(
@@ -2069,18 +2077,33 @@ fun ChatScreen(
     }
 
     // Model Selector Bottom Sheet (Active Model at Top & Expandable Categories)
-    if (showModelSelector && isClaudeChat) {
-        com.example.gemini.ui.claude.ClaudeModelSheet(claudeBackend, viewModel.claudeAccount) { showModelSelector = false }
-    } else if (showModelSelector) {
+    // Model Selector Bottom Sheet (Unified across Antigravity, Claude, DeepSeek, Codex & OpenRouter)
+    if (showModelSelector) {
+        val allUnifiedModelsList by viewModel.allUnifiedModels.collectAsState()
         ModelSelectorBottomSheet(
             selectedModelId = selectedModelId,
-            availableModels = enabledModels,
+            availableModels = allUnifiedModelsList,
             quotas = quotas,
             quotaSummary = quotaSummary,
             isRefreshing = isRefreshingModels,
             onRefresh = { viewModel.refreshQuotas(force = true, showToastFeedback = true) },
-            onSelectModel = { modelId -> viewModel.selectModel(modelId) },
+            onSelectModel = { modelId ->
+                viewModel.selectModel(modelId)
+                showModelSelector = false
+            },
             onDismiss = { showModelSelector = false }
+        )
+    }
+
+    // JIN PC Power Features Bottom Sheet (20+ Desktop-grade IDE tools)
+    if (showPcFeaturesHub) {
+        com.example.gemini.ui.components.PcFeaturesHubSheet(
+            onDismiss = { showPcFeaturesHub = false },
+            onNavigateToIde = onNavigateToIde,
+            onNavigateToTerminal = onNavigateToTerminal,
+            onNavigateToBrowser = onNavigateToBrowser,
+            onOpenGit = onNavigateToIde,
+            onOpenSkills = { showSettingsDialog = true }
         )
     }
 

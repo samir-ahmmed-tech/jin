@@ -248,8 +248,8 @@ class AuthPreferences(private val context: Context) {
     val enabledModelIds: Flow<Set<String>?> = context.dataStore.data.map { it[ENABLED_MODELS] }
     val isDevModeEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_DEV_MODE_ENABLED] ?: false }
     val chatFontScale: Flow<Float> = context.dataStore.data.map { it[CHAT_FONT_SCALE] ?: 1.0f }
-    val appUiScale: Flow<Float> = context.dataStore.data.map { it[APP_UI_SCALE] ?: 1.0f }
-    fun getAppUiScaleSync(): Float = syncPrefs.getFloat("app_ui_scale", 1.0f)
+    val appUiScale: Flow<Float> = context.dataStore.data.map { it[APP_UI_SCALE] ?: 0.85f }
+    fun getAppUiScaleSync(): Float = syncPrefs.getFloat("app_ui_scale", 0.85f)
 
     val performanceMode: Flow<String> = context.dataStore.data.map { it[PERFORMANCE_MODE] ?: "TURBO" }
     fun getPerformanceModeSync(): String = syncPrefs.getString("performance_mode", "TURBO") ?: "TURBO"
@@ -730,14 +730,14 @@ class AuthPreferences(private val context: Context) {
     }
 
     val floatingSwitcherPosX: Flow<Float> = context.dataStore.data
-        .map { it[FLOATING_SWITCHER_POS_X] ?: 0.95f }
+        .map { it[FLOATING_SWITCHER_POS_X] ?: 0.96f }
 
     val floatingSwitcherPosY: Flow<Float> = context.dataStore.data
-        .map { it[FLOATING_SWITCHER_POS_Y] ?: 0.50f }
+        .map { it[FLOATING_SWITCHER_POS_Y] ?: 0.22f }
 
     fun getFloatingSwitcherPositionSync(): Pair<Float, Float> {
-        val x = syncPrefs.getFloat("floating_switcher_pos_x", 0.95f)
-        val y = syncPrefs.getFloat("floating_switcher_pos_y", 0.50f)
+        val x = syncPrefs.getFloat("floating_switcher_pos_x", 0.96f)
+        val y = syncPrefs.getFloat("floating_switcher_pos_y", 0.22f)
         return Pair(x, y)
     }
 
