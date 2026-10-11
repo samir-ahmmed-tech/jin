@@ -3953,8 +3953,6 @@ private fun TerminalSubScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var showResetWarningDialog by remember { mutableStateOf(false) }
-    var showResetPasswordDialog by remember { mutableStateOf(false) }
-    var resetPasswordInput by remember { mutableStateOf("") }
     var showShutdownCountdownDialog by remember { mutableStateOf(false) }
     var countdownSeconds by remember { mutableIntStateOf(5) }
 
@@ -4358,92 +4356,10 @@ private fun TerminalSubScreen(
                 Button(
                     onClick = {
                         showResetWarningDialog = false
-                        resetPasswordInput = ""
-                        showResetPasswordDialog = true
+                        countdownSeconds = 5
+                        showShutdownCountdownDialog = true
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Yes, Continue", fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showResetWarningDialog = false },
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Cancel")
-                }
-            },
-            shape = RoundedCornerShape(16.dp),
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    }
-
-    if (showResetPasswordDialog) {
-        val isMatch = resetPasswordInput.trim() == "iknowwhatiamdoing"
-        AlertDialog(
-            onDismissRequest = { showResetPasswordDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = Color.Red,
-                    modifier = Modifier.size(28.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "Confirm Full App Wipe",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "To confirm and permanently wipe all app data and local rootfs, type the confirmation phrase exactly as shown below:",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = "iknowwhatiamdoing",
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = ClaudeTerracotta,
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = resetPasswordInput,
-                        onValueChange = { resetPasswordInput = it },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        isError = resetPasswordInput.isNotEmpty() && !isMatch
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (isMatch) {
-                            showResetPasswordDialog = false
-                            countdownSeconds = 5
-                            showShutdownCountdownDialog = true
-                        }
-                    },
-                    enabled = isMatch,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red,
-                        disabledContainerColor = Color.Red.copy(alpha = 0.3f)
-                    ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Delete All Data", fontWeight = FontWeight.Bold, color = Color.White)
@@ -4451,7 +4367,7 @@ private fun TerminalSubScreen(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { showResetPasswordDialog = false },
+                    onClick = { showResetWarningDialog = false },
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Cancel")

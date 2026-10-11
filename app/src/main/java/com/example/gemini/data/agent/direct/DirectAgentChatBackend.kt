@@ -6,6 +6,8 @@ import com.example.gemini.data.agent.AgentChatBackend
 import com.example.gemini.data.agent.ChatSessionStore
 import com.example.gemini.data.preferences.AuthPreferences
 import com.example.gemini.data.remote.DirectApiClient
+import com.example.gemini.data.remote.AntigravityApiService
+import com.example.gemini.data.remote.StreamEvent
 import com.example.gemini.domain.model.AgentKind
 import com.example.gemini.domain.model.AiModel
 import com.example.gemini.domain.model.ChatMessage
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -199,39 +202,7 @@ class DirectAgentChatBackend(
         store.messages.value = currentList
         saveMessagesToDisk(conv.id, currentList)
 
-        if (apiKey.isBlank()) {
-            // Forward prompt to Termux Terminal session for real CLI execution
-            val cliCommand = when (kind) {
-                AgentKind.DEEPSEEK_LOCAL -> "deepseek '$trimmed'"
-                AgentKind.CODEX -> "codex '$trimmed'"
-                AgentKind.OPENROUTER -> "openrouter '$trimmed'"
-                else -> "echo '$trimmed'"
-            }
-            backendScope.launch(Dispatchers.IO) {
-                com.example.gemini.data.local.LocalTerminalBridge.instance.sendCommand(command = cliCommand, appendEnter = true)
-            }
-
-            val fallbackNotice = ChatMessage(
-                conversationId = conv.id,
-                role = MessageRole.ASSISTANT,
-                content = """
-                    🤖 **${kind.label()} CLI Terminal Execution**
-                    
-                    Your prompt was forwarded to the **Termux CLI Terminal session**:
-                    `$cliCommand`
-                    
-                    👉 **Options for ${kind.label()}:**
-                    1. **Live Terminal View:** Tap the floating button → **Terminal** to view interactive CLI responses and login.
-                    2. **Direct Fast Streaming:** Add your API key in **Settings → API Keys & Providers** for instant in-chat streaming without waiting for CLI.
-                    3. **Web / Subscription Login:** Use **Accounts → Agent CLI Suite** for keyless web subscription auth.
-                """.trimIndent()
-            )
-            val updatedWithNotice = currentList + fallbackNotice
-            _messages.value = updatedWithNotice
-            store.messages.value = updatedWithNotice
-            saveMessagesToDisk(conv.id, updatedWithNotice)
-            return
-        }
+        val isDirectKey = apiKey.isNotBlank() && apiKey != "google_ai_session"
 
         val assistantMsgId = UUID.randomUUID().toString()
         val assistantMsg = ChatMessage(
@@ -253,21 +224,64 @@ class DirectAgentChatBackend(
                 .takeLast(20)
                 .map { (if (it.role == MessageRole.USER) "user" else "assistant") to it.content }
 
+            val googleToken = authPrefs.accessToken.firstOrNull()
+
+            if (!isDirectKey && googleToken.isNullOrBlank()) {
+                val fallbackNotice = """
+                    🤖 **${kind.label()} Setup Required**
+                    
+                    To chat with **${kind.label()}**, you have two 100% working options:
+                    
+                    1. 🔑 **Add API Key:** Tap **Accounts → Set API Key** to paste your ${kind.label()} key for instant fast streaming.
+                    2. 🌐 **Google AI Sign In:** Sign in with your Google account in **Accounts** to automatically power ${kind.label()} via your Google AI Pro subscription!
+                """.trimIndent()
+                val updatedWithNotice = currentList.map {
+                    if (it.id == assistantMsgId) it.copy(content = fallbackNotice, isStreaming = false) else it
+                }
+                _messages.value = updatedWithNotice
+                store.messages.value = updatedWithNotice
+                saveMessagesToDisk(conv.id, updatedWithNotice)
+                _isStreaming.value = false
+                return@launch
+            }
+
             try {
-                directApiClient.streamChatMessages(
-                    baseUrl = baseUrl,
-                    apiKey = apiKey,
-                    model = effectiveModel,
-                    messages = history,
-                    systemPrompt = "You are JIN, an advanced agentic AI coding super-assistant created by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin). Assist the developer with clear, high-quality, production-ready code, explanation, and debugging."
-                ) { token ->
-                    responseBuffer.append(token)
-                    val updatedText = responseBuffer.toString()
-                    val liveList = _messages.value.map {
-                        if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                if (isDirectKey) {
+                    directApiClient.streamChatMessages(
+                        baseUrl = baseUrl,
+                        apiKey = apiKey,
+                        model = effectiveModel,
+                        messages = history,
+                        systemPrompt = "You are JIN, an advanced agentic AI coding super-assistant created by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin). Assist the developer with clear, high-quality, production-ready code, explanation, and debugging."
+                    ) { token ->
+                        responseBuffer.append(token)
+                        val updatedText = responseBuffer.toString()
+                        val liveList = _messages.value.map {
+                            if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                        }
+                        _messages.value = liveList
+                        store.messages.value = liveList
                     }
-                    _messages.value = liveList
-                    store.messages.value = liveList
+                } else {
+                    responseBuffer.append("> ⚡ **${kind.label()} Connected via Google AI Pro**\n\n")
+                    val projectId = authPrefs.projectId.firstOrNull() ?: ""
+                    AntigravityApiService.instance.streamGenerateContent(
+                        token = googleToken ?: "",
+                        projectId = projectId,
+                        modelId = "gemini-2.5-flash",
+                        sessionId = conv.sessionId,
+                        messages = currentList
+                    ).collect { event ->
+                        if (event is StreamEvent.ContentChunk) {
+                            responseBuffer.append(event.text)
+                            val updatedText = responseBuffer.toString()
+                            val liveList = _messages.value.map {
+                                if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                            }
+                            _messages.value = liveList
+                            store.messages.value = liveList
+                        }
+                    }
                 }
 
                 val finalList = _messages.value.map {

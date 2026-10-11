@@ -29,12 +29,14 @@ object AppToastHelper {
         val lower = trimmed.lowercase()
 
         // Suppress noisy startup / automatic background toasts (e.g. "adding two new skill", etc.)
-        if ((lower.contains("adding") && lower.contains("skill")) ||
-            lower.contains("new skill") ||
-            (lower.contains("two") && lower.contains("skill")) ||
+        if ((lower.contains("skill") && (lower.contains("adding") || lower.contains("new") || lower.contains("two") || lower.contains("sync") || lower.contains("discover"))) ||
             lower.contains("checking claude code") ||
-            lower.contains("reconnecting to antigravity") ||
-            lower.contains("restarting the local server")
+            lower.contains("reconnecting") ||
+            lower.contains("restarting the local server") ||
+            lower.contains("antigravity bridge") ||
+            lower.contains("agy daemon") ||
+            lower.contains("bridge connecting") ||
+            lower.contains("bridge connected")
         ) {
             return
         }

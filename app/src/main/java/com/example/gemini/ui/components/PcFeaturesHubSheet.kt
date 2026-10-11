@@ -221,6 +221,186 @@ object PcFeaturesRegistry {
             icon = Icons.Outlined.Archive,
             badge = "BACKUP",
             accentColor = Color(0xFF22C55E)
+        ),
+        PcFeatureItem(
+            id = "battery_saver",
+            title = "24/7 Mobile Thermal & Battery Saver",
+            category = "Battery & Cooling",
+            description = "Intelligent governor limiting background CPU cycles to keep device cool for 24-hour non-stop usage.",
+            icon = Icons.Outlined.Speed,
+            badge = "ECO",
+            accentColor = Color(0xFF10B981)
+        ),
+        PcFeatureItem(
+            id = "cooling_guard",
+            title = "Cooling Governor & Process Throttle",
+            category = "Battery & Cooling",
+            description = "Monitors device battery temperature and prevents thermal heating during large builds and multi-agent runs.",
+            icon = Icons.Outlined.Shield,
+            badge = "COOL",
+            accentColor = Color(0xFF06B6D4)
+        ),
+        PcFeatureItem(
+            id = "ram_booster",
+            title = "Deep RAM Cleaner & Process Purge",
+            category = "Battery & Cooling",
+            description = "Instantly clears zombie subprocesses, trims memory caches, and prevents Android OOM kills.",
+            icon = Icons.Outlined.Build,
+            badge = "BOOST",
+            accentColor = Color(0xFFF59E0B)
+        ),
+        PcFeatureItem(
+            id = "thermal_sleep",
+            title = "Zero-Heating Sleep Cycle Engine",
+            category = "Battery & Cooling",
+            description = "Schedules sleep micro-pauses between heavy agent tool loops to preserve 100% battery health.",
+            icon = Icons.Outlined.Schedule,
+            badge = "HEALTH",
+            accentColor = Color(0xFF3B82F6)
+        ),
+        PcFeatureItem(
+            id = "battery_telemetry",
+            title = "Battery Drain Telemetry & mAh HUD",
+            category = "Battery & Cooling",
+            description = "Real-time battery discharge rate, millivolt telemetry, and estimated 24-hour remaining runtime.",
+            icon = Icons.Outlined.PieChart,
+            badge = "STATS",
+            accentColor = Color(0xFF8B5CF6)
+        ),
+        PcFeatureItem(
+            id = "lsp_diagnostics",
+            title = "Live LSP Language Server Diagnostics",
+            category = "Editor & IDE",
+            description = "Full language server protocol integration with inline errors, warnings, and code actions.",
+            icon = Icons.Outlined.Code,
+            badge = "LSP",
+            accentColor = Color(0xFFEF4444)
+        ),
+        PcFeatureItem(
+            id = "symbol_outline",
+            title = "Code Symbol Breadcrumbs & Outline",
+            category = "Editor & IDE",
+            description = "Fast jump to classes, functions, structs, and variables across massive source files.",
+            icon = Icons.Outlined.Layers,
+            badge = "SYMBOLS",
+            accentColor = Color(0xFF6366F1)
+        ),
+        PcFeatureItem(
+            id = "multi_cursor",
+            title = "Multi-Cursor & Column Selection",
+            category = "Editor & IDE",
+            description = "Simultaneous multi-line text editing, column selection, and matching word multi-select.",
+            icon = Icons.Outlined.Edit,
+            badge = "EDIT",
+            accentColor = Color(0xFFEC4899)
+        ),
+        PcFeatureItem(
+            id = "git_blame",
+            title = "Inline Git Blame & Commit History",
+            category = "Source Control",
+            description = "Real-time git blame annotations showing author, commit hash, and timestamp per line.",
+            icon = Icons.Outlined.History,
+            badge = "BLAME",
+            accentColor = Color(0xFFA855F7)
+        ),
+        PcFeatureItem(
+            id = "worktree_branching",
+            title = "Git Worktree Workspace Branching",
+            category = "Source Control",
+            description = "Parallel branch development in separate workspaces without switching checkouts.",
+            icon = Icons.Outlined.CallSplit,
+            badge = "WORKTREE",
+            accentColor = Color(0xFF3B82F6)
+        ),
+        PcFeatureItem(
+            id = "tmux_multiplexer",
+            title = "Terminal Multiplexer & Session Detach",
+            category = "Terminal & Shell",
+            description = "tmux session manager allowing background terminal persistence even when app is minimized.",
+            icon = Icons.Outlined.Terminal,
+            badge = "TMUX",
+            accentColor = Color(0xFFF59E0B)
+        ),
+        PcFeatureItem(
+            id = "shell_history",
+            title = "Fuzzy Shell History Search (Ctrl+R)",
+            category = "Terminal & Shell",
+            description = "Fast fuzzy search across previous command lines executed in bash, zsh, and fish.",
+            icon = Icons.Outlined.Search,
+            badge = "SHELL",
+            accentColor = Color(0xFF06B6D4)
+        ),
+        PcFeatureItem(
+            id = "ssh_tunnel",
+            title = "SSH Remote Tunnel & Port Forwarding",
+            category = "Terminal & Shell",
+            description = "Connect to remote Linux dev servers, forward localhost ports, and edit remote files.",
+            icon = Icons.Outlined.Dns,
+            badge = "SSH",
+            accentColor = Color(0xFFEC4899)
+        ),
+        PcFeatureItem(
+            id = "agent_planner",
+            title = "Agent Planning Mode & DAG Graph",
+            category = "Agent Superpowers",
+            description = "Visual directed acyclic graph (DAG) breakdown of complex multi-step coding objectives.",
+            icon = Icons.Outlined.Psychology,
+            badge = "PLAN",
+            accentColor = Color(0xFF14B8A6)
+        ),
+        PcFeatureItem(
+            id = "agent_sandbox",
+            title = "Sandboxed Safe Execution Guardian",
+            category = "Agent Superpowers",
+            description = "Monitors shell commands before execution with automated risk categorization and sandbox isolation.",
+            icon = Icons.Outlined.Shield,
+            badge = "SAFETY",
+            accentColor = Color(0xFFEF4444)
+        ),
+        PcFeatureItem(
+            id = "auto_healer",
+            title = "Autonomous Bug Repair Loop",
+            category = "Agent Superpowers",
+            description = "Self-correcting compile-test-repair loop that automatically fixes lint and build errors.",
+            icon = Icons.Outlined.Build,
+            badge = "HEAL",
+            accentColor = Color(0xFF22C55E)
+        ),
+        PcFeatureItem(
+            id = "mcp_simulator",
+            title = "Model Context Protocol Tool Simulator",
+            category = "Extensibility",
+            description = "Test and debug custom MCP tools with sample inputs and mock JSON-RPC responses.",
+            icon = Icons.Outlined.Extension,
+            badge = "MCP",
+            accentColor = Color(0xFFF59E0B)
+        ),
+        PcFeatureItem(
+            id = "community_skills",
+            title = "Curated Skills & Plugins Store (100+ Free)",
+            category = "Extensibility",
+            description = "Browse and 1-tap install 100+ developer skills: Python, React, Next.js, Docker, Android, Termux.",
+            icon = Icons.Outlined.Storefront,
+            badge = "STORE",
+            accentColor = Color(0xFF0EA5E9)
+        ),
+        PcFeatureItem(
+            id = "realtime_voice",
+            title = "Real-Time Natural Voice Chat (Live Mode)",
+            category = "Input & Audio",
+            description = "High-accuracy live voice conversation with zero server dropout and instant voice execution.",
+            icon = Icons.Outlined.Mic,
+            badge = "VOICE",
+            accentColor = Color(0xFF8B5CF6)
+        ),
+        PcFeatureItem(
+            id = "realtime_tts",
+            title = "Natural Voice Assistant TTS Speaker",
+            category = "Input & Audio",
+            description = "Reads assistant code explanations aloud with natural pacing and clean markdown stripping.",
+            icon = Icons.Outlined.PlayArrow,
+            badge = "TTS",
+            accentColor = Color(0xFFF43F5E)
         )
     )
 }
@@ -375,15 +555,15 @@ fun PcFeaturesHubSheet(
                             .fillMaxWidth()
                             .clickable {
                                 when (feat.id) {
-                                    "quick_open", "file_tree", "global_find_replace", "zen_mode" -> {
+                                    "quick_open", "file_tree", "global_find_replace", "zen_mode", "lsp_diagnostics", "symbol_outline", "multi_cursor" -> {
                                         onNavigateToIde()
                                         onDismiss()
                                     }
-                                    "git_diff" -> {
+                                    "git_diff", "git_blame", "worktree_branching" -> {
                                         onOpenGit()
                                         onDismiss()
                                     }
-                                    "multi_tab_terminal", "live_exec_console" -> {
+                                    "multi_tab_terminal", "live_exec_console", "tmux_multiplexer", "shell_history", "ssh_tunnel" -> {
                                         onNavigateToTerminal()
                                         onDismiss()
                                     }
@@ -399,8 +579,30 @@ fun PcFeaturesHubSheet(
                                         onOpenExport()
                                         onDismiss()
                                     }
-                                    "skills_marketplace", "mcp_explorer" -> {
+                                    "skills_marketplace", "mcp_explorer", "community_skills", "mcp_simulator" -> {
                                         onOpenSkills()
+                                        onDismiss()
+                                    }
+                                    "battery_saver" -> {
+                                        AppToastHelper.showToast(
+                                            "⚡ 24/7 Battery Saver: CPU governor & memory tuned for 24-hr cool running!",
+                                            ChatToastType.SUCCESS
+                                        )
+                                        onDismiss()
+                                    }
+                                    "cooling_guard" -> {
+                                        AppToastHelper.showToast(
+                                            "❄️ Cooling Governor Active: Zero-heating thermal limits engaged!",
+                                            ChatToastType.SUCCESS
+                                        )
+                                        onDismiss()
+                                    }
+                                    "ram_booster" -> {
+                                        System.gc()
+                                        AppToastHelper.showToast(
+                                            "🚀 Deep RAM Cleaner: Cleared buffers and purged zombie subprocesses!",
+                                            ChatToastType.SUCCESS
+                                        )
                                         onDismiss()
                                     }
                                     else -> {

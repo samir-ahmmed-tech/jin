@@ -389,10 +389,13 @@ fun ChatScreen(
         )
     } else null
 
+    val isGoogleAuthReady = agyAuthInfo.displayName.isNotBlank() || !userEmail.isNullOrBlank()
+
     val deepseekEntry = if (com.example.gemini.domain.model.AgentKind.DEEPSEEK_LOCAL in enabledAgents) {
         com.example.gemini.ui.agents.directAgentStatusEntry(
             agent = com.example.gemini.domain.model.AgentKind.DEEPSEEK_LOCAL,
             apiKey = viewModel.authPreferences.getDeepSeekApiKeySync(),
+            isGoogleAuthReady = isGoogleAuthReady,
             onOpenSettings = { showSettingsDialog = true }
         )
     } else null
@@ -401,6 +404,7 @@ fun ChatScreen(
         com.example.gemini.ui.agents.directAgentStatusEntry(
             agent = com.example.gemini.domain.model.AgentKind.CODEX,
             apiKey = viewModel.authPreferences.getOpenAiApiKeySync(),
+            isGoogleAuthReady = isGoogleAuthReady,
             onOpenSettings = { showSettingsDialog = true }
         )
     } else null
@@ -409,6 +413,7 @@ fun ChatScreen(
         com.example.gemini.ui.agents.directAgentStatusEntry(
             agent = com.example.gemini.domain.model.AgentKind.OPENROUTER,
             apiKey = viewModel.authPreferences.getOpenRouterApiKeySync(),
+            isGoogleAuthReady = isGoogleAuthReady,
             onOpenSettings = { showSettingsDialog = true }
         )
     } else null
@@ -2351,6 +2356,18 @@ fun ChatScreen(
             onOpenApiKeys = {
                 scope.launch { drawerState.close() }
                 showSettingsDialog = true
+            },
+            onSaveApiKey = { agent, key ->
+                scope.launch {
+                    when (agent) {
+                        com.example.gemini.domain.model.AgentKind.DEEPSEEK_LOCAL -> viewModel.authPreferences.saveDeepSeekApiKey(key)
+                        com.example.gemini.domain.model.AgentKind.CODEX -> viewModel.authPreferences.saveOpenAiApiKey(key)
+                        com.example.gemini.domain.model.AgentKind.OPENROUTER -> viewModel.authPreferences.saveOpenRouterApiKey(key)
+                        else -> {}
+                    }
+                    val msg = if (key.isBlank()) "${agent.label()} key cleared" else "${agent.label()} configured successfully!"
+                    com.example.gemini.ui.components.AppToastHelper.showToast(msg, com.example.gemini.ui.components.ChatToastType.SUCCESS)
+                }
             },
             onDismiss = { showAccountsDialog = false }
         )

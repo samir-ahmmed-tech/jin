@@ -58,10 +58,6 @@ fun FloatingSwitcherWidget(
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
-    val configuration = LocalConfiguration.current
-    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
-    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
-
     var widgetSize by remember { mutableStateOf(IntSize.Zero) }
     var isExpanded by remember { mutableStateOf(false) }
     var lastInteractionTimestamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -75,49 +71,54 @@ fun FloatingSwitcherWidget(
         }
     }
 
-    // Stable in-memory pixel offset position
-    var isPositionInitialized by remember { mutableStateOf(false) }
-    var posX by remember { mutableFloatStateOf(0f) }
-    var posY by remember { mutableFloatStateOf(0f) }
-
-    LaunchedEffect(screenWidthPx, screenHeightPx, savedPosXRatio, savedPosYRatio) {
-        if (screenWidthPx > 0 && screenHeightPx > 0 && (!isPositionInitialized || !isDragging)) {
-            val initialX = (savedPosXRatio * screenWidthPx).coerceIn(0f, (screenWidthPx - 50f).coerceAtLeast(0f))
-            val initialY = (savedPosYRatio * screenHeightPx).coerceIn(0f, (screenHeightPx - 80f).coerceAtLeast(0f))
-            posX = initialX
-            posY = initialY
-            isPositionInitialized = true
-        }
-    }
-
-    val isVertical = orientation.equals("VERTICAL", ignoreCase = true)
-    val isNearRightEdge = posX > (screenWidthPx / 2)
-    val isNearBottom = posY > (screenHeightPx / 2)
-
-    // Directional arrows:
-    // Vertical layout extends vertically -> UP / DOWN arrows (^ / v)
-    // Horizontal layout extends horizontally -> LEFT / RIGHT arrows (< / >)
-    val expandArrowIcon: ImageVector = if (isVertical) {
-        if (isNearBottom) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore
-    } else {
-        if (isNearRightEdge) Icons.Outlined.ChevronLeft else Icons.Outlined.ChevronRight
-    }
-
-    val collapseArrowIcon: ImageVector = if (isVertical) {
-        if (isNearBottom) Icons.Outlined.ExpandMore else Icons.Outlined.ExpandLess
-    } else {
-        if (isNearRightEdge) Icons.Outlined.ChevronRight else Icons.Outlined.ChevronLeft
-    }
-
     val imeBottomPx = WindowInsets.ime.getBottom(density).toFloat()
     val navBarsBottomPx = WindowInsets.navigationBars.getBottom(density).toFloat()
     val effectiveBottomInset = maxOf(imeBottomPx, navBarsBottomPx)
 
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .zIndex(999f)
     ) {
+        val screenWidthPx = constraints.maxWidth.toFloat()
+        val screenHeightPx = constraints.maxHeight.toFloat()
+
+        // Stable in-memory pixel offset position
+        var isPositionInitialized by remember { mutableStateOf(false) }
+        var posX by remember { mutableFloatStateOf(0f) }
+        var posY by remember { mutableFloatStateOf(0f) }
+
+        LaunchedEffect(screenWidthPx, screenHeightPx, savedPosXRatio, savedPosYRatio) {
+            if (screenWidthPx > 0 && screenHeightPx > 0 && (!isPositionInitialized || !isDragging)) {
+                val maxX = (screenWidthPx - widgetSize.width).coerceAtLeast(0f)
+                val maxY = (screenHeightPx - widgetSize.height - effectiveBottomInset).coerceAtLeast(0f)
+                val initialX = if (savedPosXRatio >= 0.90f && maxX > 0f) maxX else (savedPosXRatio * screenWidthPx).coerceIn(0f, maxX)
+                val initialY = (savedPosYRatio * screenHeightPx).coerceIn(0f, maxY)
+                posX = initialX
+                posY = initialY
+                isPositionInitialized = true
+            }
+        }
+
+        val isVertical = orientation.equals("VERTICAL", ignoreCase = true)
+        val isNearRightEdge = posX > (screenWidthPx / 2)
+        val isNearBottom = posY > (screenHeightPx / 2)
+
+        // Directional arrows:
+        // Vertical layout extends vertically -> UP / DOWN arrows (^ / v)
+        // Horizontal layout extends horizontally -> LEFT / RIGHT arrows (< / >)
+        val expandArrowIcon: ImageVector = if (isVertical) {
+            if (isNearBottom) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore
+        } else {
+            if (isNearRightEdge) Icons.Outlined.ChevronLeft else Icons.Outlined.ChevronRight
+        }
+
+        val collapseArrowIcon: ImageVector = if (isVertical) {
+            if (isNearBottom) Icons.Outlined.ExpandMore else Icons.Outlined.ExpandLess
+        } else {
+            if (isNearRightEdge) Icons.Outlined.ChevronRight else Icons.Outlined.ChevronLeft
+        }
+
         Box(
             modifier = Modifier
                 .offset {

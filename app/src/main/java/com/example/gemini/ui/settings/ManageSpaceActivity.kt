@@ -400,96 +400,16 @@ private fun ManageSpaceScreen(
     if (showResetConfirmation) {
         AlertDialog(
             onDismissRequest = { showResetConfirmation = false },
-            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Confirm Full Reset", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to wipe all Jin data? This will permanently delete all Linux packages, workspaces, accounts, and chats.") },
+            icon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(32.dp)) },
+            title = { Text("Clear All App Data", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+            text = { Text("Are you sure you want to permanently clear all app storage, local Linux packages, workspaces, and chats? This cannot be undone.", fontSize = 13.5.sp) },
             confirmButton = {
                 Button(
                     onClick = {
                         showResetConfirmation = false
-                        resetPasswordInput = ""
-                        showResetPasswordDialog = true
+                        onFactoryReset()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Proceed to Confirmation")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showResetConfirmation = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    if (showResetPasswordDialog) {
-        val isMatch = resetPasswordInput.trim() == "iknowwhatiamdoing"
-        AlertDialog(
-            onDismissRequest = {
-                showResetPasswordDialog = false
-                resetPasswordInput = ""
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(28.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "Confirm Destruction",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "To confirm and permanently wipe all app data and local Linux storage, type the confirmation phrase exactly as shown below:",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = "iknowwhatiamdoing",
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = ClaudeTerracotta,
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = resetPasswordInput,
-                        onValueChange = { resetPasswordInput = it },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        isError = resetPasswordInput.isNotEmpty() && !isMatch
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (isMatch) {
-                            showResetPasswordDialog = false
-                            resetPasswordInput = ""
-                            onFactoryReset()
-                        }
-                    },
-                    enabled = isMatch,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        disabledContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Delete Everything", fontWeight = FontWeight.Bold, color = Color.White)
@@ -497,10 +417,7 @@ private fun ManageSpaceScreen(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = {
-                        showResetPasswordDialog = false
-                        resetPasswordInput = ""
-                    },
+                    onClick = { showResetConfirmation = false },
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Cancel")

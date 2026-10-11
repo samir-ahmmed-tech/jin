@@ -195,9 +195,10 @@ class MainActivity : ComponentActivity() {
             val appUiScale by chatViewModel.appUiScale.collectAsState(initial = 0.85f)
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
             val scaledDensity = remember(currentDensity, appUiScale) {
+                val scale = appUiScale.coerceIn(0.5f, 1.5f)
                 androidx.compose.ui.unit.Density(
-                    density = currentDensity.density * appUiScale.coerceIn(0.5f, 1.5f),
-                    fontScale = currentDensity.fontScale
+                    density = currentDensity.density * scale,
+                    fontScale = currentDensity.fontScale * scale
                 )
             }
 

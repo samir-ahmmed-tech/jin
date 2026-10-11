@@ -30,11 +30,15 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -185,9 +189,74 @@ fun AccountsDialog(
     codex: AgentStatusEntry? = null,
     openrouter: AgentStatusEntry? = null,
     onOpenApiKeys: () -> Unit = {},
+    onSaveApiKey: (AgentKind, String) -> Unit = { _, _ -> },
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    var editingAgentApiKey by remember { mutableStateOf<AgentKind?>(null) }
+    var apiKeyInputValue by remember { mutableStateOf("") }
+
+    editingAgentApiKey?.let { agent ->
+        AlertDialog(
+            onDismissRequest = {
+                editingAgentApiKey = null
+                apiKeyInputValue = ""
+            },
+            title = {
+                Text(
+                    text = "Configure ${agent.label()} Key",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Enter your ${agent.label()} API key. It will be stored securely on your device for fast direct streaming.",
+                        fontSize = 12.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = apiKeyInputValue,
+                        onValueChange = { apiKeyInputValue = it },
+                        singleLine = true,
+                        placeholder = { Text("Paste key here...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val key = apiKeyInputValue.trim()
+                        if (key.isNotBlank()) {
+                            onSaveApiKey(agent, key)
+                        }
+                        editingAgentApiKey = null
+                        apiKeyInputValue = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = agent.accent()),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Save Key", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        editingAgentApiKey = null
+                        apiKeyInputValue = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(24.dp),
@@ -340,10 +409,23 @@ fun AccountsDialog(
                         entry = entry,
                         avatar = { AccountAvatar(AgentKind.DEEPSEEK_LOCAL, entry, 'D', size = 44.dp) },
                         title = AgentKind.DEEPSEEK_LOCAL.label(),
-                        subtitle = entry.detail,
+                        subtitle = if (entry.isReady) "DeepSeek V3 / Coder active and ready" else (entry.detail ?: "Sign in with Google AI or set API key"),
                         facts = listOf("DeepSeek V3", "DeepSeek Coder")
                     ) {
-                        SectionButton("API Keys & Settings", Icons.Outlined.Settings) {
+                        SectionButton("Set API Key", Icons.Outlined.Settings) {
+                            editingAgentApiKey = AgentKind.DEEPSEEK_LOCAL
+                        }
+                        if (!entry.isReady && agy?.isReady == true) {
+                            SectionButton("Use Google AI", Icons.AutoMirrored.Outlined.Login, primary = AgentKind.DEEPSEEK_LOCAL.accent()) {
+                                onSaveApiKey(AgentKind.DEEPSEEK_LOCAL, "google_ai_session")
+                            }
+                        }
+                        if (entry.isReady) {
+                            SectionButton("Clear Key", Icons.AutoMirrored.Outlined.Logout, danger = true) {
+                                onSaveApiKey(AgentKind.DEEPSEEK_LOCAL, "")
+                            }
+                        }
+                        SectionButton("API Settings", Icons.Outlined.Settings) {
                             onOpenApiKeys()
                             onDismiss()
                         }
@@ -356,10 +438,23 @@ fun AccountsDialog(
                         entry = entry,
                         avatar = { AccountAvatar(AgentKind.CODEX, entry, 'C', size = 44.dp) },
                         title = AgentKind.CODEX.label(),
-                        subtitle = entry.detail,
+                        subtitle = if (entry.isReady) "OpenAI GPT-4o / Codex active and ready" else (entry.detail ?: "Sign in with Google AI or set API key"),
                         facts = listOf("OpenAI Codex", "GPT-4o")
                     ) {
-                        SectionButton("API Keys & Settings", Icons.Outlined.Settings) {
+                        SectionButton("Set API Key", Icons.Outlined.Settings) {
+                            editingAgentApiKey = AgentKind.CODEX
+                        }
+                        if (!entry.isReady && agy?.isReady == true) {
+                            SectionButton("Use Google AI", Icons.AutoMirrored.Outlined.Login, primary = AgentKind.CODEX.accent()) {
+                                onSaveApiKey(AgentKind.CODEX, "google_ai_session")
+                            }
+                        }
+                        if (entry.isReady) {
+                            SectionButton("Clear Key", Icons.AutoMirrored.Outlined.Logout, danger = true) {
+                                onSaveApiKey(AgentKind.CODEX, "")
+                            }
+                        }
+                        SectionButton("API Settings", Icons.Outlined.Settings) {
                             onOpenApiKeys()
                             onDismiss()
                         }
@@ -372,10 +467,23 @@ fun AccountsDialog(
                         entry = entry,
                         avatar = { AccountAvatar(AgentKind.OPENROUTER, entry, 'O', size = 44.dp) },
                         title = AgentKind.OPENROUTER.label(),
-                        subtitle = entry.detail,
-                        facts = listOf("OpenRouter Universal", "Llama 3.3", "Codestral")
+                        subtitle = if (entry.isReady) "OpenRouter Universal models active and ready" else (entry.detail ?: "Sign in with Google AI or set API key"),
+                        facts = listOf("OpenRouter Universal", "Llama 3.3 (Free)", "Codestral")
                     ) {
-                        SectionButton("API Keys & Settings", Icons.Outlined.Settings) {
+                        SectionButton("Set API Key", Icons.Outlined.Settings) {
+                            editingAgentApiKey = AgentKind.OPENROUTER
+                        }
+                        if (!entry.isReady && agy?.isReady == true) {
+                            SectionButton("Use Google AI", Icons.AutoMirrored.Outlined.Login, primary = AgentKind.OPENROUTER.accent()) {
+                                onSaveApiKey(AgentKind.OPENROUTER, "google_ai_session")
+                            }
+                        }
+                        if (entry.isReady) {
+                            SectionButton("Clear Key", Icons.AutoMirrored.Outlined.Logout, danger = true) {
+                                onSaveApiKey(AgentKind.OPENROUTER, "")
+                            }
+                        }
+                        SectionButton("API Settings", Icons.Outlined.Settings) {
                             onOpenApiKeys()
                             onDismiss()
                         }
@@ -410,17 +518,41 @@ private fun AccountSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 avatar()
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(title, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    subtitle?.let {
-                        Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = title,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        StatusChip(entry)
+                    }
+                    subtitle?.let { sub ->
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            text = sub,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
-                Spacer(Modifier.width(8.dp))
-                StatusChip(entry)
             }
             if (facts.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))

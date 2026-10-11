@@ -312,6 +312,26 @@ fun MessageBubble(
                                 )
                             }
 
+                            val isTtsSpeaking by com.example.gemini.data.audio.ChatTtsHelper.isSpeaking.collectAsState()
+                            val currentTtsMsgId by com.example.gemini.data.audio.ChatTtsHelper.currentMessageId.collectAsState()
+                            val isThisSpeaking = isTtsSpeaking && currentTtsMsgId == message.id
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            IconButton(
+                                onClick = {
+                                    com.example.gemini.data.audio.ChatTtsHelper.toggleSpeak(context, message.id, message.content)
+                                },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Rounded.GraphicEq,
+                                    contentDescription = if (isThisSpeaking) "Stop speaking" else "Read aloud",
+                                    tint = if (isThisSpeaking) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
                             val payloadToShow = message.rawContent ?: message.rawPayload
                             if (!payloadToShow.isNullOrBlank()) {
                                 Spacer(modifier = Modifier.width(4.dp))

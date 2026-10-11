@@ -184,6 +184,9 @@ fun ChatInputBar(
     val keyboardController = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     val isDark = isAppInDarkTheme()
+    val nativeTranscriber = remember(context) { com.example.gemini.data.audio.NativeSpeechTranscriber(context) }
+    val activeTranscriber = speechManager ?: nativeTranscriber
+    var showSpeechModeDialog by remember { mutableStateOf(false) }
 
     // Audio recording & Speech-to-Text state
     var recordMode by remember { mutableStateOf(AudioRecordMode.VOICE_NOTE) }
@@ -200,10 +203,10 @@ fun ChatInputBar(
     var recordingJob by remember { mutableStateOf<Job?>(null) }
     val waveformAmplitudes = remember { mutableStateListOf<Float>() }
 
-    // Stream live waveform amplitudes from AGY speech manager when active
-    LaunchedEffect(isRecordingAudio, isLiveDictating, recordMode, speechManager) {
-        if ((isRecordingAudio || isLiveDictating) && speechManager != null) {
-            speechManager.latestAmplitude.collect { amp ->
+    // Stream live waveform amplitudes from active speech manager/transcriber when active
+    LaunchedEffect(isRecordingAudio, isLiveDictating, recordMode, activeTranscriber) {
+        if (isRecordingAudio || isLiveDictating) {
+            activeTranscriber.latestAmplitude.collect { amp ->
                 if (waveformAmplitudes.size >= 24) {
                     waveformAmplitudes.removeAt(0)
                 }
@@ -218,7 +221,7 @@ fun ChatInputBar(
                 mediaRecorder?.stop()
                 mediaRecorder?.release()
             } catch (_: Exception) {}
-            speechManager?.cancelTranscriptionSession()
+            activeTranscriber.cancelTranscriptionSession()
         }
     }
 
@@ -298,7 +301,7 @@ fun ChatInputBar(
 
     fun togglePauseAudioRecording() {
         if (recordMode == AudioRecordMode.TRANSCRIBE) {
-            if (isRecordingPaused) speechManager?.resumeTranscriptionSession() else speechManager?.pauseTranscriptionSession()
+            if (isRecordingPaused) activeTranscriber.resumeTranscriptionSession() else activeTranscriber.pauseTranscriptionSession()
             isRecordingPaused = !isRecordingPaused
             return
         }
@@ -354,7 +357,7 @@ fun ChatInputBar(
 
     fun cancelAudioRecording() {
         if (recordMode == AudioRecordMode.TRANSCRIBE) {
-            speechManager?.cancelTranscriptionSession()
+            activeTranscriber.cancelTranscriptionSession()
         }
         val file = currentRecordingFile
         recordingJob?.cancel()
@@ -386,12 +389,7 @@ fun ChatInputBar(
             return
         }
 
-        val sm = speechManager
-        if (sm == null) {
-            Toast.makeText(context, "Speech service unavailable", Toast.LENGTH_SHORT).show()
-            return
-        }
-
+        val sm = activeTranscriber
         baseTextBeforeDictation = textFieldValue.text
         isLiveDictating = true
         isDictationPaused = false
@@ -419,17 +417,43 @@ fun ChatInputBar(
                 baseTextBeforeDictation = combined
             },
             onError = { err ->
-                Toast.makeText(context, "Dictation: $err", Toast.LENGTH_SHORT).show()
-                isLiveDictating = false
-                isDictationPaused = false
-                recordMode = AudioRecordMode.VOICE_NOTE
+                if (sm != nativeTranscriber) {
+                    nativeTranscriber.startTranscriptionSession(
+                        scope = coroutineScope,
+                        cascadeId = cascadeId,
+                        preCursorText = pre,
+                        postCursorText = post,
+                        onPartialText = { partial ->
+                            val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
+                            val combined = baseTextBeforeDictation + sep + partial
+                            onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
+                        },
+                        onFinalText = { finalText ->
+                            val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
+                            val combined = baseTextBeforeDictation + sep + finalText
+                            onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
+                            baseTextBeforeDictation = combined
+                        },
+                        onError = { nativeErr ->
+                            Toast.makeText(context, "Dictation: $nativeErr", Toast.LENGTH_SHORT).show()
+                            isLiveDictating = false
+                            isDictationPaused = false
+                            recordMode = AudioRecordMode.VOICE_NOTE
+                        }
+                    )
+                } else {
+                    Toast.makeText(context, "Dictation: $err", Toast.LENGTH_SHORT).show()
+                    isLiveDictating = false
+                    isDictationPaused = false
+                    recordMode = AudioRecordMode.VOICE_NOTE
+                }
             }
         )
     }
     startLiveDictationAction = { startLiveDictation() }
 
     fun stopLiveDictation() {
-        speechManager?.stopTranscriptionSession { finalText ->
+        activeTranscriber.stopTranscriptionSession { finalText ->
             if (finalText.isNotBlank()) {
                 val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
                 val combined = baseTextBeforeDictation + sep + finalText
@@ -453,12 +477,7 @@ fun ChatInputBar(
             return
         }
 
-        val sm = speechManager
-        if (sm == null) {
-            Toast.makeText(context, "Speech service unavailable", Toast.LENGTH_SHORT).show()
-            return
-        }
-
+        val sm = activeTranscriber
         baseTextBeforeDictation = textFieldValue.text
         recordMode = AudioRecordMode.TRANSCRIBE
         isRecordingAudio = true
@@ -493,8 +512,27 @@ fun ChatInputBar(
                 onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
             },
             onError = { err ->
-                Toast.makeText(context, "Transcribe: $err", Toast.LENGTH_SHORT).show()
-                cancelAudioRecording()
+                if (sm != nativeTranscriber) {
+                    nativeTranscriber.startTranscriptionSession(
+                        scope = coroutineScope,
+                        cascadeId = cascadeId,
+                        preCursorText = pre,
+                        postCursorText = post,
+                        onPartialText = {},
+                        onFinalText = { finalText ->
+                            val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
+                            val combined = baseTextBeforeDictation + sep + finalText
+                            onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
+                        },
+                        onError = { nativeErr ->
+                            Toast.makeText(context, "Transcribe: $nativeErr", Toast.LENGTH_SHORT).show()
+                            cancelAudioRecording()
+                        }
+                    )
+                } else {
+                    Toast.makeText(context, "Transcribe: $err", Toast.LENGTH_SHORT).show()
+                    cancelAudioRecording()
+                }
             }
         )
     }
@@ -506,7 +544,7 @@ fun ChatInputBar(
         recordingJob?.cancel()
 
         if (currentMode == AudioRecordMode.TRANSCRIBE) {
-            speechManager?.stopTranscriptionSession { finalText ->
+            activeTranscriber.stopTranscriptionSession { finalText ->
                 if (finalText.isNotBlank()) {
                     val cur = baseTextBeforeDictation
                     val sep = if (cur.isNotBlank() && !cur.endsWith(" ")) " " else ""
@@ -803,10 +841,10 @@ fun ChatInputBar(
                                     Surface(
                                         onClick = {
                                             if (isDictationPaused) {
-                                                speechManager?.resumeTranscriptionSession()
+                                                activeTranscriber.resumeTranscriptionSession()
                                                 isDictationPaused = false
                                             } else {
-                                                speechManager?.pauseTranscriptionSession()
+                                                activeTranscriber.pauseTranscriptionSession()
                                                 isDictationPaused = true
                                             }
                                         },
@@ -1260,10 +1298,9 @@ fun ChatInputBar(
                             Surface(
                                 onClick = {
                                     if (voiceNotesAsText) {
-                                        startAutoTranscribe()
+                                        startLiveDictation()
                                     } else {
-                                        recordMode = AudioRecordMode.VOICE_NOTE
-                                        triggerMicClick()
+                                        showSpeechModeDialog = true
                                     }
                                 },
                                 shape = CircleShape,
@@ -1274,7 +1311,7 @@ fun ChatInputBar(
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Rounded.Mic,
-                                        contentDescription = if (voiceNotesAsText) "Record and transcribe" else "Record voice note",
+                                        contentDescription = "Live voice dictation & speech recognition",
                                         tint = voiceIconColor,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -1285,6 +1322,20 @@ fun ChatInputBar(
                 }
             }
         }
+    }
+
+    if (showSpeechModeDialog) {
+        SpeechToTextModeDialog(
+            onSelectAutoTranscribe = {
+                showSpeechModeDialog = false
+                startAutoTranscribe()
+            },
+            onSelectLiveDictation = {
+                showSpeechModeDialog = false
+                startLiveDictation()
+            },
+            onDismiss = { showSpeechModeDialog = false }
+        )
     }
 }
 }

@@ -166,6 +166,7 @@ fun claudePlanLabel(raw: String): String = when (raw.lowercase()) {
 fun directAgentStatusEntry(
     agent: AgentKind,
     apiKey: String,
+    isGoogleAuthReady: Boolean = false,
     onOpenSettings: () -> Unit
 ): AgentStatusEntry {
     val isConfigured = apiKey.isNotBlank()
@@ -176,19 +177,28 @@ fun directAgentStatusEntry(
             AgentKind.OPENROUTER -> "OpenRouter Universal models ready"
             else -> "Ready"
         }
+        val labelText = if (apiKey == "google_ai_session") "Ready (Google AI)" else "Ready"
         AgentStatusEntry(
             agent = agent,
-            label = "Ready",
+            label = labelText,
             color = Color(0xFF10B981), // Emerald green
             detail = detailText,
+            isReady = true
+        )
+    } else if (isGoogleAuthReady) {
+        AgentStatusEntry(
+            agent = agent,
+            label = "Ready (Google AI)",
+            color = Color(0xFF10B981), // Emerald green
+            detail = "Synced with Google AI Pro session",
             isReady = true
         )
     } else {
         AgentStatusEntry(
             agent = agent,
-            label = "API Key Required",
+            label = "Sign in / Key",
             color = Color(0xFFF59E0B), // Amber
-            detail = "Configure ${agent.label()} API key in Settings → API Keys & Providers",
+            detail = "Sign in with Google AI or set ${agent.label()} API key",
             action = AgentStatusAction("Set Key", onOpenSettings),
             isSignedOut = true
         )
