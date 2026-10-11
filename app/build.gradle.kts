@@ -237,25 +237,11 @@ wire {
 val buildAgyIdeBridge = tasks.register("buildAgyIdeBridge") {
   val binDir = layout.projectDirectory.dir("src/main/assets/bin")
   val targetBinary = binDir.file("agy_ide_bridge").asFile
-  val bridgeSourceDir = layout.projectDirectory.dir("../agy_ide_bridge")
 
   doLast {
     binDir.asFile.mkdirs()
-    if (!targetBinary.exists()) {
-      val hasGo = runCatching {
-        ProcessBuilder("go", "version").start().waitFor() == 0
-      }.getOrDefault(false)
-      if (hasGo && bridgeSourceDir.asFile.exists()) {
-        project.exec {
-          workingDir = bridgeSourceDir.asFile
-          environment("GOOS", "android")
-          environment("GOARCH", "arm64")
-          environment("CGO_ENABLED", "0")
-          commandLine("go", "build", "-ldflags=-s -w", "-o", targetBinary.absolutePath, "main.go")
-        }
-      } else {
-        println("Warning: Go compiler not found or agy_ide_bridge already present; skipping compilation.")
-      }
+    if (targetBinary.exists()) {
+      targetBinary.setExecutable(true, false)
     }
   }
 }
