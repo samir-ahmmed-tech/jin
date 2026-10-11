@@ -132,6 +132,8 @@ class MainActivity : ComponentActivity() {
             val isNetworkInspectorEnabled by chatViewModel.isNetworkInspectorEnabled.collectAsState()
             val isFloatingNetworkInspectorEnabled by chatViewModel.isFloatingNetworkInspectorEnabled.collectAsState()
             var showNetworkInspectorDialog by remember { mutableStateOf(false) }
+            var showTranslatorSheet by remember { mutableStateOf(false) }
+            var showPcFeaturesHub by remember { mutableStateOf(false) }
 
             var pendingUpdateInfo by remember { mutableStateOf<com.example.gemini.data.updater.AppUpdateInfo?>(null) }
             val updateManager = remember { com.example.gemini.data.updater.AppUpdateManager(this@MainActivity) }
@@ -194,8 +196,8 @@ class MainActivity : ComponentActivity() {
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
             val scaledDensity = remember(currentDensity, appUiScale) {
                 androidx.compose.ui.unit.Density(
-                    density = currentDensity.density * appUiScale.coerceIn(0.25f, 2.0f),
-                    fontScale = currentDensity.fontScale * appUiScale.coerceIn(0.25f, 2.0f)
+                    density = currentDensity.density * appUiScale.coerceIn(0.5f, 1.5f),
+                    fontScale = currentDensity.fontScale
                 )
             }
 
@@ -389,8 +391,47 @@ class MainActivity : ComponentActivity() {
                                             previousViewMode = currentViewMode
                                             currentViewMode = AppViewMode.TERMINAL
                                         },
+                                        onOpenTranslator = {
+                                            showTranslatorSheet = true
+                                        },
+                                        onOpenPcTools = {
+                                            showPcFeaturesHub = true
+                                        },
                                         onPositionSaved = { x, y ->
                                             chatViewModel.saveFloatingSwitcherPosition(x, y)
+                                        }
+                                    )
+                                }
+
+                                // Floating AI Translator Sheet
+                                if (showTranslatorSheet) {
+                                    val lastAssistantMsg = chatViewModel.messages.value.lastOrNull { 
+                                        it.role == com.example.gemini.domain.model.MessageRole.ASSISTANT 
+                                    }?.content
+                                    com.example.gemini.ui.components.FloatingTranslatorSheet(
+                                        onDismiss = { showTranslatorSheet = false },
+                                        lastAiMessageText = lastAssistantMsg,
+                                        onSendToChat = { text ->
+                                            chatViewModel.sendMessage(text)
+                                        }
+                                    )
+                                }
+
+                                // PC Power Features Suite Sheet
+                                if (showPcFeaturesHub) {
+                                    com.example.gemini.ui.components.PcFeaturesHubSheet(
+                                        onDismiss = { showPcFeaturesHub = false },
+                                        onNavigateToIde = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.IDE
+                                        },
+                                        onNavigateToTerminal = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.TERMINAL
+                                        },
+                                        onNavigateToBrowser = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.BROWSER
                                         }
                                     )
                                 }

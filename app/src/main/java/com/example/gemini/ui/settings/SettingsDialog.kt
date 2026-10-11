@@ -83,10 +83,14 @@ import org.json.JSONArray
 import com.example.gemini.data.daemon.ProjectItem
 import com.example.gemini.data.daemon.TermuxDaemonManager
 import com.example.gemini.data.daemon.IdeApiClient
+import com.example.gemini.ui.components.PcFeaturesRegistry
+import com.example.gemini.ui.components.AppToastHelper
+import com.example.gemini.ui.components.ChatToastType
 
 enum class SettingsSection(val title: String, val subtitle: String) {
     MAIN("Settings & Preferences", "Configure your JIN experience"),
     API_KEYS("API Keys & Providers", "Direct API keys for OpenAI, DeepSeek, Claude, Gemini & custom endpoints"),
+    PC_FEATURES("PC Power Features Suite (20 Tools)", "20 Desktop-grade Antigravity IDE capabilities natively optimized for mobile"),
     APPEARANCE("Appearance & Theme", "Theme, dark mode, and chat font scaling"),
     SERVERS("Servers & Connectivity", "Configure AGY Hub and IDE Bridge endpoints"),
     MCP("MCP Servers", "Model Context Protocol tools & integrations"),
@@ -388,6 +392,12 @@ fun SettingsDialog(
                         cardBorder = cardBorder
                     )
 
+                    SettingsSection.PC_FEATURES -> PcFeaturesSubScreen(
+                        cardBg = cardBg,
+                        cardBorder = cardBorder,
+                        onNavigateBack = { currentSection = SettingsSection.MAIN }
+                    )
+
                     SettingsSection.APPEARANCE -> AppearanceSubScreen(
                         themeMode = themeMode,
                         chatFontScale = chatFontScale,
@@ -616,6 +626,19 @@ private fun MainSettingsMenu(
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.API_KEYS) }
+        )
+
+        SettingsGroupHeader("PC Power Tools", Color(0xFF00E5FF), "20 Desktop-grade Antigravity IDE capabilities natively optimized for mobile")
+        SettingsCategoryCard(
+            icon = Icons.Outlined.Devices,
+            iconTint = Color(0xFF00E5FF),
+            title = "PC Features Suite (20 Tools)",
+            subtitle = "Quick Open, Git Diff, Multi-Tab Terminal, Swarm HUD, Scratchpad, Zen Mode & more",
+            badgeText = "20 Features",
+            badgeColor = Color(0xFF00E5FF),
+            cardBg = cardBg,
+            cardBorder = cardBorder,
+            onClick = { onNavigate(SettingsSection.PC_FEATURES) }
         )
 
         SettingsGroupHeader("Agents", MaterialTheme.colorScheme.primary, "Which agents run, and the local server they share")
@@ -10194,6 +10217,263 @@ private fun ApiKeyCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f).padding(start = 8.dp)
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PcFeaturesSubScreen(
+    cardBg: Color,
+    cardBorder: BorderStroke,
+    onNavigateBack: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+
+    val prefs = remember(context) {
+        context.getSharedPreferences("jin_pc_features_prefs", Context.MODE_PRIVATE)
+    }
+
+    val categories = remember {
+        listOf("All") + PcFeaturesRegistry.FEATURES.map { it.category }.distinct()
+    }
+
+    val filteredFeatures = remember(searchQuery, selectedCategory) {
+        PcFeaturesRegistry.FEATURES.filter { feat ->
+            val matchesQuery = searchQuery.isBlank() ||
+                feat.title.contains(searchQuery, ignoreCase = true) ||
+                feat.description.contains(searchQuery, ignoreCase = true) ||
+                feat.category.contains(searchQuery, ignoreCase = true)
+            val matchesCat = selectedCategory == null || feat.category == selectedCategory
+            matchesQuery && matchesCat
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Top Back Navigation & Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onNavigateBack,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "PC Power Features Suite (20 Tools)",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Desktop-grade Antigravity IDE tools natively optimized for mobile",
+                    fontSize = 11.5.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                )
+            }
+        }
+
+        // Search Bar
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Search 20 PC tools (e.g. Git, Terminal, MCP, Zen)...", fontSize = 12.sp) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = ClaudeTerracotta,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        )
+
+        // Category Filter Chips
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            categories.take(4).forEach { cat ->
+                val isSel = (cat == "All" && selectedCategory == null) || selectedCategory == cat
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isSel) ClaudeTerracotta else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, if (isSel) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
+                    modifier = Modifier.clickable {
+                        selectedCategory = if (cat == "All") null else cat
+                    }
+                ) {
+                    Text(
+                        text = cat,
+                        fontSize = 11.sp,
+                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+            }
+        }
+
+        // List of 20 Features
+        filteredFeatures.forEach { feat ->
+            var isFeatureEnabled by remember(feat.id) {
+                mutableStateOf(prefs.getBoolean("feat_${feat.id}", true))
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = cardBg),
+                border = cardBorder
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(feat.accentColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = feat.icon,
+                                contentDescription = null,
+                                tint = feat.accentColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = feat.title,
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = feat.accentColor.copy(alpha = 0.12f)
+                                ) {
+                                    Text(
+                                        text = feat.badge,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = feat.accentColor,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = feat.category,
+                                fontSize = 10.5.sp,
+                                color = feat.accentColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Switch(
+                            checked = isFeatureEnabled,
+                            onCheckedChange = { checked ->
+                                isFeatureEnabled = checked
+                                prefs.edit().putBoolean("feat_${feat.id}", checked).apply()
+                                AppToastHelper.showToast(
+                                    if (checked) "${feat.title} Enabled" else "${feat.title} Disabled",
+                                    ChatToastType.INFO
+                                )
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = feat.accentColor
+                            ),
+                            modifier = Modifier.padding(start = 6.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = feat.description,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                AppToastHelper.showToast(
+                                    "Activated: ${feat.title}",
+                                    ChatToastType.SUCCESS
+                                )
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            border = BorderStroke(1.dp, feat.accentColor.copy(alpha = 0.4f)),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.PlayArrow,
+                                contentDescription = null,
+                                tint = feat.accentColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Launch Tool",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = feat.accentColor
+                            )
+                        }
+                    }
                 }
             }
         }

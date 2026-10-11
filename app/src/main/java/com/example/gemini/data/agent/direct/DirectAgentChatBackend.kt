@@ -200,15 +200,36 @@ class DirectAgentChatBackend(
         saveMessagesToDisk(conv.id, currentList)
 
         if (apiKey.isBlank()) {
-            val missingKeyMsg = ChatMessage(
+            // Forward prompt to Termux Terminal session for real CLI execution
+            val cliCommand = when (kind) {
+                AgentKind.DEEPSEEK_LOCAL -> "deepseek '$trimmed'"
+                AgentKind.CODEX -> "codex '$trimmed'"
+                AgentKind.OPENROUTER -> "openrouter '$trimmed'"
+                else -> "echo '$trimmed'"
+            }
+            backendScope.launch(Dispatchers.IO) {
+                com.example.gemini.data.local.LocalTerminalBridge.instance.sendCommand(cliCommand, addNewline = true)
+            }
+
+            val fallbackNotice = ChatMessage(
                 conversationId = conv.id,
                 role = MessageRole.ASSISTANT,
-                content = "⚠️ **API Key Missing for ${kind.label()}**\n\nTo chat with ${kind.label()}, please enter your API key:\n1. Tap **Settings** (top right icon) → **API Keys & Providers**.\n2. Enter your **${kind.label()} API key**.\n3. Tap **Test Connection** & **Save All API Keys**.\n\nOnce configured, your messages will stream instantly!"
+                content = """
+                    🤖 **${kind.label()} CLI Terminal Execution**
+                    
+                    Your prompt was forwarded to the **Termux CLI Terminal session**:
+                    `$cliCommand`
+                    
+                    👉 **Options for ${kind.label()}:**
+                    1. **Live Terminal View:** Tap the floating button → **Terminal** to view interactive CLI responses and login.
+                    2. **Direct Fast Streaming:** Add your API key in **Settings → API Keys & Providers** for instant in-chat streaming without waiting for CLI.
+                    3. **Web / Subscription Login:** Use **Accounts → Agent CLI Suite** for keyless web subscription auth.
+                """.trimIndent()
             )
-            val updatedWithWarning = currentList + missingKeyMsg
-            _messages.value = updatedWithWarning
-            store.messages.value = updatedWithWarning
-            saveMessagesToDisk(conv.id, updatedWithWarning)
+            val updatedWithNotice = currentList + fallbackNotice
+            _messages.value = updatedWithNotice
+            store.messages.value = updatedWithNotice
+            saveMessagesToDisk(conv.id, updatedWithNotice)
             return
         }
 

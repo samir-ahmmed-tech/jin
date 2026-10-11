@@ -16,6 +16,8 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,6 +52,8 @@ fun FloatingSwitcherWidget(
     onNavigateToIde: () -> Unit,
     onNavigateToBrowser: () -> Unit,
     onNavigateToTerminal: () -> Unit,
+    onOpenTranslator: () -> Unit = {},
+    onOpenPcTools: () -> Unit = {},
     onPositionSaved: (Float, Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -231,6 +235,8 @@ fun FloatingSwitcherWidget(
                                     "ide" -> Icons.Outlined.Code
                                     "terminal" -> Icons.Outlined.Terminal
                                     "browser" -> Icons.Outlined.Language
+                                    "translator" -> Icons.Outlined.Translate
+                                    "pc_tools" -> Icons.Outlined.Devices
                                     else -> Icons.Outlined.ChatBubbleOutline
                                 }
 
@@ -239,6 +245,8 @@ fun FloatingSwitcherWidget(
                                     "ide" -> "IDE"
                                     "terminal" -> "Terminal"
                                     "browser" -> "Browser"
+                                    "translator" -> "Translator"
+                                    "pc_tools" -> "PC Tools"
                                     else -> itemId
                                 }
 
@@ -253,6 +261,8 @@ fun FloatingSwitcherWidget(
                                             "ide" -> onNavigateToIde()
                                             "browser" -> onNavigateToBrowser()
                                             "terminal" -> onNavigateToTerminal()
+                                            "translator" -> onOpenTranslator()
+                                            "pc_tools" -> onOpenPcTools()
                                         }
                                     }
                                 )
@@ -280,6 +290,8 @@ fun FloatingSwitcherWidget(
                                     "ide" -> Icons.Outlined.Code
                                     "terminal" -> Icons.Outlined.Terminal
                                     "browser" -> Icons.Outlined.Language
+                                    "translator" -> Icons.Outlined.Translate
+                                    "pc_tools" -> Icons.Outlined.Devices
                                     else -> Icons.Outlined.ChatBubbleOutline
                                 }
 
@@ -288,6 +300,8 @@ fun FloatingSwitcherWidget(
                                     "ide" -> "IDE"
                                     "terminal" -> "Terminal"
                                     "browser" -> "Browser"
+                                    "translator" -> "Translator"
+                                    "pc_tools" -> "PC Tools"
                                     else -> itemId
                                 }
 
@@ -302,6 +316,8 @@ fun FloatingSwitcherWidget(
                                             "ide" -> onNavigateToIde()
                                             "browser" -> onNavigateToBrowser()
                                             "terminal" -> onNavigateToTerminal()
+                                            "translator" -> onOpenTranslator()
+                                            "pc_tools" -> onOpenPcTools()
                                         }
                                     }
                                 )

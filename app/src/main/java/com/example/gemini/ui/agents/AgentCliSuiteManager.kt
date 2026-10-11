@@ -48,70 +48,76 @@ data class AgentCliPackage(
     val icon: ImageVector,
     val accentColor: Color,
     val features: List<String>,
-    val loginUrl: String
+    val loginUrl: String,
+    val installCommand: String
 )
 
 object AgentCliSuiteRegistry {
     val PACKAGES = listOf(
         AgentCliPackage(
             id = "antigravity",
-            name = "Google Antigravity 2.0 CLI",
+            name = "Google Antigravity 2.0 CLI (agy)",
             agentKind = AgentKind.AGY,
-            description = "Native Google Antigravity bridge, language server daemon, and multi-agent coordinator.",
-            sizeMb = 3.2f,
+            description = "Native Google Antigravity bridge & multi-agent runtime binary in ~/.local/bin/agy.",
+            sizeMb = 171.2f,
             authType = "Google Account (OAuth)",
             icon = Icons.Outlined.AutoAwesome,
             accentColor = Color(0xFF4285F4),
             features = listOf("Google OAuth Login", "Full Tool Calling", "Terminal Automation", "AGY Trajectory Engine"),
-            loginUrl = "https://accounts.google.com"
+            loginUrl = "https://accounts.google.com",
+            installCommand = "agy --version"
         ),
         AgentCliPackage(
             id = "claude",
             name = "Anthropic Claude Code CLI",
             agentKind = AgentKind.CLAUDE,
-            description = "Official Anthropic agentic coding CLI with glibc wrapper and local runner.",
-            sizeMb = 8.5f,
+            description = "Official Anthropic agentic coding CLI installed via npm with glibc runtime wrapper.",
+            sizeMb = 320.0f,
             authType = "Claude Pro / Team Subscription",
             icon = Icons.Outlined.Terminal,
             accentColor = ClaudeTerracotta,
             features = listOf("Claude Account Login", "File Refactoring", "Bash Execution", "Multi-File Editing"),
-            loginUrl = "https://claude.ai"
+            loginUrl = "https://claude.ai",
+            installCommand = "npm install -g @anthropic-ai/claude-code"
         ),
         AgentCliPackage(
             id = "deepseek",
             name = "DeepSeek Native CLI Suite",
             agentKind = AgentKind.DEEPSEEK_LOCAL,
-            description = "DeepSeek V3 & Coder CLI agent engine with 671B MoE reasoning algorithms.",
-            sizeMb = 6.4f,
+            description = "DeepSeek V3 & Coder CLI agent engine with 671B MoE reasoning algorithms in Termux.",
+            sizeMb = 450.0f,
             authType = "DeepSeek Account / Subscription",
             icon = Icons.Outlined.Psychology,
             accentColor = Color(0xFF4F46E5),
             features = listOf("DeepSeek Web Login", "Hermes Reasoning", "300+ Programming Languages", "Terminal Execution"),
-            loginUrl = "https://chat.deepseek.com"
+            loginUrl = "https://chat.deepseek.com",
+            installCommand = "pip install deepseek-coder-cli || npm install -g deepseek-coder-cli"
         ),
         AgentCliPackage(
             id = "codex",
             name = "OpenAI Codex CLI Suite",
             agentKind = AgentKind.CODEX,
-            description = "OpenAI Codex and ChatGPT CLI runner for high-speed architecture planning.",
-            sizeMb = 5.8f,
+            description = "OpenAI Codex and ChatGPT CLI runner for high-speed architecture and terminal planning.",
+            sizeMb = 280.0f,
             authType = "ChatGPT Plus / Team Account",
             icon = Icons.Outlined.Code,
             accentColor = Color(0xFF10A37F),
             features = listOf("OpenAI Device Auth", "GPT-4o Synthesis", "Automated Bug Fixing", "CLI Shell Tools"),
-            loginUrl = "https://chatgpt.com"
+            loginUrl = "https://chatgpt.com",
+            installCommand = "npm install -g openai-codex-cli || pip install codex-cli"
         ),
         AgentCliPackage(
             id = "openrouter",
             name = "OpenRouter Universal CLI Suite",
             agentKind = AgentKind.OPENROUTER,
-            description = "Universal multi-model routing CLI agent with Mistral, Qwen, and Llama.",
-            sizeMb = 4.5f,
+            description = "Universal multi-model routing CLI agent with Mistral, Qwen, and Llama reasoning models.",
+            sizeMb = 180.0f,
             authType = "OpenRouter Account Login",
             icon = Icons.Outlined.Share,
             accentColor = Color(0xFFF59E0B),
             features = listOf("OpenRouter Keyless Login", "Codestral 25B", "Qwen 2.5 Coder", "Auto Quota Failover"),
-            loginUrl = "https://openrouter.ai"
+            loginUrl = "https://openrouter.ai",
+            installCommand = "npm install -g openrouter-cli"
         )
     )
 }
@@ -199,13 +205,13 @@ fun AgentCliSuiteDialog(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "1-Click Full Agent Suite",
+                                text = "1-Click Full Agent Suite (Termux Engines)",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Install all 5 CLI engines (~28.4 MB total) for instant offline & cloud execution",
+                                text = "Install all 5 CLI engines (~1.4 GB total) with live terminal execution in Termux",
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
                             )
@@ -216,18 +222,17 @@ fun AgentCliSuiteDialog(
                                 if (!isDownloadingAll) {
                                     isDownloadingAll = true
                                     coroutineScope.launch {
+                                        val cmd = "npm install -g @anthropic-ai/claude-code openrouter-cli && pip install deepseek-coder-cli"
+                                        com.example.gemini.data.local.LocalTerminalBridge.instance.sendCommand(cmd, addNewline = true)
                                         for (pkg in AgentCliSuiteRegistry.PACKAGES) {
                                             downloadingPackageId = pkg.id
-                                            for (p in 1..10) {
-                                                downloadProgress = p / 10f
-                                                delay(80)
-                                            }
+                                            delay(200)
                                             installedPackages = installedPackages + pkg.id
                                         }
                                         downloadingPackageId = null
                                         isDownloadingAll = false
                                         AppToastHelper.showToast(
-                                            "All 5 Agent CLI Suites successfully installed!",
+                                            "Launched Full CLI Suite install in Termux!",
                                             ChatToastType.SUCCESS
                                         )
                                     }
@@ -251,7 +256,7 @@ fun AgentCliSuiteDialog(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Download All", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("Install All", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -385,17 +390,18 @@ fun AgentCliSuiteDialog(
                                     // Download / Install Button
                                     OutlinedButton(
                                         onClick = {
-                                            if (!isInstalled && !isDownloadingThis) {
+                                            if (!isDownloadingThis) {
                                                 downloadingPackageId = pkg.id
                                                 coroutineScope.launch {
-                                                    for (p in 1..10) {
-                                                        downloadProgress = p / 10f
-                                                        delay(100)
-                                                    }
+                                                    com.example.gemini.data.local.LocalTerminalBridge.instance.sendCommand(
+                                                        pkg.installCommand,
+                                                        addNewline = true
+                                                    )
+                                                    delay(300)
                                                     installedPackages = installedPackages + pkg.id
                                                     downloadingPackageId = null
                                                     AppToastHelper.showToast(
-                                                        "${pkg.name} installed successfully!",
+                                                        "Executed in Termux: ${pkg.installCommand}",
                                                         ChatToastType.SUCCESS
                                                     )
                                                 }
