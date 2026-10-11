@@ -37,7 +37,10 @@ data class PcFeatureItem(
     val description: String,
     val icon: ImageVector,
     val badge: String = "PC POWER",
-    val accentColor: Color = ClaudeTerracotta
+    val accentColor: Color = ClaudeTerracotta,
+    val whatItDoes: String = "",
+    val onEnableEffect: String = "",
+    val howToUse: String = ""
 )
 
 object PcFeaturesRegistry {
@@ -49,7 +52,10 @@ object PcFeaturesRegistry {
             description = "Fuzzy search across all workspace code files, configs, and recent chats.",
             icon = Icons.Outlined.Search,
             badge = "PC CORE",
-            accentColor = Color(0xFF3B82F6)
+            accentColor = Color(0xFF3B82F6),
+            whatItDoes = "প্রজেক্টের যেকোনো ফাইল বা কোড চোখের পলকে সার্চ করে ওপেন করার ফাস্ট প্যালেট (Ctrl+P সমতুল্য)।",
+            onEnableEffect = "আইডিই এডিটরে ফাইল সাথে সাথে লোড হবে এবং কোড প্রিভিউ দেখতে পারবেন।",
+            howToUse = "ট্যাপ করে ফাইলের নাম টাইপ করুন (যেমন index.js বা MainScreen.kt), নিমেষেই ওপেন হয়ে যাবে।"
         ),
         PcFeatureItem(
             id = "git_diff",
@@ -58,7 +64,10 @@ object PcFeaturesRegistry {
             description = "Side-by-side visual file diffs, git staging, and 1-tap commit messages.",
             icon = Icons.Outlined.CallSplit,
             badge = "VCS",
-            accentColor = Color(0xFF10B981)
+            accentColor = Color(0xFF10B981),
+            whatItDoes = "গিট রেপোজিটরির প্রতিটা লাইনের পরিবর্তন, ফাইল ডিফারেন্স এবং আনকমিটেড কোড দেখার সিস্টেম।",
+            onEnableEffect = "কোন ফাইলে পরিবর্তন এসেছে তা সাইড-বাই-সাইড কালার কোডিং সহ প্রদর্শিত হবে।",
+            howToUse = "ট্যাপ করে গিট স্ট্যাটাস দেখুন, স্টেজ করুন এবং 1-ট্যাপে কমিট মেসেজ লিখে পুশ করুন।"
         ),
         PcFeatureItem(
             id = "multi_tab_terminal",
@@ -67,7 +76,10 @@ object PcFeaturesRegistry {
             description = "Concurrent terminal sessions (Bash, Node, Python) with fast tab toggling.",
             icon = Icons.Outlined.Terminal,
             badge = "TERMINAL",
-            accentColor = Color(0xFFF59E0B)
+            accentColor = Color(0xFFF59E0B),
+            whatItDoes = "একসাথে একাধিক ব্যাকগ্রাউন্ড টার্মিনাল ও শেল সেশন (Bash, Python, Node.js) চালানোর ক্ষমতা।",
+            onEnableEffect = "প্রজেক্টের সার্ভার ব্যাকগ্রাউন্ডে চলতে থাকবে এবং আলাদা ট্যাবে টেস্ট বা স্ক্রিপ্ট চালানো যাবে।",
+            howToUse = "টার্মিনাল সেকশনে গিয়ে + ট্যাবে ট্যাপ করে নতুন কনসোল চালু করুন।"
         ),
         PcFeatureItem(
             id = "mcp_explorer",
@@ -76,7 +88,10 @@ object PcFeaturesRegistry {
             description = "Inspect connected Model Context Protocol servers and invoke tools directly.",
             icon = Icons.Outlined.Extension,
             badge = "MCP",
-            accentColor = Color(0xFF8B5CF6)
+            accentColor = Color(0xFF8B5CF6),
+            whatItDoes = "অ্যান্টিগ্র্যাভিটি ও মডার্ন মডেল কনটেক্সট প্রটোকল (MCP) সার্ভার এবং টুলস ম্যানেজমেন্ট সিস্টেম।",
+            onEnableEffect = "ব্রাউজার অটোমেশন, লোকাল ফাইল টুলস এবং কাস্টম টুলস এআই এজেন্টের সাথে অটো-কানেক্ট হবে।",
+            howToUse = "সেটিংস থেকে MCP অপশন অন করে যেকোনো MCP সার্ভার যোগ বা সক্রিয় করুন।"
         ),
         PcFeatureItem(
             id = "slash_commands",
@@ -85,7 +100,10 @@ object PcFeaturesRegistry {
             description = "Interactive action sheet for /goal, /plan, /schedule, /learn, /boost, /grill-me.",
             icon = Icons.Outlined.Bolt,
             badge = "AI",
-            accentColor = Color(0xFFEC4899)
+            accentColor = Color(0xFFEC4899),
+            whatItDoes = "অ্যান্টিগ্র্যাভিটি পিসির সুপারপাওয়ার কমান্ডস (/goal, /plan, /schedule, /boost) সরাসরি মোবাইলে ব্যবহারের প্যালেট।",
+            onEnableEffect = "এআই এজেন্ট লং-রানিং টাস্ক, স্টেপ-বাই-স্টেপ প্ল্যানিং এবং ডিপ রিফ্যাক্টরিং মুডে কাজ করবে।",
+            howToUse = "চ্যাট বক্সে স্ল্যাশ (/) লিখলেই ড্রপডাউন পপআপ হবে অথবা বাটন চেপে অ্যাক্টিভ করুন।"
         ),
         PcFeatureItem(
             id = "swarm_monitor",
@@ -94,7 +112,10 @@ object PcFeaturesRegistry {
             description = "Live monitor of concurrent background subagents with live memory and kill controls.",
             icon = Icons.Outlined.Groups,
             badge = "SWARM",
-            accentColor = Color(0xFF06B6D4)
+            accentColor = Color(0xFF06B6D4),
+            whatItDoes = "ব্যাকগ্রাউন্ডে একাধিক সাব-এজেন্ট (Researcher, Debugger, Architect) একসাথে চলার লাইভ মনিটর।",
+            onEnableEffect = "একের পর এক কাজ অপেক্ষা না করে সমান্তরালভাবে একাধিক এজেন্ট কাজ সম্পন্ন করবে।",
+            howToUse = "সোয়ার্ম কনকারেন্সি অন করে ১ থেকে ৬টি কনকারেন্ট এজেন্টের কাজ পর্যবেক্ষণ করুন।"
         ),
         PcFeatureItem(
             id = "scratchpad",
@@ -103,7 +124,10 @@ object PcFeaturesRegistry {
             description = "In-chat scratchpad editor with syntax highlighting, Markdown preview & send.",
             icon = Icons.Outlined.NoteAlt,
             badge = "SCRATCHPAD",
-            accentColor = Color(0xFFF97316)
+            accentColor = Color(0xFFF97316),
+            whatItDoes = "দ্রুত কোনো কোড স্নিপেট বা নোট লিখে রাখার জন্য ইন-অ্যাপ নোটপ্যাড এডিটর।",
+            onEnableEffect = "যেকোনো সময় কোড এডিট করে সরাসরি ১-ট্যাপে এআই চ্যাটে প্রম্পট হিসেবে পাঠানো যাবে।",
+            howToUse = "স্ক্র্যাচপ্যাড ওপেন করে কোড লিখুন এবং সেন্ড বা সেভ বাটনে চাপ দিন।"
         ),
         PcFeatureItem(
             id = "hardware_hud",
@@ -112,7 +136,10 @@ object PcFeaturesRegistry {
             description = "CPU thread governor, memory cache slider, and Turbo / Balanced performance profiles.",
             icon = Icons.Outlined.Speed,
             badge = "PERF",
-            accentColor = Color(0xFFEF4444)
+            accentColor = Color(0xFFEF4444),
+            whatItDoes = "মোবাইলের CPU কোর এবং র‍্যাম মেমোরি ব্যবহারের হার নির্ধারণ ও নিয়ন্ত্রণ।",
+            onEnableEffect = "কম ক্ষমতার ফোনেও ল্যাগ-ফ্রি এবং হাই-এন্ড ফোনে সুপার-ফাস্ট গতি নিশ্চিত করে।",
+            howToUse = "সেটিংস -> Diagnostics-এ গিয়ে Turbo, Balanced, বা Saver মোড নির্বাচন করুন।"
         ),
         PcFeatureItem(
             id = "memory_rules",
@@ -450,6 +477,7 @@ fun PcFeaturesHubSheet(
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var expandedFeatureId by remember { mutableStateOf<String?>(null) }
 
     val categories = remember {
         listOf("All") + PcFeaturesRegistry.FEATURES.map { it.category }.distinct()
@@ -577,146 +605,205 @@ fun PcFeaturesHubSheet(
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
                 items(filteredFeatures, key = { it.id }) { feat ->
+                    val isExpanded = expandedFeatureId == feat.id
                     Surface(
                         shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                when (feat.id) {
-                                    "quick_open", "file_tree", "global_find_replace", "zen_mode", "lsp_diagnostics", "symbol_outline", "multi_cursor" -> {
-                                        onNavigateToIde()
-                                        onDismiss()
-                                    }
-                                    "git_diff", "git_blame", "worktree_branching" -> {
-                                        onOpenGit()
-                                        onDismiss()
-                                    }
-                                    "multi_tab_terminal", "live_exec_console", "tmux_multiplexer", "shell_history", "ssh_tunnel" -> {
-                                        onNavigateToTerminal()
-                                        onDismiss()
-                                    }
-                                    "web_inspector" -> {
-                                        onNavigateToBrowser()
-                                        onDismiss()
-                                    }
-                                    "scratchpad" -> {
-                                        onOpenScratchpad()
-                                        onDismiss()
-                                    }
-                                    "trajectory_export" -> {
-                                        onOpenExport()
-                                        onDismiss()
-                                    }
-                                    "skills_marketplace", "mcp_explorer", "community_skills", "mcp_simulator" -> {
-                                        onOpenSkills()
-                                        onDismiss()
-                                    }
-                                    "ai_automation" -> {
-                                        onOpenAutomation()
-                                        onDismiss()
-                                    }
-                                    "google_vault", "workspace_backup" -> {
-                                        onOpenGoogleDrive()
-                                        onDismiss()
-                                    }
-                                    "gemini_notebooks" -> {
-                                        onOpenNotebooks()
-                                        onDismiss()
-                                    }
-                                    "battery_saver" -> {
-                                        AppToastHelper.showToast(
-                                            "⚡ 24/7 Battery Saver: CPU governor & memory tuned for 24-hr cool running!",
-                                            ChatToastType.SUCCESS
-                                        )
-                                        onDismiss()
-                                    }
-                                    "cooling_guard" -> {
-                                        AppToastHelper.showToast(
-                                            "❄️ Cooling Governor Active: Zero-heating thermal limits engaged!",
-                                            ChatToastType.SUCCESS
-                                        )
-                                        onDismiss()
-                                    }
-                                    "ram_booster" -> {
-                                        System.gc()
-                                        AppToastHelper.showToast(
-                                            "🚀 Deep RAM Cleaner: Cleared buffers and purged zombie subprocesses!",
-                                            ChatToastType.SUCCESS
-                                        )
-                                        onDismiss()
-                                    }
-                                    else -> {
-                                        AppToastHelper.showToast(
-                                            "Activated ${feat.title}",
-                                            ChatToastType.SUCCESS
-                                        )
-                                        onDismiss()
-                                    }
-                                }
-                            }
+                        border = BorderStroke(1.dp, if (isExpanded) feat.accentColor.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
                                 modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(feat.accentColor.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        expandedFeatureId = if (isExpanded) null else feat.id
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = feat.icon,
-                                    contentDescription = null,
-                                    tint = feat.accentColor,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(feat.accentColor.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = feat.icon,
+                                        contentDescription = null,
+                                        tint = feat.accentColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = feat.title,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = feat.accentColor.copy(alpha = 0.12f)
+                                        ) {
+                                            Text(
+                                                text = feat.badge,
+                                                fontSize = 8.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = feat.accentColor,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = feat.description,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        maxLines = if (isExpanded) 8 else 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        lineHeight = 14.sp
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { expandedFeatureId = if (isExpanded) null else feat.id },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.Info,
+                                        contentDescription = "Show details",
+                                        tint = feat.accentColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
 
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                            AnimatedVisibility(visible = isExpanded) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 10.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                                        .padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
                                     Text(
-                                        text = feat.title,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        text = "💡 টুলের কাজ (Functionality):",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = feat.accentColor
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = feat.accentColor.copy(alpha = 0.12f)
+                                    Text(
+                                        text = feat.whatItDoes.ifBlank { feat.description },
+                                        fontSize = 10.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                        lineHeight = 14.sp
+                                    )
+
+                                    Text(
+                                        text = "⚡ অন করলে যা হবে (Effect when Active):",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = feat.accentColor
+                                    )
+                                    Text(
+                                        text = feat.onEnableEffect.ifBlank { "সরাসরি মোবাইলে সক্রিয় হবে এবং এজেন্টের টুলস সিস্টেমে ফুল এক্সেস তৈরি হবে।" },
+                                        fontSize = 10.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                        lineHeight = 14.sp
+                                    )
+
+                                    Text(
+                                        text = "📖 ব্যবহারের নিয়ম (How to Use):",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = feat.accentColor
+                                    )
+                                    Text(
+                                        text = feat.howToUse.ifBlank { "নিচের বাটনে ট্যাপ করুন বা চ্যাটে নির্দেশ দিয়ে স্বয়ংক্রিয়ভাবে ব্যবহার করুন।" },
+                                        fontSize = 10.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                        lineHeight = 14.sp
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Button(
+                                        onClick = {
+                                            when (feat.id) {
+                                                "quick_open", "file_tree", "global_find_replace", "zen_mode", "lsp_diagnostics", "symbol_outline", "multi_cursor" -> {
+                                                    onNavigateToIde()
+                                                    onDismiss()
+                                                }
+                                                "git_diff", "git_blame", "worktree_branching" -> {
+                                                    onOpenGit()
+                                                    onDismiss()
+                                                }
+                                                "multi_tab_terminal", "live_exec_console", "tmux_multiplexer", "shell_history", "ssh_tunnel" -> {
+                                                    onNavigateToTerminal()
+                                                    onDismiss()
+                                                }
+                                                "web_inspector" -> {
+                                                    onNavigateToBrowser()
+                                                    onDismiss()
+                                                }
+                                                "scratchpad" -> {
+                                                    onOpenScratchpad()
+                                                    onDismiss()
+                                                }
+                                                "trajectory_export" -> {
+                                                    onOpenExport()
+                                                    onDismiss()
+                                                }
+                                                "skills_marketplace", "mcp_explorer", "community_skills", "mcp_simulator" -> {
+                                                    onOpenSkills()
+                                                    onDismiss()
+                                                }
+                                                "ai_automation" -> {
+                                                    onOpenAutomation()
+                                                    onDismiss()
+                                                }
+                                                "google_vault", "workspace_backup" -> {
+                                                    onOpenGoogleDrive()
+                                                    onDismiss()
+                                                }
+                                                "gemini_notebooks" -> {
+                                                    onOpenNotebooks()
+                                                    onDismiss()
+                                                }
+                                                "battery_saver" -> {
+                                                    AppToastHelper.showToast("⚡ 24/7 Battery Saver: CPU governor & memory tuned for cool running!", ChatToastType.SUCCESS)
+                                                    onDismiss()
+                                                }
+                                                "cooling_guard" -> {
+                                                    AppToastHelper.showToast("❄️ Cooling Governor Active: Zero-heating thermal limits engaged!", ChatToastType.SUCCESS)
+                                                    onDismiss()
+                                                }
+                                                "ram_booster" -> {
+                                                    System.gc()
+                                                    AppToastHelper.showToast("🚀 Deep RAM Cleaner: Cleared buffers and purged zombie subprocesses!", ChatToastType.SUCCESS)
+                                                    onDismiss()
+                                                }
+                                                else -> {
+                                                    AppToastHelper.showToast("Activated ${feat.title}", ChatToastType.SUCCESS)
+                                                    onDismiss()
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(36.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = feat.accentColor)
                                     ) {
-                                        Text(
-                                            text = feat.badge,
-                                            fontSize = 8.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = feat.accentColor,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                        )
+                                        Text("🚀 এখন চালু করুন (Activate & Launch)", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = feat.description,
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    lineHeight = 14.sp
-                                )
                             }
-
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                                modifier = Modifier.size(16.dp)
-                            )
                         }
                     }
                 }

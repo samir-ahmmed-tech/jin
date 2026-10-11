@@ -52,6 +52,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         instanceRef = java.lang.ref.WeakReference(this)
+        com.example.gemini.data.security.SecureStorageManager.init(this)
         com.example.gemini.data.remote.inspector.NetworkInspectorManager.isEnabled =
             chatViewModel.authPreferences.getNetworkInspectorEnabledSync()
         com.example.gemini.data.remote.inspector.NetworkInspectorManager.isFloatingBubbleEnabled =

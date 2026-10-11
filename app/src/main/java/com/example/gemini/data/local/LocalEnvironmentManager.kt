@@ -953,20 +953,23 @@ object LocalEnvironmentManager {
                             var bytesReadTotal = 0L
                             val startTime = System.currentTimeMillis()
 
-                            val bufferSize = 2 * 1024 * 1024 // 2MB high-speed buffer
+                            val bufferSize = 4 * 1024 * 1024 // 4MB ultra high-speed stream buffer
                             val buffer = ByteArray(bufferSize)
                             BufferedOutputStream(FileOutputStream(tempZipFile), bufferSize).use { outStream ->
                                 BufferedInputStream(body.byteStream(), bufferSize).use { inStream ->
                                     var read: Int
                                     var lastUpdate = System.currentTimeMillis()
+                                    var windowBytes = 0L
+                                    var lastWindowTime = System.currentTimeMillis()
                                     while (inStream.read(buffer).also { read = it } != -1) {
                                         outStream.write(buffer, 0, read)
                                         bytesReadTotal += read
+                                        windowBytes += read
 
                                         val now = System.currentTimeMillis()
                                         if (now - lastUpdate > 250) {
-                                            val elapsedSec = (now - startTime) / 1000.0
-                                            val speed = if (elapsedSec > 0) bytesReadTotal / elapsedSec else 0.0
+                                            val windowElapsedSec = (now - lastWindowTime) / 1000.0
+                                            val speed = if (windowElapsedSec > 0) windowBytes / windowElapsedSec else 0.0
                                             val speedFormatted = "${formatFileSize(speed.toLong())}/s"
                                             val fraction = (bytesReadTotal.toFloat() / expectedTotal.toFloat()).coerceIn(0.05f, 0.95f)
 
@@ -980,6 +983,8 @@ object LocalEnvironmentManager {
                                             val pct = (fraction * 100).toInt()
                                             updateInstallNotification(appContext, "Downloading $titlePrefix ($pct%)", "$speedFormatted • $targetAsset", pct)
                                             lastUpdate = now
+                                            windowBytes = 0L
+                                            lastWindowTime = now
                                         }
                                     }
                                 }
@@ -1053,21 +1058,24 @@ object LocalEnvironmentManager {
                                 var bytesReadTotal = 0L
                                 val startTime = System.currentTimeMillis()
 
-                                val bufferSize = 2 * 1024 * 1024 // 2MB high-speed buffer
+                                val bufferSize = 4 * 1024 * 1024 // 4MB ultra high-speed stream buffer
                                 val buffer = ByteArray(bufferSize)
                                 BufferedOutputStream(FileOutputStream(tempZipFile), bufferSize).use { outStream ->
                                     body.byteStream().use { inStream ->
                                         BufferedInputStream(inStream, bufferSize).use { bufIn ->
                                             var read: Int
                                             var lastUpdate = System.currentTimeMillis()
+                                            var windowBytes = 0L
+                                            var lastWindowTime = System.currentTimeMillis()
                                             while (bufIn.read(buffer).also { read = it } != -1) {
                                                 outStream.write(buffer, 0, read)
                                                 bytesReadTotal += read
+                                                windowBytes += read
 
                                                 val now = System.currentTimeMillis()
                                                 if (now - lastUpdate > 250) {
-                                                    val elapsedSec = (now - startTime) / 1000.0
-                                                    val speed = if (elapsedSec > 0) bytesReadTotal / elapsedSec else 0.0
+                                                    val windowElapsedSec = (now - lastWindowTime) / 1000.0
+                                                    val speed = if (windowElapsedSec > 0) windowBytes / windowElapsedSec else 0.0
                                                     val speedFormatted = "${formatFileSize(speed.toLong())}/s"
                                                     val fraction = (bytesReadTotal.toFloat() / expectedTotal.toFloat()).coerceIn(0.05f, 0.95f)
 
@@ -1081,6 +1089,8 @@ object LocalEnvironmentManager {
                                                     val pct = (fraction * 100).toInt()
                                                     updateInstallNotification(appContext, "Downloading JIN Rootfs ($pct%)", "$speedFormatted • bootstrap-$arch.zip", pct)
                                                     lastUpdate = now
+                                                    windowBytes = 0L
+                                                    lastWindowTime = now
                                                 }
                                             }
                                         }

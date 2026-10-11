@@ -158,7 +158,20 @@ class NetworkInspectorInterceptor(
         for (i in 0 until headers.size) {
             val name = headers.name(i)
             val value = headers.value(i)
-            map[name] = value
+            val isSensitive = name.equals("Authorization", ignoreCase = true) ||
+                    name.equals("Proxy-Authorization", ignoreCase = true) ||
+                    name.contains("api-key", ignoreCase = true) ||
+                    name.contains("token", ignoreCase = true) ||
+                    name.contains("secret", ignoreCase = true)
+            map[name] = if (isSensitive) {
+                if (value.startsWith("Bearer ", ignoreCase = true)) {
+                    "Bearer ••••••••••••"
+                } else {
+                    "••••••••••••"
+                }
+            } else {
+                value
+            }
         }
         return map
     }

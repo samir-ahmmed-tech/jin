@@ -314,6 +314,40 @@ fun FileManagerDialog(
                     }
                 }
 
+                // --- Quick Storage Location Chips (Termux & Mobile Phone Storage) ---
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val shortcuts = listOf(
+                        "~/projects" to "💻 Projects",
+                        "~" to "🏠 Termux",
+                        "/storage/emulated/0" to "📱 Phone Storage",
+                        "/storage/emulated/0/Documents" to "📄 Documents",
+                        "/storage/emulated/0/Download" to "📥 Downloads"
+                    )
+                    shortcuts.forEach { (path, label) ->
+                        val isCurr = currentPath == path || currentPath.startsWith(path)
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (isCurr) ClaudeTerracotta.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, if (isCurr) ClaudeTerracotta.copy(alpha = 0.5f) else Color.Transparent),
+                            modifier = Modifier.clickable { jumpTo(path) }
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 11.sp,
+                                fontWeight = if (isCurr) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isCurr) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+
                 // --- 2. Action Buttons Strip (+ Folder, + File, + Project) ---
                 Surface(
                     color = MaterialTheme.colorScheme.surface,

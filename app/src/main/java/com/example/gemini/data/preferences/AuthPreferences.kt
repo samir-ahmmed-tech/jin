@@ -8,6 +8,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.map
+import com.example.gemini.data.security.SecureStorageManager
 
 private val Context.dataStore by preferencesDataStore(name = "auth_prefs")
 
@@ -100,6 +101,8 @@ class AuthPreferences(private val context: Context) {
         val CUSTOM_API_MODEL_NAME = stringPreferencesKey("custom_api_model_name")
         val PERSONAL_INTELLIGENCE_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("personal_intelligence_enabled")
         val WEB_SEARCH_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("web_search_enabled")
+        val MAX_IDLE_RUNTIME_MIN = androidx.datastore.preferences.core.intPreferencesKey("max_idle_runtime_min")
+        val THERMAL_PROTECTION_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("thermal_protection_enabled")
 
         const val DEFAULT_BRIDGE_BINARY_PATH = "~/../usr/bin/agy_ide_bridge"
         const val DEFAULT_UBUNTU_BRIDGE_BINARY_PATH = "/antigem/bin/agy_ide_bridge"
@@ -214,12 +217,12 @@ class AuthPreferences(private val context: Context) {
         url
     }
 
-    val accessToken: Flow<String?> = context.dataStore.data.map { it[ACCESS_TOKEN] }
-    val refreshToken: Flow<String?> = context.dataStore.data.map { it[REFRESH_TOKEN] }
+    val accessToken: Flow<String?> = context.dataStore.data.map { it[ACCESS_TOKEN]?.let { t -> SecureStorageManager.decrypt(t) } }
+    val refreshToken: Flow<String?> = context.dataStore.data.map { it[REFRESH_TOKEN]?.let { t -> SecureStorageManager.decrypt(t) } }
     val expiresAt: Flow<Long?> = context.dataStore.data.map { it[EXPIRES_AT] }
     val projectId: Flow<String?> = context.dataStore.data.map { it[PROJECT_ID] ?: "rising-fact-p41fc" }
     val subscriptionTier: Flow<String?> = context.dataStore.data.map { it[SUBSCRIPTION_TIER] ?: "pro" }
-    val userEmail: Flow<String?> = context.dataStore.data.map { it[USER_EMAIL] }
+    val userEmail: Flow<String?> = context.dataStore.data.map { it[USER_EMAIL]?.let { e -> SecureStorageManager.decrypt(e) } }
 
     fun getThemeModeSync(): String {
         val cached = syncPrefs.getString("app_theme_mode", null)
@@ -323,7 +326,7 @@ class AuthPreferences(private val context: Context) {
     val termuxSshHost: Flow<String> = context.dataStore.data.map { it[TERMUX_SSH_HOST] ?: "127.0.0.1" }
     val termuxSshPort: Flow<Int> = context.dataStore.data.map { it[TERMUX_SSH_PORT]?.toIntOrNull() ?: 8022 }
     val termuxSshUser: Flow<String> = context.dataStore.data.map { it[TERMUX_SSH_USER] ?: "root" }
-    val termuxSshPass: Flow<String> = context.dataStore.data.map { it[TERMUX_SSH_PASS] ?: "root" }
+    val termuxSshPass: Flow<String> = context.dataStore.data.map { SecureStorageManager.decrypt(it[TERMUX_SSH_PASS] ?: "root") }
     val isTerminalToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_TERMINAL_TOOL_ENABLED] ?: false }
     val isAutoExecuteTerminal: Flow<Boolean> = context.dataStore.data.map { it[AUTO_EXECUTE_TERMINAL] ?: true }
 
@@ -439,11 +442,12 @@ class AuthPreferences(private val context: Context) {
         enabled: Boolean,
         autoExecute: Boolean
     ) {
+        val encPass = SecureStorageManager.encrypt(pass)
         context.dataStore.edit { prefs ->
             prefs[TERMUX_SSH_HOST] = host
             prefs[TERMUX_SSH_PORT] = port.toString()
             prefs[TERMUX_SSH_USER] = user
-            prefs[TERMUX_SSH_PASS] = pass
+            prefs[TERMUX_SSH_PASS] = encPass
             prefs[IS_TERMINAL_TOOL_ENABLED] = enabled
             prefs[AUTO_EXECUTE_TERMINAL] = autoExecute
         }
@@ -462,11 +466,12 @@ class AuthPreferences(private val context: Context) {
     }
 
     suspend fun saveSshSettings(host: String, port: Int, user: String, pass: String) {
+        val encPass = SecureStorageManager.encrypt(pass)
         context.dataStore.edit { prefs ->
             prefs[TERMUX_SSH_HOST] = host
             prefs[TERMUX_SSH_PORT] = port.toString()
             prefs[TERMUX_SSH_USER] = user
-            prefs[TERMUX_SSH_PASS] = pass
+            prefs[TERMUX_SSH_PASS] = encPass
         }
     }
 
@@ -487,17 +492,21 @@ class AuthPreferences(private val context: Context) {
     }
 
     suspend fun saveTokens(accessToken: String, refreshToken: String?, email: String? = null, expiresInSeconds: Long? = 3600) {
-        val editor = syncPrefs.edit().putString("access_token", accessToken)
-        if (refreshToken != null) editor.putString("refresh_token", refreshToken)
-        if (email != null) editor.putString("user_email", email)
+        val encAccess = SecureStorageManager.encrypt(accessToken)
+        val encRefresh = refreshToken?.let { SecureStorageManager.encrypt(it) }
+        val encEmail = email?.let { SecureStorageManager.encrypt(it) }
+
+        val editor = syncPrefs.edit().putString("access_token", encAccess)
+        if (encRefresh != null) editor.putString("refresh_token", encRefresh)
+        if (encEmail != null) editor.putString("user_email", encEmail)
         editor.apply()
         context.dataStore.edit { prefs ->
-            prefs[ACCESS_TOKEN] = accessToken
-            if (refreshToken != null) {
-                prefs[REFRESH_TOKEN] = refreshToken
+            prefs[ACCESS_TOKEN] = encAccess
+            if (encRefresh != null) {
+                prefs[REFRESH_TOKEN] = encRefresh
             }
-            if (email != null) {
-                prefs[USER_EMAIL] = email
+            if (encEmail != null) {
+                prefs[USER_EMAIL] = encEmail
             }
             if (expiresInSeconds != null) {
                 prefs[EXPIRES_AT] = System.currentTimeMillis() + (expiresInSeconds * 1000)
@@ -505,9 +514,23 @@ class AuthPreferences(private val context: Context) {
         }
     }
 
-    fun getAccessTokenSync(): String = syncPrefs.getString("access_token", "") ?: ""
-    fun getRefreshTokenSync(): String = syncPrefs.getString("refresh_token", "") ?: ""
-    fun getUserEmailSync(): String = syncPrefs.getString("user_email", "") ?: ""
+    fun getAccessTokenSync(): String = SecureStorageManager.decrypt(syncPrefs.getString("access_token", "") ?: "")
+    fun getRefreshTokenSync(): String = SecureStorageManager.decrypt(syncPrefs.getString("refresh_token", "") ?: "")
+    fun getUserEmailSync(): String = SecureStorageManager.decrypt(syncPrefs.getString("user_email", "") ?: "")
+
+    val maxIdleRuntimeMin: Flow<Int> = context.dataStore.data.map { it[MAX_IDLE_RUNTIME_MIN] ?: 30 }
+    fun getMaxIdleRuntimeMinSync(): Int = syncPrefs.getInt("max_idle_runtime_min", 30)
+    suspend fun saveMaxIdleRuntimeMin(minutes: Int) {
+        syncPrefs.edit().putInt("max_idle_runtime_min", minutes).apply()
+        context.dataStore.edit { it[MAX_IDLE_RUNTIME_MIN] = minutes }
+    }
+
+    val thermalProtectionEnabled: Flow<Boolean> = context.dataStore.data.map { it[THERMAL_PROTECTION_ENABLED] ?: true }
+    fun getThermalProtectionEnabledSync(): Boolean = syncPrefs.getBoolean("thermal_protection_enabled", true)
+    suspend fun saveThermalProtectionEnabled(enabled: Boolean) {
+        syncPrefs.edit().putBoolean("thermal_protection_enabled", enabled).apply()
+        context.dataStore.edit { it[THERMAL_PROTECTION_ENABLED] = enabled }
+    }
 
     suspend fun saveProjectInfo(projectId: String, tier: String) {
         context.dataStore.edit { prefs ->
@@ -928,53 +951,59 @@ class AuthPreferences(private val context: Context) {
         context.dataStore.edit { it[IS_TERMINAL_LAUNCHER_ENABLED] = enabled }
     }
 
-    // Direct API Keys & Custom Proxy Accessors
-    val openAiApiKey: Flow<String> = context.dataStore.data.map { it[OPENAI_API_KEY] ?: getOpenAiApiKeySync() }
-    fun getOpenAiApiKeySync(): String = syncPrefs.getString("openai_api_key", "") ?: ""
+    // Direct API Keys & Custom Proxy Accessors (100% AES-256-GCM On-Device Encrypted)
+    val openAiApiKey: Flow<String> = context.dataStore.data.map { SecureStorageManager.decrypt(it[OPENAI_API_KEY] ?: getOpenAiApiKeySync()) }
+    fun getOpenAiApiKeySync(): String = SecureStorageManager.decrypt(syncPrefs.getString("openai_api_key", "") ?: "")
     suspend fun saveOpenAiApiKey(key: String) {
         val trimmed = key.trim()
-        syncPrefs.edit().putString("openai_api_key", trimmed).apply()
-        context.dataStore.edit { it[OPENAI_API_KEY] = trimmed }
+        val encrypted = SecureStorageManager.encrypt(trimmed)
+        syncPrefs.edit().putString("openai_api_key", encrypted).apply()
+        context.dataStore.edit { it[OPENAI_API_KEY] = encrypted }
     }
 
-    val deepSeekApiKey: Flow<String> = context.dataStore.data.map { it[DEEPSEEK_API_KEY] ?: getDeepSeekApiKeySync() }
-    fun getDeepSeekApiKeySync(): String = syncPrefs.getString("deepseek_api_key", "") ?: ""
+    val deepSeekApiKey: Flow<String> = context.dataStore.data.map { SecureStorageManager.decrypt(it[DEEPSEEK_API_KEY] ?: getDeepSeekApiKeySync()) }
+    fun getDeepSeekApiKeySync(): String = SecureStorageManager.decrypt(syncPrefs.getString("deepseek_api_key", "") ?: "")
     suspend fun saveDeepSeekApiKey(key: String) {
         val trimmed = key.trim()
-        syncPrefs.edit().putString("deepseek_api_key", trimmed).apply()
-        context.dataStore.edit { it[DEEPSEEK_API_KEY] = trimmed }
+        val encrypted = SecureStorageManager.encrypt(trimmed)
+        syncPrefs.edit().putString("deepseek_api_key", encrypted).apply()
+        context.dataStore.edit { it[DEEPSEEK_API_KEY] = encrypted }
     }
 
-    val anthropicApiKey: Flow<String> = context.dataStore.data.map { it[ANTHROPIC_API_KEY] ?: getAnthropicApiKeySync() }
-    fun getAnthropicApiKeySync(): String = syncPrefs.getString("anthropic_api_key", "") ?: ""
+    val anthropicApiKey: Flow<String> = context.dataStore.data.map { SecureStorageManager.decrypt(it[ANTHROPIC_API_KEY] ?: getAnthropicApiKeySync()) }
+    fun getAnthropicApiKeySync(): String = SecureStorageManager.decrypt(syncPrefs.getString("anthropic_api_key", "") ?: "")
     suspend fun saveAnthropicApiKey(key: String) {
         val trimmed = key.trim()
-        syncPrefs.edit().putString("anthropic_api_key", trimmed).apply()
-        context.dataStore.edit { it[ANTHROPIC_API_KEY] = trimmed }
+        val encrypted = SecureStorageManager.encrypt(trimmed)
+        syncPrefs.edit().putString("anthropic_api_key", encrypted).apply()
+        context.dataStore.edit { it[ANTHROPIC_API_KEY] = encrypted }
     }
 
-    val geminiApiKey: Flow<String> = context.dataStore.data.map { it[GEMINI_API_KEY] ?: getGeminiApiKeySync() }
-    fun getGeminiApiKeySync(): String = syncPrefs.getString("gemini_api_key", "") ?: ""
+    val geminiApiKey: Flow<String> = context.dataStore.data.map { SecureStorageManager.decrypt(it[GEMINI_API_KEY] ?: getGeminiApiKeySync()) }
+    fun getGeminiApiKeySync(): String = SecureStorageManager.decrypt(syncPrefs.getString("gemini_api_key", "") ?: "")
     suspend fun saveGeminiApiKey(key: String) {
         val trimmed = key.trim()
-        syncPrefs.edit().putString("gemini_api_key", trimmed).apply()
-        context.dataStore.edit { it[GEMINI_API_KEY] = trimmed }
+        val encrypted = SecureStorageManager.encrypt(trimmed)
+        syncPrefs.edit().putString("gemini_api_key", encrypted).apply()
+        context.dataStore.edit { it[GEMINI_API_KEY] = encrypted }
     }
 
-    val openRouterApiKey: Flow<String> = context.dataStore.data.map { it[OPENROUTER_API_KEY] ?: getOpenRouterApiKeySync() }
-    fun getOpenRouterApiKeySync(): String = syncPrefs.getString("openrouter_api_key", "") ?: ""
+    val openRouterApiKey: Flow<String> = context.dataStore.data.map { SecureStorageManager.decrypt(it[OPENROUTER_API_KEY] ?: getOpenRouterApiKeySync()) }
+    fun getOpenRouterApiKeySync(): String = SecureStorageManager.decrypt(syncPrefs.getString("openrouter_api_key", "") ?: "")
     suspend fun saveOpenRouterApiKey(key: String) {
         val trimmed = key.trim()
-        syncPrefs.edit().putString("openrouter_api_key", trimmed).apply()
-        context.dataStore.edit { it[OPENROUTER_API_KEY] = trimmed }
+        val encrypted = SecureStorageManager.encrypt(trimmed)
+        syncPrefs.edit().putString("openrouter_api_key", encrypted).apply()
+        context.dataStore.edit { it[OPENROUTER_API_KEY] = encrypted }
     }
 
-    val customApiKey: Flow<String> = context.dataStore.data.map { it[CUSTOM_API_KEY] ?: getCustomApiKeySync() }
-    fun getCustomApiKeySync(): String = syncPrefs.getString("custom_api_key", "") ?: ""
+    val customApiKey: Flow<String> = context.dataStore.data.map { SecureStorageManager.decrypt(it[CUSTOM_API_KEY] ?: getCustomApiKeySync()) }
+    fun getCustomApiKeySync(): String = SecureStorageManager.decrypt(syncPrefs.getString("custom_api_key", "") ?: "")
     suspend fun saveCustomApiKey(key: String) {
         val trimmed = key.trim()
-        syncPrefs.edit().putString("custom_api_key", trimmed).apply()
-        context.dataStore.edit { it[CUSTOM_API_KEY] = trimmed }
+        val encrypted = SecureStorageManager.encrypt(trimmed)
+        syncPrefs.edit().putString("custom_api_key", encrypted).apply()
+        context.dataStore.edit { it[CUSTOM_API_KEY] = encrypted }
     }
 
     val customApiBaseUrl: Flow<String> = context.dataStore.data.map { it[CUSTOM_API_BASE_URL] ?: getCustomApiBaseUrlSync() }

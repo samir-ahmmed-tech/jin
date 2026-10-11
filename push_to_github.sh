@@ -42,8 +42,8 @@ git add -A
 if git diff --staged --quiet; then
     echo "ℹ️  No new changes to commit."
 else
-    echo "💾 Creating commit..."
-    git commit -m "feat: JIN v2.0.3 - Swarm Concurrency, Supercharged Speed, Ready-Only Model Picker & PC IDE Features"
+    COMMIT_MSG="${2:-feat: JIN v2.1.0 - Enterprise On-Device Encryption, Privacy Policy, Mobile Workspace Folder Creation, 4MB High-Speed I/O & Unlimited PC Power Suite}"
+    git commit -m "$COMMIT_MSG"
 fi
 
 echo "🔄 Pushing to https://github.com/${REPO_OWNER}/${REPO_NAME} on branch main..."

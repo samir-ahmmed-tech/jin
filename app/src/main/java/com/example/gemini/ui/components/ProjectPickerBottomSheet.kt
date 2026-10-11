@@ -48,6 +48,11 @@ fun ProjectPickerDialog(
     onRefresh: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
+    var showCreateNewFolderDialog by remember { mutableStateOf(false) }
+    var newFolderNameInput by remember { mutableStateOf("") }
+    var selectedLocationType by remember { mutableStateOf("termux") }
+    var createError by remember { mutableStateOf<String?>(null) }
+
     val initialScrollIndex = remember {
         if (activeProject == null || activeProject.path.isBlank()) 0
         else {
@@ -350,33 +355,178 @@ fun ProjectPickerDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Bottom Action: Add / Browse Folder in File Manager
-                Button(
-                    onClick = {
-                        onDismiss()
-                        onBrowseFolder()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                // Bottom Actions: + Create New Folder & Browse Storage
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.FolderOpen,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Browse or Open Other Folder...",
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Button(
+                        onClick = {
+                            newFolderNameInput = ""
+                            createError = null
+                            showCreateNewFolderDialog = true
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(46.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "+ New Folder",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            onDismiss()
+                            onBrowseFolder()
+                        },
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .height(46.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FolderOpen,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Browse Storage...",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
     }
-}
+
+    if (showCreateNewFolderDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreateNewFolderDialog = false },
+            title = {
+                Text(
+                    text = "Create Workspace Folder",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Choose target storage and folder name for your new workspace:",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Storage Location Selector Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val locs = listOf(
+                            "termux" to "💻 Termux",
+                            "phone_docs" to "📄 Documents",
+                            "phone_dl" to "📥 Downloads"
+                        )
+                        locs.forEach { (type, label) ->
+                            val isSel = selectedLocationType == type
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSel) Color(0xFF10B981).copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, if (isSel) Color(0xFF10B981) else Color.Transparent),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { selectedLocationType = type }
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(vertical = 6.dp, horizontal = 2.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSel) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = newFolderNameInput,
+                        onValueChange = {
+                            newFolderNameInput = it
+                            createError = null
+                        },
+                        label = { Text("Folder Name") },
+                        placeholder = { Text("my-new-project") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    if (createError != null) {
+                        Text(
+                            text = createError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 11.5.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val name = newFolderNameInput.trim()
+                        if (name.isBlank()) {
+                            createError = "Please enter a valid folder name"
+                            return@Button
+                        }
+                        val baseDir = when (selectedLocationType) {
+                            "phone_docs" -> File("/storage/emulated/0/Documents")
+                            "phone_dl" -> File("/storage/emulated/0/Download")
+                            else -> File("/data/user/0/com.termux/files/home/projects")
+                        }
+                        try {
+                            if (!baseDir.exists()) baseDir.mkdirs()
+                            val targetDir = File(baseDir, name)
+                            if (!targetDir.exists()) targetDir.mkdirs()
+
+                            val proj = ProjectItem(targetDir.name, targetDir.absolutePath)
+                            showCreateNewFolderDialog = false
+                            onSelectProject(proj)
+                            onDismiss()
+                        } catch (e: Exception) {
+                            createError = "Failed to create folder: ${e.message}"
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Create & Open", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateNewFolderDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }

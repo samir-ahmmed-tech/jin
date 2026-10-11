@@ -90,17 +90,17 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
-          name: "JIN v${{ steps.get_version.outputs.version }} - Edge-to-Edge Setup, Google Drive Vault, Gemini Notebooks & Persistent Updates"
+          name: "JIN v${{ steps.get_version.outputs.version }} - Enterprise Security, Privacy & Terms, Mobile Workspace Picker, 4MB High-Speed I/O & Unlimited PC Power Suite"
           body: |
             ### 🚀 JIN v${{ steps.get_version.outputs.version }} Release
-            - 🌟 **Full-Page Edge-to-Edge Agents Setup**: Recreated the active agents screen matching Jin's dark theme into a full edge-to-edge layout with zero text wrapping/clipping, responsive agent cards, and sticky bottom continue action.
-            - ☁️ **Google Drive Cloud Vault with Direct Login**: Direct Google Account status & 1-tap sign-in inside the sync dialog, auto-refreshing OAuth tokens, backing up all direct chats, general chats, Gemini notebooks, custom folders, Termux projects workspace, and AI brain transcripts/artifacts.
-            - 📓 **Gemini-Style Notebooks**: Comprehensive notebook creation, editing, and 1-tap contextual prompt attachments with live removable chips.
-            - 🛠️ **Clickable Workspace Picker**: Restored clickable workspace selector during ongoing chats.
-            - 🤖 **Dedicated Automation Controls**: Quick-launch sheet and prompt attachment options for Browser Automation MCP, Terminal Automation, and Agentic Flow Automation.
-            - 🎛️ **Card Size & Font Size Customization**: New Card Size & Density Scale (50%–150%) and independent App Font Size Scale (50%–180%) sliders with preset quick chips in Settings.
-            - 🔄 **Persistent APK Signing & Update Fix**: Fixed the issue where updating required deleting the app first. Established persistent release keystore signing across all builds and added explicit FileProvider permissions for PackageInstaller.
-            - 📦 **Dual Flavor Release Builds**: Both `jin-termux` and `jin-standard` compiled in release mode.
+            - 🔒 **Enterprise On-Device Security & AES-256-GCM Vault**: Hardware-salted on-device encryption for all sensitive API keys (OpenAI, DeepSeek, Claude, Gemini, OpenRouter, Custom proxy), SSH passwords, and session tokens. Frontend secret masking (`••••••••••••sk-****`), strict TLS/HTTPS transport enforcement, script/XSS sanitization, and zero secret leakage in logs.
+            - 🛡️ **Sovereign Privacy Policy & Terms of Service**: Dedicated in-app dialogs guaranteeing 100% on-device data sovereignty, zero telemetry, zero analytics tracking, and local sandboxing.
+            - 📁 **Fresh Mobile Folder Creation & Multi-Storage Workspace Picker**: '+ New Folder' modal to create brand new directories anywhere in Termux (`~/projects`) or Phone Storage (`/storage/emulated/0`), with 1-tap jump chips for Projects, Termux, Phone Storage, Documents, and Downloads.
+            - ⚡ **4MB Ultra High-Speed Stream Buffer**: Boosted download engine to 4MB chunked stream buffers with rolling instantaneous throughput measurement, delivering high-speed 20-30+ MB/s downloads.
+            - 🎛️ **Unlimited PC Power Features & Guidance Suite**: Comprehensive suite of 45+ PC tools with detailed instructions on what each tool does ('টুলের কাজ কি'), what happens when activated ('অন করলে কি হইবো'), and how to use it ('কীভাবে ব্যবহার করবেন').
+            - 🔋 **Hardware, Thermal & Idle Governor**: CPU execution core scaling, RAM cache governor, low-battery/thermal throttle protection, and background idle execution limits to protect mobile hardware.
+            - 🌐 **Full Autonomous AI Agent Browser Control**: In-app WebView sidebar with autonomous DOM inspection, clicking, typing, screenshots, and multi-tab control via local MCP server.
+            - 📦 **Dual Flavor Release Builds**: Both `jin-termux` and `jin-standard` compiled in release mode with persistent signing.
             - 👨‍💻 **Lead Developer**: Samir Ahmmed (https://github.com/samir-ahmmed-tech)
           files: output/*.apk
           draft: false
