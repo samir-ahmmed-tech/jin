@@ -183,11 +183,6 @@ object LocalServerManager {
                 Log.w(TAG, "Error copying bridge binary to Ubuntu rootfs: ${e.message}")
             }
         }
-                Log.d(TAG, "[ServerManager] Successfully extracted assets to ${binDir.absolutePath}")
-            } catch (e: Exception) {
-                Log.e(TAG, "[ServerManager] Failed to extract assets from bin/", e)
-            }
-        }
     }
 
     /**
