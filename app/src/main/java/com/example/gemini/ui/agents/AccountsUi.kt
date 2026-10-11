@@ -38,7 +38,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.runtime.*
+import com.example.gemini.theme.ClaudeTerracotta
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
