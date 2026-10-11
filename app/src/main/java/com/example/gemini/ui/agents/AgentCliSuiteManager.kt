@@ -108,7 +108,7 @@ object AgentCliSuiteRegistry {
             description = "Universal multi-model routing CLI agent with Mistral, Qwen, and Llama.",
             sizeMb = 4.5f,
             authType = "OpenRouter Account Login",
-            icon = Icons.Default.Share,
+            icon = Icons.Outlined.Share,
             accentColor = Color(0xFFF59E0B),
             features = listOf("OpenRouter Keyless Login", "Codestral 25B", "Qwen 2.5 Coder", "Auto Quota Failover"),
             loginUrl = "https://openrouter.ai"
@@ -412,7 +412,7 @@ fun AgentCliSuiteDialog(
                                             )
                                         } else if (isInstalled) {
                                             Icon(
-                                                imageVector = Icons.Default.CheckCircle,
+                                                imageVector = Icons.Outlined.CheckCircle,
                                                 contentDescription = null,
                                                 tint = QuotaGreen,
                                                 modifier = Modifier.size(14.dp)

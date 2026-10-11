@@ -56,7 +56,7 @@ object PcFeaturesRegistry {
             title = "Live Git Diff & Commit Manager",
             category = "Source Control",
             description = "Side-by-side visual file diffs, git staging, and 1-tap commit messages.",
-            icon = Icons.Default.CallSplit,
+            icon = Icons.Outlined.CallSplit,
             badge = "VCS",
             accentColor = Color(0xFF10B981)
         ),
@@ -191,7 +191,7 @@ object PcFeaturesRegistry {
             title = "Workspace File Tree Explorer",
             category = "File System",
             description = "Hierarchical file tree with git modification status colors and file size badges.",
-            icon = Icons.Default.Folder,
+            icon = Icons.Outlined.Folder,
             badge = "FILES",
             accentColor = Color(0xFF0EA5E9)
         ),
@@ -200,7 +200,7 @@ object PcFeaturesRegistry {
             title = "Global Find & Replace (Ctrl+Shift+F)",
             category = "Search",
             description = "Multi-file regex search and replace across the entire project repository.",
-            icon = Icons.Default.Search,
+            icon = Icons.Outlined.Search,
             badge = "SEARCH",
             accentColor = Color(0xFFD946EF)
         ),
