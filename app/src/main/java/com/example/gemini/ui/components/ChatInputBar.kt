@@ -195,6 +195,7 @@ fun ChatInputBar(
     val isDark = isAppInDarkTheme()
     val nativeTranscriber = remember(context) { com.example.gemini.data.audio.NativeSpeechTranscriber(context) }
     val activeTranscriber = speechManager ?: nativeTranscriber
+    val activeNotebook by com.example.gemini.data.notebook.NotebookManager.getInstance(context).attachedNotebook.collectAsState()
     var showSpeechModeDialog by remember { mutableStateOf(false) }
 
     // Audio recording & Speech-to-Text state
@@ -1054,8 +1055,6 @@ fun ChatInputBar(
                                 )
                             }
                         }
-
-                        val activeNotebook by com.example.gemini.data.notebook.NotebookManager.getInstance(context).attachedNotebook.collectAsState()
 
                         // AI Automation Quick Button
                         Surface(
