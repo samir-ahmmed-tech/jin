@@ -187,7 +187,7 @@ class TermuxApiReceiver : BroadcastReceiver() {
         val notification = NotificationCompat.Builder(context, API_NOTIFICATION_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()

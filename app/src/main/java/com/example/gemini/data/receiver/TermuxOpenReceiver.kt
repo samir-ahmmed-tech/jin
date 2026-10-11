@@ -193,7 +193,7 @@ open class TermuxOpenReceiver : BroadcastReceiver() {
                     }
 
                     val notif = NotificationCompat.Builder(context, CHANNEL_ID)
-                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setSmallIcon(R.drawable.ic_notification)
                         .setContentTitle(title)
                         .setContentText(description)
                         .setContentIntent(pendingIntent)

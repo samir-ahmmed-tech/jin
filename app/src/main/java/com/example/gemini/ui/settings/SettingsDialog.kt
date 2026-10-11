@@ -1782,7 +1782,7 @@ private fun AppearanceSubScreen(
                                 ) {
                                     androidx.compose.foundation.Image(
                                         painter = androidx.compose.ui.res.painterResource(id = com.example.gemini.R.drawable.splash_logo),
-                                        contentDescription = "AntiTerm",
+                                        contentDescription = "Jin",
                                         modifier = Modifier.size(26.dp)
                                     )
                                 }
@@ -1791,13 +1791,13 @@ private fun AppearanceSubScreen(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "AntiTerm",
+                                        text = "Jin",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Modern JIN styled icon & name",
+                                        text = "Modern Jin robot mascot & name",
                                         fontSize = 10.5.sp,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                     )
@@ -1861,8 +1861,8 @@ private fun AppearanceSubScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     androidx.compose.foundation.Image(
-                                        painter = androidx.compose.ui.res.painterResource(id = com.example.gemini.R.drawable.ic_termux_foreground),
-                                        contentDescription = "Termux",
+                                        painter = androidx.compose.ui.res.painterResource(id = com.example.gemini.R.drawable.splash_logo),
+                                        contentDescription = "Jin Terminal",
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
@@ -1871,13 +1871,13 @@ private fun AppearanceSubScreen(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Termux",
+                                        text = "Jin Terminal",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Classic >_ prompt icon & name",
+                                        text = "Dedicated Jin terminal icon & name",
                                         fontSize = 10.5.sp,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                     )

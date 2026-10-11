@@ -178,7 +178,7 @@ fun TerminalLauncherOnboardingDialog(
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Icon 1: AntiGem (Main App)
+                            // Icon 1: Jin (Main App)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.width(90.dp)
@@ -194,13 +194,13 @@ fun TerminalLauncherOnboardingDialog(
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.splash_logo),
-                                        contentDescription = "AntiGem",
+                                        contentDescription = "Jin",
                                         modifier = Modifier.size(42.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "AntiGem",
+                                    text = "Jin",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -242,23 +242,15 @@ fun TerminalLauncherOnboardingDialog(
                                         .padding(6.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (selectedStyle == TerminalLauncherManager.STYLE_TERMUX) {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.ic_termux_foreground),
-                                            contentDescription = "Termux",
-                                            modifier = Modifier.size(38.dp)
-                                        )
-                                    } else {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.splash_logo),
-                                            contentDescription = "AntiTerm",
-                                            modifier = Modifier.size(42.dp)
-                                        )
-                                    }
+                                    Image(
+                                        painter = painterResource(id = R.drawable.splash_logo),
+                                        contentDescription = "Jin",
+                                        modifier = Modifier.size(42.dp)
+                                    )
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = if (!isEnabled) "Hidden" else if (selectedStyle == TerminalLauncherManager.STYLE_TERMUX) "Termux" else "AntiTerm",
+                                    text = if (!isEnabled) "Hidden" else "Jin",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = if (!isEnabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
@@ -365,7 +357,7 @@ fun TerminalLauncherOnboardingDialog(
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.splash_logo),
-                                        contentDescription = "AntiTerm",
+                                        contentDescription = "Jin",
                                         modifier = Modifier.size(30.dp)
                                     )
                                 }
@@ -374,13 +366,13 @@ fun TerminalLauncherOnboardingDialog(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "AntiTerm",
+                                        text = "Jin",
                                         fontSize = 13.5.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Modern unified icon matching AntiGem",
+                                        text = "Modern unified robot mascot matching Jin",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                     )
@@ -396,7 +388,7 @@ fun TerminalLauncherOnboardingDialog(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Option 2: Termux (Classic)
+                        // Option 2: Jin Terminal
                         val isTermuxSelected = selectedStyle == TerminalLauncherManager.STYLE_TERMUX
                         Surface(
                             shape = RoundedCornerShape(12.dp),
@@ -424,8 +416,8 @@ fun TerminalLauncherOnboardingDialog(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Image(
-                                        painter = painterResource(id = R.drawable.ic_termux_foreground),
-                                        contentDescription = "Termux",
+                                        painter = painterResource(id = R.drawable.splash_logo),
+                                        contentDescription = "Jin Terminal",
                                         modifier = Modifier.size(28.dp)
                                     )
                                 }
@@ -434,13 +426,13 @@ fun TerminalLauncherOnboardingDialog(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Termux",
+                                        text = "Jin Terminal",
                                         fontSize = 13.5.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Classic terminal >_ prompt icon & familiar name",
+                                        text = "Dedicated terminal launcher with Jin icon",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                     )

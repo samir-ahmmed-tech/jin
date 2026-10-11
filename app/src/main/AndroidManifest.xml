@@ -257,7 +257,7 @@
         <activity
             android:name="com.example.gemini.ui.settings.ManageSpaceActivity"
             android:exported="true"
-            android:label="JIN Space Manager"
+            android:label="Jin Space Manager"
             android:theme="@style/Theme.Gemini">
             <intent-filter>
                 <action android:name="android.intent.action.MANAGE_SPACE" />

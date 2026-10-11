@@ -1,8 +1,11 @@
 {
-  "version_code": 203,
-  "version_name": "2.0.3",
+  "version_code": 204,
+  "version_name": "2.0.4",
   "min_supported_version_code": 1,
   "changelog": [
+    "🛠️ Startup Crash Resolved: Fixed Compose Painter crash on launch and foreground service notification crashes on Android 8+",
+    "🎨 100% Unified 'Jin' Branding: Standardized app name to 'Jin' across launcher, system notifications, space manager, and terminal dialogs",
+    "🤖 Robot Mascot Everywhere: Consistent monochrome mascot status bar icon and full-color 3D robot mascot across launcher and notifications",
     "🚀 Swarm Multi-Agent Concurrency: Run up to 6 concurrent agents simultaneously (AGY + DeepSeek + Claude + Codex + OpenRouter) without stopping Antigravity",
     "⚡ Ready-Only Model Picker: Chat box only displays active/ready configured models; unconfigured providers show instant '+ Add Key' unlock dialog",
     "🏎️ Supercharged 200-300 MB/s Network Engine: 2MB buffered streams, multi-threaded connection pooling, and optimized I/O pipeline",

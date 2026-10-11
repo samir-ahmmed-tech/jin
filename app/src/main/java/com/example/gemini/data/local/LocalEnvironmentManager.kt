@@ -143,10 +143,21 @@ object LocalEnvironmentManager {
 
             setupInstallNotificationChannel(context)
 
+            val largeIconBitmap = try {
+                android.graphics.BitmapFactory.decodeResource(context.resources, R.drawable.splash_logo)
+            } catch (_: Exception) {
+                null
+            }
+
             val builder = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(content)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_notification)
+                .apply {
+                    if (largeIconBitmap != null) {
+                        setLargeIcon(largeIconBitmap)
+                    }
+                }
                 .setOngoing(ongoing)
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)

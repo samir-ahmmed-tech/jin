@@ -39,9 +39,16 @@ jobs:
             keytool -genkey -v -keystore app/release.jks -alias antigem -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=JIN, OU=JIN, O=JIN, L=City, S=State, C=US"
           fi
 
-      - name: Fix AAPT PNG Format
+      - name: Read Version
+        id: get_version
+        run: |
+          VERSION=$(python3 -c "import json; print(json.load(open('version.json')).get('version_name', '2.0.4'))")
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Generate and Validate App Icons
         run: |
           python3 -m pip install pillow
+          python3 scripts/generate_icons.py
           python3 -c "
           import glob
           from PIL import Image
@@ -71,20 +78,21 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: v2.0.3
-          name: "JIN v2.0.3 - Swarm Concurrency, Supercharged Speed & PC IDE Features"
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: "JIN v${{ steps.get_version.outputs.version }} - Startup Crash Fixes & Unified Jin Branding"
           body: |
-            ### 🤖 JIN v2.0.3 Release
+            ### 🤖 JIN v${{ steps.get_version.outputs.version }} Release
+            - 🛠️ **Startup Crash Resolved**: Fixed Jetpack Compose Painter crash on launch caused by InsetDrawables and Android foreground service AdaptiveIcon crashes on Android 8+.
+            - 🎨 **Unified 'Jin' Branding Everywhere**: Standardized app name to 'Jin' (English) across launcher icons, notification bar, settings, space manager, and terminal dialogs.
+            - 🤖 **Consistent Robot Mascot**: Dedicated vector notification icon for clean status bar display and crisp 3D robot mascot for launcher and notifications.
             - 🚀 **Swarm Multi-Agent Concurrency**: Run up to 6 concurrent agents simultaneously (AGY + DeepSeek + Claude + Codex + OpenRouter) without closing Antigravity.
             - ⚡ **Ready-Only Model Picker**: Chat box only displays active/ready configured models; unconfigured providers show instant '+ Add Key' unlock dialogs.
-            - 🏎️ **Supercharged 200-300 MB/s Network Engine**: 2MB buffered streams, connection pooling, and optimized I/O pipeline.
+            - 🏎️ **Supercharged Network Engine**: 2MB buffered streams, connection pooling, and optimized I/O pipeline.
             - 📱 **Global UI Scale Customization**: Granular interface zoom from 25% to 200% with quick presets for all screens.
             - 🔄 **Automatic Model Quota Failover**: Intelligent fallback switches to available models on HTTP 429 quota exhaustion so tasks never halt.
             - ⚙️ **Hardware Performance Tuning**: Safety-constrained CPU thread controls, memory cache sliders, and Turbo/Balanced/Power-Saver profiles.
             - 🧩 **Dynamic Community Skills & MCP Installer**: 1-click GitHub/npm/URL skill & plugin installer with 8 curated developer presets.
             - 🖥️ **Desktop/PC IDE Super-Features**: Quick Open File Palette (Ctrl+P fuzzy search), Scratchpad & Notes, and JIN IDE branding.
-            - 🔇 **Quiet Startup**: Suppressed noisy background setup notifications and toasts for a clean, distraction-free experience.
-            - 🎨 **Unified JIN Branding & 3D Robot Mascot**: Complete brand identity consistency across launcher icons, adaptive round icons, splash screen, and notifications.
             - 👨‍💻 **Lead Developer**: Samir Ahmmed (https://github.com/samir-ahmmed-tech)
           files: output/*.apk
           draft: false

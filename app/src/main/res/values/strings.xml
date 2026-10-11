@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">JIN</string>
-    <string name="anti_term_name">JIN</string>
-    <string name="termux_name">JIN</string>
-    <string name="accessibility_service_name">JIN AI Privacy Automation</string>
-    <string name="accessibility_service_description">Enables JIN AI Coding Super-Agent to inspect the screen, tap buttons, scroll, input text, and automate tasks natively with 100% privacy and local-only execution.</string>
+    <string name="app_name">Jin</string>
+    <string name="anti_term_name">Jin</string>
+    <string name="termux_name">Jin</string>
+    <string name="accessibility_service_name">Jin AI Privacy Automation</string>
+    <string name="accessibility_service_description">Enables Jin AI Coding Super-Agent to inspect the screen, tap buttons, scroll, input text, and automate tasks natively with 100% privacy and local-only execution.</string>
     <string name="copy_text">Copy</string>
     <string name="paste_text">Paste</string>
     <string name="text_selection_more">More</string>

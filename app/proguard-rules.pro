@@ -77,6 +77,14 @@
     <init>(...);
 }
 
+# Wire Protobuf & gRPC runtime
+-keep class com.squareup.wire.** { *; }
+-dontwarn com.squareup.wire.**
+
+# AndroidX DataStore
+-keep class androidx.datastore.** { *; }
+-dontwarn androidx.datastore.**
+
 # Strip out Debug and Verbose logs from the release binary
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
