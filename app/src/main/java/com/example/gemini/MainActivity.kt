@@ -188,6 +188,8 @@ class MainActivity : ComponentActivity() {
             }
             var hasSkippedInstaller by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
+            val showFullScreenInstaller = !isInstalledState && !hasSkippedInstaller
+
             val appUiScale by chatViewModel.appUiScale.collectAsState(initial = 1.0f)
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
             val scaledDensity = remember(currentDensity, appUiScale) {

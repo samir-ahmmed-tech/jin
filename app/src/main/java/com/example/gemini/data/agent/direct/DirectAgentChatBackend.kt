@@ -271,12 +271,13 @@ class DirectAgentChatBackend(
                             responseBuffer.clear()
                             responseBuffer.append("> ⚡ **Auto-Failover Activated**: Quota limit reached on `$currentMId`. Switched automatically to **${fallbackModel.displayName}**.\n\n")
 
-                            directApiClient.streamChatCompletion(
-                                agentKind = kind,
-                                modelId = fallbackModel.id,
+                            directApiClient.streamChatMessages(
+                                baseUrl = baseUrl,
+                                apiKey = apiKey,
+                                model = fallbackModel.id,
                                 messages = history,
                                 systemPrompt = "You are JIN, an advanced agentic AI coding super-assistant created by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin). Assist the developer with clear, high-quality, production-ready code."
-                            ) { token ->
+                            ) { token: String ->
                                 responseBuffer.append(token)
                                 val updatedText = responseBuffer.toString()
                                 val liveList = _messages.value.map {

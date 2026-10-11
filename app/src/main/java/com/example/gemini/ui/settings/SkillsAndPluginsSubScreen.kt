@@ -34,6 +34,7 @@ import com.example.gemini.data.remote.dto.InstalledPluginDto
 import com.example.gemini.data.remote.dto.SkillDefinitionDto
 import com.example.gemini.theme.*
 import com.example.gemini.ui.components.MarkdownContent
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -3,6 +3,8 @@ package com.example.gemini.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -58,7 +60,7 @@ fun AgentPicker(
     statusColors: Map<AgentKind, Color> = emptyMap()
 ) {
     if (agents.size < 2) return
-    val scrollState = androidx.compose.foundation.rememberScrollState()
+    val scrollState = rememberScrollState()
     val shape = RoundedCornerShape(22.dp)
     Row(
         modifier = modifier
@@ -66,7 +68,7 @@ fun AgentPicker(
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), shape)
             .padding(4.dp)
-            .androidx.compose.foundation.horizontalScroll(scrollState),
+            .horizontalScroll(scrollState),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
