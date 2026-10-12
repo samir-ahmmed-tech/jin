@@ -9,6 +9,7 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
@@ -25,7 +26,7 @@ class JinAutonomousEngine(private val context: Context) {
     private val installer = HarnessRuntimeInstaller(context)
     private val checkpoints = WorkspaceCheckpoints(context.filesDir, context)
     private val authPrefs = AuthPreferences(context)
-    private val apiClient = DirectApiClient(context)
+    private val apiClient = DirectApiClient()
 
     companion object {
         const val TAG = "JinAutonomousEngine"
@@ -519,10 +520,14 @@ Guidelines:
                     messages = conversation,
                     systemPrompt = systemPrompt,
                     onReasoning = { delta ->
-                        onEvent(RuntimeEvent.ReasoningDelta(sessionId, delta))
+                        runBlocking {
+                            onEvent(RuntimeEvent.ReasoningDelta(sessionId, delta))
+                        }
                     },
                     onToken = { delta ->
-                        onEvent(RuntimeEvent.AssistantDelta(sessionId, delta))
+                        runBlocking {
+                            onEvent(RuntimeEvent.AssistantDelta(sessionId, delta))
+                        }
                     }
                 )
             } catch (t: Throwable) {

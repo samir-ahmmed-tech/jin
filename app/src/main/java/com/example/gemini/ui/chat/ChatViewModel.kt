@@ -149,14 +149,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         openrouter: StateFlow<T> = agy,
         opencode: StateFlow<T> = agy
     ): StateFlow<T> =
-        combine(listOf(agy, claude, deepseek, codex, openrouter, opencode)) { arr ->
+        combine(
+            combine(agy, claude, deepseek) { a, c, d -> Triple(a, c, d) },
+            combine(codex, openrouter, opencode) { cx, o, op -> Triple(cx, o, op) }
+        ) { (a, c, d), (cx, o, op) ->
             mapOf(
-                AgentKind.AGY to arr[0],
-                AgentKind.CLAUDE to arr[1],
-                AgentKind.DEEPSEEK_LOCAL to arr[2],
-                AgentKind.CODEX to arr[3],
-                AgentKind.OPENROUTER to arr[4],
-                AgentKind.OPENCODE to arr[5]
+                AgentKind.AGY to a,
+                AgentKind.CLAUDE to c,
+                AgentKind.DEEPSEEK_LOCAL to d,
+                AgentKind.CODEX to cx,
+                AgentKind.OPENROUTER to o,
+                AgentKind.OPENCODE to op
             )
         }.combine(store.currentConversation) { values, conv ->
             values[conv?.agent ?: AgentKind.AGY] ?: values[AgentKind.AGY] ?: agy.value
