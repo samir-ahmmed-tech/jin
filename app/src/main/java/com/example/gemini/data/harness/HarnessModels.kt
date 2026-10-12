@@ -293,5 +293,10 @@ enum class DevStack(
         "Fast compiled programs, algorithms, and systems code.",
         "gcc, g++, make, cmake, gdb",
     ),
+    PHP(
+        "PHP",
+        "PHP sites, backends, and Laravel projects.",
+        "php-cli, common extensions, and Composer",
+    ),
 }
 

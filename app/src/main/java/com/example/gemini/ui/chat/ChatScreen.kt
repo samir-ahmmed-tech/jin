@@ -199,6 +199,7 @@ fun ChatScreen(
     val chatFontScale by viewModel.chatFontScale.collectAsState(initial = 1.0f)
     val workingAnimationEnabled by viewModel.authPreferences.workingAnimationEnabled.collectAsState(initial = true)
     val chatDividersEnabled by viewModel.authPreferences.chatDividersEnabled.collectAsState(initial = true)
+    var isSwarmMode by remember { mutableStateOf(false) }
     val claudeCompacting by claudeBackend.isCompacting.collectAsState()
     val bridgeStatusMessage by viewModel.bridgeStatusMessage.collectAsState()
     val isServerOnline by viewModel.isServerOnline.collectAsState()
@@ -2123,6 +2124,14 @@ fun ChatScreen(
                     },
                     isStreaming = isActivelyRunning,
                     isBackgroundActive = isBackgroundActive,
+                    isSwarmMode = isSwarmMode,
+                    onToggleSwarmMode = {
+                        isSwarmMode = !isSwarmMode
+                        com.example.gemini.ui.components.AppToastHelper.showToast(
+                            if (isSwarmMode) "⚡ Multi-Agent Swarm Mode ENABLED: All active agents will collaborate" else "Swarm Mode Disabled",
+                            com.example.gemini.ui.components.ChatToastType.INFO
+                        )
+                    },
                     onSendMessage = { text ->
                         val appCmd = if (isClaudeChat && attachments.isEmpty()) claudeBackend.appCommand(text) else null
                         val unreadable = if (isClaudeChat) attachments.filter { a ->
@@ -2143,10 +2152,11 @@ fun ChatScreen(
                         } else {
                             text
                         }
+                        val finalText = if (isSwarmMode) "[SWARM_DISPATCH:ALL_AGENTS] $effectiveText" else effectiveText
                         if (appCmd != null) {
                             handleClaudeCommand(appCmd)
                         } else {
-                            viewModel.sendMessage(effectiveText)
+                            viewModel.sendMessage(finalText)
                             userSentMessageTrigger++
                         }
                         viewModel.clearDraft(activeConversationKey)

@@ -351,13 +351,15 @@ class ClaudeChatBackend(
     private fun isOnDisk(id: String) =
         _conversations.value.any { it.id == id } && synchronized(localConversations) { id !in localConversations }
 
-    /** Stops listening to the current chat (another agent's chat is being opened). */
+    /** Detaches on-screen UI without killing active Claude execution. */
     fun detach() {
         _isStreaming.value = false
         _isTurnActive.value = false
         _isLoadingConversation.value = false
         _pendingPermissions.value = emptyList()
-        backendScope.launch(worker) { detachLocked() }
+        if (!processLive && !awaitingProcess) {
+            backendScope.launch(worker) { detachLocked() }
+        }
     }
 
     // ------------------------------------------------------------------ approvals, plans & questions

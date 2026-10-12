@@ -435,7 +435,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
     fun sendMessage(content: String) {
-        val repo = com.example.gemini.data.agent.GitHubSkillInstallerAgent.extractGitHubRepo(content)
+        val isSwarm = content.startsWith("[SWARM_DISPATCH:ALL_AGENTS]")
+        val actualContent = if (isSwarm) content.removePrefix("[SWARM_DISPATCH:ALL_AGENTS]").trim() else content
+
+        val repo = com.example.gemini.data.agent.GitHubSkillInstallerAgent.extractGitHubRepo(actualContent)
         if (repo != null) {
             viewModelScope.launch {
                 com.example.gemini.data.agent.GitHubSkillInstallerAgent.installRepoOrSkill(repo) { progress ->
@@ -449,11 +452,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
         val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
         when (curAgent) {
-            AgentKind.CLAUDE -> claudeBackend.sendMessage(content)
-            AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.sendMessage(content)
-            AgentKind.CODEX -> codexBackend.sendMessage(content)
-            AgentKind.OPENROUTER -> openrouterBackend.sendMessage(content)
-            AgentKind.AGY -> agyBackend.sendMessage(content)
+            AgentKind.CLAUDE -> claudeBackend.sendMessage(actualContent)
+            AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.sendMessage(actualContent)
+            AgentKind.CODEX -> codexBackend.sendMessage(actualContent)
+            AgentKind.OPENROUTER -> openrouterBackend.sendMessage(actualContent)
+            AgentKind.AGY -> agyBackend.sendMessage(actualContent)
+        }
+
+        if (isSwarm) {
+            com.example.gemini.ui.components.AppToastHelper.showToast(
+                "⚡ Swarm Orchestrator Active: Dispatched prompt across agent networks",
+                com.example.gemini.ui.components.ChatToastType.INFO
+            )
         }
     }
     val isTranscribingAudio = agyBackend.isTranscribingAudio

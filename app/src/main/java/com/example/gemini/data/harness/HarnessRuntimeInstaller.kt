@@ -136,7 +136,56 @@ class HarnessRuntimeInstaller(private val context: Context) {
         AgentKind.ANTIGRAVITY -> isBundleInstalled("agy") || File(context.filesDir, "usr/bin/agy").exists()
     }
 
-    suspend fun installCore(): Boolean = installBundle("core")
+    fun isDevStackInstalled(stack: DevStack): Boolean = when (stack) {
+        DevStack.WEB -> File(rootfs, "usr/local/bin/node").exists() || File(context.filesDir, "usr/bin/node").exists()
+        DevStack.PYTHON -> isBundleInstalled("python") || File(context.filesDir, "usr/bin/python3").exists()
+        DevStack.ANDROID -> isBundleInstalled("android")
+        DevStack.CPP -> File(rootfs, "usr/bin/gcc").exists() || File(context.filesDir, "usr/bin/clang").exists()
+        DevStack.PHP -> File(rootfs, "usr/bin/php").exists() || File(context.filesDir, "usr/bin/php").exists()
+    }
+
+    private fun findOfflineApk(): File? {
+        val candidates = listOf(
+            File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/brain/48a15f02-fc23-4541-8e5b-39bcbacfeee6/.user_uploaded/1791781581669_mobile-harness-offline-v1.0.7.apk"),
+            File("/sdcard/Download/mobile-harness-offline-v1.0.7.apk"),
+            File(context.filesDir, "mobile-harness-offline-v1.0.7.apk"),
+            File(context.cacheDir, "mobile-harness-offline-v1.0.7.apk")
+        )
+        return candidates.firstOrNull { it.isFile && it.length() > 50_000_000L }
+    }
+
+    suspend fun installCore(
+        onProgress: (message: String, fraction: Float) -> Unit = { _, _ -> }
+    ): Boolean = installBundle("core", onProgress)
+
+    suspend fun installDevStack(
+        stack: DevStack,
+        onProgress: (message: String, fraction: Float) -> Unit = { _, _ -> }
+    ): Boolean = withContext(Dispatchers.IO) {
+        when (stack) {
+            DevStack.WEB -> {
+                if (!isCoreInstalled()) installCore(onProgress) else true
+            }
+            DevStack.PYTHON -> installBundle("python", onProgress)
+            DevStack.ANDROID -> installBundle("android", onProgress)
+            DevStack.CPP -> {
+                onProgress("Installing C / C++ toolchain (gcc, g++, make, cmake)...", 0.3f)
+                val cmd = "DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y gcc g++ make cmake gdb"
+                val res = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand(cmd, context)
+                val ok = res.exitCode == 0 || File(rootfs, "usr/bin/gcc").exists()
+                onProgress(if (ok) "C / C++ installed successfully!" else "Installation finished: ${res.exitCode}", 1.0f)
+                ok
+            }
+            DevStack.PHP -> {
+                onProgress("Installing PHP and Composer...", 0.3f)
+                val cmd = "DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y php-cli composer"
+                val res = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand(cmd, context)
+                val ok = res.exitCode == 0 || File(rootfs, "usr/bin/php").exists()
+                onProgress(if (ok) "PHP installed successfully!" else "Installation finished: ${res.exitCode}", 1.0f)
+                ok
+            }
+        }
+    }
 
     suspend fun installBundle(
         bundleName: String,
@@ -161,6 +210,24 @@ class HarnessRuntimeInstaller(private val context: Context) {
                 Log.i(TAG, "Found pre-packaged runtime asset at: $path")
                 break
             } catch (_: Exception) {
+            }
+        }
+
+        // 1.5 Check offline APK if present
+        if (sourceStream == null) {
+            val offlineApk = findOfflineApk()
+            if (offlineApk != null) {
+                try {
+                    val zip = java.util.zip.ZipFile(offlineApk)
+                    val entry = zip.getEntry("assets/runtime/${bundle.fileName}")
+                    if (entry != null) {
+                        Log.i(TAG, "Extracting ${bundle.name} directly from offline APK: ${offlineApk.name}")
+                        onProgress("Reading ${bundle.name} from local offline APK...", 0.2f)
+                        sourceStream = zip.getInputStream(entry)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed reading bundle from offline APK: ${e.message}")
+                }
             }
         }
 

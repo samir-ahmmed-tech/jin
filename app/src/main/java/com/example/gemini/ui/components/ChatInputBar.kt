@@ -187,6 +187,8 @@ fun ChatInputBar(
     onOpenNotebooks: () -> Unit = {},
     onOpenVoiceAssistant: () -> Unit = {},
     onOpenPcFeatures: () -> Unit = {},
+    isSwarmMode: Boolean = false,
+    onToggleSwarmMode: () -> Unit = {},
     focusRequester: FocusRequester = remember { FocusRequester() },
     modifier: Modifier = Modifier
 ) {
@@ -1177,6 +1179,35 @@ fun ChatInputBar(
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+
+                        // Multi-Agent Swarm Mode Button
+                        Surface(
+                            onClick = onToggleSwarmMode,
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSwarmMode) Color(0xFFF59E0B).copy(alpha = 0.15f) else MaterialTheme.colorScheme.background,
+                            border = BorderStroke(1.dp, if (isSwarmMode) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = if (isSwarmMode) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isSwarmMode) "⚡ Swarm: ON" else "⚡ Multi-Agent",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isSwarmMode) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                                     maxLines = 1,
                                     softWrap = false
                                 )

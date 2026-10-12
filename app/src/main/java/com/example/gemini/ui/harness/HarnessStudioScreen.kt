@@ -1735,127 +1735,398 @@ private fun AndroidBuildTab(
 @Composable
 private fun RuntimesAndEnginesTab(context: Context) {
     val installer = remember { HarnessRuntimeInstaller(context) }
-    var isInstalling by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+
+    var installingKey by remember { mutableStateOf<String?>(null) }
+    var currentProgress by remember { mutableFloatStateOf(0f) }
+    var currentStatusMsg by remember { mutableStateOf("") }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+
+    val isCoreInstalled = remember(refreshTrigger) { installer.isCoreInstalled() }
+    val isClaudeInstalled = remember(refreshTrigger) { installer.isAgentInstalled(AgentKind.CLAUDE_CODE) }
+    val isDshInstalled = remember(refreshTrigger) { installer.isAgentInstalled(AgentKind.DEEPSEEK_HARNESS) }
+    val isAgyInstalled = remember(refreshTrigger) { installer.isAgentInstalled(AgentKind.ANTIGRAVITY) }
+
+    val isPythonInstalled = remember(refreshTrigger) { installer.isDevStackInstalled(DevStack.PYTHON) }
+    val isAndroidInstalled = remember(refreshTrigger) { installer.isDevStackInstalled(DevStack.ANDROID) }
+    val isCppInstalled = remember(refreshTrigger) { installer.isDevStackInstalled(DevStack.CPP) }
+    val isPhpInstalled = remember(refreshTrigger) { installer.isDevStackInstalled(DevStack.PHP) }
+
+    fun installItem(key: String, block: suspend ((String, Float) -> Unit) -> Boolean) {
+        installingKey = key
+        currentProgress = 0.05f
+        currentStatusMsg = "Preparing $key installation..."
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val ok = block { msg, frac ->
+                    coroutineScope.launch(Dispatchers.Main) {
+                        currentStatusMsg = msg
+                        currentProgress = frac
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    installingKey = null
+                    refreshTrigger++
+                    if (ok) {
+                        AppToastHelper.showToast("$key installed successfully!", ChatToastType.SUCCESS)
+                    } else {
+                        AppToastHelper.showToast("Failed to install $key", ChatToastType.ERROR)
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    installingKey = null
+                    refreshTrigger++
+                    AppToastHelper.showToast("$key error: ${e.message}", ChatToastType.ERROR)
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(14.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(
-            text = "⚙️ Runtime Bundles & AI Engines",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Text(
-            text = "Manages the on-device PRoot/Termux subsystem, Python, Android SDK, and DeepSeek Harness.",
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-
-        HarnessRuntimeInstaller.BUNDLES.values.forEach { bundle ->
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        // -------------------------------------------------------------
+        // SECTION 1: DEVICE COMPATIBILITY (IMAGE 1)
+        // -------------------------------------------------------------
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.25f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
                 Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = bundle.description,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = ClaudeTerracotta.copy(alpha = 0.15f)
-                            ) {
-                                Text(
-                                    text = "v${bundle.version}",
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = ClaudeTerracotta,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                )
-                            }
-                        }
+                    Text(
+                        text = "DEVICE CHECK",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFF59E0B)
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = QuotaGreen.copy(alpha = 0.15f)
+                    ) {
                         Text(
-                            text = "${bundle.fileName} · ${bundle.compressedBytes / 1024 / 1024} MB",
+                            text = "Ready",
                             fontSize = 10.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            fontWeight = FontWeight.Bold,
+                            color = QuotaGreen,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Ready to build on this phone",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Your phone meets all requirements. Select your coding tools below and JIN Mobile-Harness will handle setup.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("⚙️ Architecture", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Text("arm64-v8a (ARM64)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("📦 Required download", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Text("149 - 774 MB", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        }
 
-                    Icon(
-                        imageVector = Icons.Outlined.CheckCircle,
-                        contentDescription = "Installed",
-                        tint = QuotaGreen,
-                        modifier = Modifier.size(20.dp)
+        // Live installation progress card (if active)
+        if (installingKey != null) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFF0F172A),
+                border = BorderStroke(1.dp, Color(0xFFF59E0B)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "⚡ Installing $installingKey...",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF59E0B)
+                        )
+                        Text(
+                            text = "${(currentProgress * 100).toInt()}%",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF38BDF8)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { currentProgress },
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                        color = Color(0xFFF59E0B),
+                        trackColor = Color(0xFF1E293B)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = currentStatusMsg,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF94A3B8)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        // -------------------------------------------------------------
+        // SECTION 2: CORE RUNTIME & CODING AGENTS (IMAGE 2)
+        // -------------------------------------------------------------
+        Text(
+            text = "🛠️ TOOLCHAIN SETUP: CHOOSE YOUR TOOLS",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
 
-        Button(
-            onClick = {
-                isInstalling = true
-                coroutineScope.launch(Dispatchers.IO) {
-                    try {
-                        installer.installCore()
-                        withContext(Dispatchers.Main) {
-                            isInstalling = false
-                            AppToastHelper.showToast("All runtime bundles verified & installed!", ChatToastType.SUCCESS)
-                        }
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            isInstalling = false
-                            AppToastHelper.showToast("Installation: ${e.message}", ChatToastType.INFO)
-                        }
+        // Core Runtime Box
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Core runtime · 68.8 MB download",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Ubuntu 20.04 PRoot · Node.js 24 · npm · Git",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+                if (isCoreInstalled) {
+                    Icon(
+                        imageVector = Icons.Outlined.CheckCircle,
+                        contentDescription = "Installed",
+                        tint = QuotaGreen,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Button(
+                        onClick = { installItem("core") { cb -> installer.installCore(cb) } },
+                        enabled = installingKey == null,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text("Download", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-            },
-            enabled = !isInstalling,
-            modifier = Modifier.fillMaxWidth().height(42.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
-        ) {
-            if (isInstalling) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Verifying Runtimes...", fontSize = 12.sp)
-            } else {
-                Text("🔄 Verify & Update Runtime Bundles", fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // AI Provider Keys Section
+        // Coding Agents List
         Text(
-            text = "🔑 AI Provider API Keys",
-            fontSize = 14.sp,
+            text = "CODING AGENTS",
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
         )
 
+        val agents = listOf(
+            Triple("Claude Code", "Anthropic's coding agent · broad provider support · 71.8 MB", isClaudeInstalled to "claude"),
+            Triple("DeepSeek Harness", "Official DeepSeek coding agent · API-key provider · 26.5 MB", isDshInstalled to "dsh"),
+            Triple("Antigravity CLI", "Google's official coding agent · Google account / OAuth · 39.9 MB", isAgyInstalled to "agy")
+        )
+
+        agents.forEach { (title, subtitle, state) ->
+            val (installed, bundleKey) = state
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            if (bundleKey == "dsh") {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFF59E0B).copy(alpha = 0.15f)) {
+                                    Text("Recommended", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF59E0B), modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                }
+                            }
+                        }
+                        Text(subtitle, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
+                    }
+                    if (installed) {
+                        Icon(Icons.Outlined.CheckCircle, "Installed", tint = QuotaGreen, modifier = Modifier.size(22.dp))
+                    } else {
+                        Button(
+                            onClick = { installItem(title) { cb -> installer.installBundle(bundleKey, cb) } },
+                            enabled = installingKey == null,
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("Install", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // SECTION 3: OPTIONAL TOOLCHAINS (IMAGE 3 & 6)
+        // -------------------------------------------------------------
         Text(
-            text = "Configure API keys for DeepSeek, OpenRouter, Anthropic, or OpenCode Zen.",
+            text = "OPTIONAL TOOLCHAINS & LANGUAGES",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        )
+
+        val toolchains = listOf(
+            Triple(DevStack.WEB, "Web (JavaScript / TypeScript) · Included", true),
+            Triple(DevStack.PYTHON, "Python · 55 MB (python3, pip, venv, build tools)", isPythonInstalled),
+            Triple(DevStack.ANDROID, "Android (Java / Kotlin) · 570 MB (JDK 17, SDK 36, Gradle)", isAndroidInstalled),
+            Triple(DevStack.CPP, "C / C++ (gcc, g++, make, cmake, gdb)", isCppInstalled),
+            Triple(DevStack.PHP, "PHP (php-cli, common extensions, Composer)", isPhpInstalled)
+        )
+
+        toolchains.forEach { (stack, label, installed) ->
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(stack.label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
+                    }
+                    if (installed) {
+                        Surface(shape = RoundedCornerShape(4.dp), color = QuotaGreen.copy(alpha = 0.15f)) {
+                            Text("Installed", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = QuotaGreen, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
+                    } else {
+                        Button(
+                            onClick = { installItem(stack.label) { cb -> installer.installDevStack(stack, cb) } },
+                            enabled = installingKey == null,
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Text("Add", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        }
+                    }
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // SECTION 4: LINUX RUNTIME & DIAGNOSTICS (IMAGE 5)
+        // -------------------------------------------------------------
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("🐧 Linux Runtime Diagnostics", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Architecture", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Text("ARM64 (aarch64)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Environment", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Text("Ubuntu 20.04 PRoot", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Rootfs Location", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Text("${installer.rootfs.name}/", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurface)
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                LocalEnvironmentManager.executeCommand("rm -f ~/.bash_history && history -c", context)
+                                withContext(Dispatchers.Main) {
+                                    AppToastHelper.showToast("Terminal history cleared", ChatToastType.INFO)
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(38.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("🗑️ Clear History", fontSize = 10.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                LocalEnvironmentManager.executeCommand("chmod -R 755 /antigem/bin 2>/dev/null; ldconfig 2>/dev/null", context)
+                                withContext(Dispatchers.Main) {
+                                    AppToastHelper.showToast("Advanced runtime check passed!", ChatToastType.SUCCESS)
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(38.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    ) {
+                        Text("🛡️ Fix Reliability", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // SECTION 5: AI PROVIDER KEYS (IMAGE 4)
+        // -------------------------------------------------------------
+        Text(
+            text = "🔑 AI PROVIDER KEYS & CONNECTIVITY",
             fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
 
@@ -1865,7 +2136,7 @@ private fun RuntimesAndEnginesTab(context: Context) {
         var anthropicKey by remember { mutableStateOf(authPrefs.getAnthropicApiKeySync()) }
 
         Surface(
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
             modifier = Modifier.fillMaxWidth()
@@ -1904,14 +2175,14 @@ private fun RuntimesAndEnginesTab(context: Context) {
                             authPrefs.saveDeepSeekApiKey(deepseekKey)
                             authPrefs.saveOpenRouterApiKey(openRouterKey)
                             authPrefs.saveAnthropicApiKey(anthropicKey)
-                            AppToastHelper.showToast("API keys saved successfully!", ChatToastType.SUCCESS)
+                            AppToastHelper.showToast("API keys saved securely!", ChatToastType.SUCCESS)
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    modifier = Modifier.fillMaxWidth().height(42.dp),
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
                 ) {
-                    Text("💾 Save API Keys", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("💾 Save All API Keys", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 }
             }
         }

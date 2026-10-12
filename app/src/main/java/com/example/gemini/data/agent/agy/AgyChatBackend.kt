@@ -916,18 +916,13 @@ class AgyChatBackend(
 
             Log.d("CHAT_OPEN_DEBUG", "🌊 [ChatViewModel.startPersistentStream] Starting loop for $conversationId on $hubUrl")
 
-            while (activeStreamConversationId == conversationId) {
+            while (activeStreamConversationId == conversationId || trajectoryEngine.isRunning) {
                 try {
                     agyHubClient.streamAgentStateUpdates(conversationId, hubUrl).collect { resp ->
-                        if (activeStreamConversationId != conversationId) {
-                            Log.d("CHAT_OPEN_DEBUG", "🌊 [ChatViewModel Stream] Dropping frame for inactive conversation (active=$activeStreamConversationId vs frame=$conversationId)")
-                            return@collect
-                        }
-
                         val update = resp.update
                         val statusStr = update?.status?.name ?: ""
                         val stepsCount = update?.main_trajectory_update?.steps_update?.steps?.size ?: 0
-                        Log.d("CHAT_OPEN_DEBUG", "📥 [ChatViewModel Stream Frame] convId=$conversationId, isFirstChunk=$isFirstChunk, status=$statusStr, stepsCount=$stepsCount")
+                        Log.d("CHAT_OPEN_DEBUG", "📥 [ChatViewModel Stream Frame] convId=$conversationId, status=$statusStr, stepsCount=$stepsCount, active=$activeStreamConversationId")
                         isFirstChunk = false
                         val turns = if (update != null) trajectoryEngine.ingestAgentStateUpdate(update) else emptyList()
                         val msgs = trajectoryEngine.toChatMessages(conversationId)
@@ -2169,10 +2164,12 @@ class AgyChatBackend(
         _quotaSummary.value = null
     }
 
-    /** Stops streaming the current AGY chat because another agent's chat is being opened. */
+    /** Detaches on-screen presentation of AGY chat without killing background tasks. */
     fun detach() {
-        persistentStreamJob?.cancel()
-        persistentStreamJob = null
+        if (!trajectoryEngine.isRunning) {
+            persistentStreamJob?.cancel()
+            persistentStreamJob = null
+        }
         activeStreamConversationId = null
         currentAssistantMsgId = null
         isPromptInFlight = false

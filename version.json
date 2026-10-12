@@ -1,14 +1,14 @@
 {
-  "version_code": 216,
-  "version_name": "2.1.6",
+  "version_code": 220,
+  "version_name": "2.2.0",
   "min_supported_version_code": 1,
   "changelog": [
-    "🚀 JIN v2.1.6: 100% Complete Mobile-Harness Integration & Dedicated JIN Fusion Hybrid Interface.",
-    "⚡ Brand New JIN Fusion Interface: Dedicated Cyberpunk Obsidian & Electric Amber layout uniting conversational AI with a live autonomous coding console, real-time reasoning stream, and instant Android project actions.",
-    "🤖 Full 100% Mobile-Harness Engine: Powered by JinAutonomousEngine driving Antigravity CLI, DeepSeek Harness, Claude Code, and built-in resilient autonomous loop with real file reads/writes, bash execution, and tests.",
-    "📝 Real Checkpoints & Syntax-Colored Diffs: Full line-by-line diff inspector with additions (+), deletions (-), per-file Revert/Accept, and 1-tap Accept All / Revert All baseline controls.",
-    "🔨 Working Android Build & 1-Click Installer: Compiles Android projects inside Termux/PRoot using AAPT2/Gradle wrapper, diagnoses compiler issues, and installs generated debug APK directly to phone via AndroidAppInstaller.",
-    "🔄 3 Distinct Dedicated UI Modes: Seamless 1-tap switcher between JIN Classic (Gemini Deep Blue), JIN Fusion (Cyberpunk Amber), and Harness Studio (Claude Terracotta) in headers and Floating Switcher.",
+    "🚀 JIN v2.2.0: Complete Real Toolchains Suite, Multi-Agent Swarm Orchestrator & Unlimited Concurrent Background Chat Execution.",
+    "📦 Real Toolchain & Coding Agent Downloader: Full on-device installation for Core Ubuntu 20.04 (Node.js/npm/Git), Claude Code, DeepSeek Harness, Antigravity CLI, Python, Android SDK 36/Gradle, C/C++ (gcc/g++/cmake), and PHP/Composer with live byte progress and offline APK auto-detection.",
+    "⚡ Multi-Agent Swarm Orchestrator: New prompt box toggle (⚡ Swarm: ON) dispatching tasks across all active agent networks concurrently.",
+    "🔄 Unlimited Concurrent Background Chat Sessions: Multi-chat streaming remains fully active in the background without getting aborted or dropped when switching chats.",
+    "🛠️ Full 100% Mobile-Harness Engine & Settings Suite: Device compatibility radar, Linux runtime controls, Clear terminal history, and Advanced runtime reliability.",
+    "🔨 Working Android Build & 1-Click Installer: Compiles Android projects inside Termux/PRoot using Gradle wrapper and installs generated debug APK directly to phone.",
     "🛡️ 100% Attribution: Fully developed and authored by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)."
   ],
   "is_critical": false
