@@ -79,6 +79,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val deepseekBackend = com.example.gemini.data.agent.direct.DirectAgentChatBackend(application, viewModelScope, store, authPrefs, directApiClient, AgentKind.DEEPSEEK_LOCAL)
     val codexBackend = com.example.gemini.data.agent.direct.DirectAgentChatBackend(application, viewModelScope, store, authPrefs, directApiClient, AgentKind.CODEX)
     val openrouterBackend = com.example.gemini.data.agent.direct.DirectAgentChatBackend(application, viewModelScope, store, authPrefs, directApiClient, AgentKind.OPENROUTER)
+    val opencodeBackend = com.example.gemini.data.agent.direct.DirectAgentChatBackend(application, viewModelScope, store, authPrefs, directApiClient, AgentKind.OPENCODE)
 
     /** Agent of the conversation on screen; chat actions go to that agent's backend. */
     val activeAgent: StateFlow<AgentKind> = store.currentConversation
@@ -145,15 +146,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         claude: StateFlow<T>,
         deepseek: StateFlow<T> = agy,
         codex: StateFlow<T> = agy,
-        openrouter: StateFlow<T> = agy
+        openrouter: StateFlow<T> = agy,
+        opencode: StateFlow<T> = agy
     ): StateFlow<T> =
-        combine(agy, claude, deepseek, codex, openrouter) { a, c, d, cx, or_ ->
+        combine(listOf(agy, claude, deepseek, codex, openrouter, opencode)) { arr ->
             mapOf(
-                AgentKind.AGY to a,
-                AgentKind.CLAUDE to c,
-                AgentKind.DEEPSEEK_LOCAL to d,
-                AgentKind.CODEX to cx,
-                AgentKind.OPENROUTER to or_
+                AgentKind.AGY to arr[0],
+                AgentKind.CLAUDE to arr[1],
+                AgentKind.DEEPSEEK_LOCAL to arr[2],
+                AgentKind.CODEX to arr[3],
+                AgentKind.OPENROUTER to arr[4],
+                AgentKind.OPENCODE to arr[5]
             )
         }.combine(store.currentConversation) { values, conv ->
             values[conv?.agent ?: AgentKind.AGY] ?: values[AgentKind.AGY] ?: agy.value
@@ -293,6 +296,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 deepseekBackend.detach()
                 codexBackend.detach()
                 openrouterBackend.detach()
+                opencodeBackend.detach()
                 claudeBackend.startNewChat()
             }
             AgentKind.DEEPSEEK_LOCAL -> {
@@ -300,6 +304,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 claudeBackend.detach()
                 codexBackend.detach()
                 openrouterBackend.detach()
+                opencodeBackend.detach()
                 deepseekBackend.startNewChat()
             }
             AgentKind.CODEX -> {
@@ -307,6 +312,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 claudeBackend.detach()
                 deepseekBackend.detach()
                 openrouterBackend.detach()
+                opencodeBackend.detach()
                 codexBackend.startNewChat()
             }
             AgentKind.OPENROUTER -> {
@@ -314,13 +320,23 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 claudeBackend.detach()
                 deepseekBackend.detach()
                 codexBackend.detach()
+                opencodeBackend.detach()
                 openrouterBackend.startNewChat()
+            }
+            AgentKind.OPENCODE -> {
+                agyBackend.detach()
+                claudeBackend.detach()
+                deepseekBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.detach()
+                opencodeBackend.startNewChat()
             }
             AgentKind.AGY -> {
                 claudeBackend.detach()
                 deepseekBackend.detach()
                 codexBackend.detach()
                 openrouterBackend.detach()
+                opencodeBackend.detach()
                 agyBackend.startNewChat()
             }
         }
@@ -332,6 +348,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 deepseekBackend.detach()
                 codexBackend.detach()
                 openrouterBackend.detach()
+                opencodeBackend.detach()
                 claudeBackend.selectConversation(id)
             }
             AgentKind.DEEPSEEK_LOCAL -> {
@@ -339,6 +356,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 claudeBackend.detach()
                 codexBackend.detach()
                 openrouterBackend.detach()
+                opencodeBackend.detach()
                 deepseekBackend.selectConversation(id)
             }
             AgentKind.CODEX -> {
@@ -346,6 +364,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 claudeBackend.detach()
                 deepseekBackend.detach()
                 openrouterBackend.detach()
+                opencodeBackend.detach()
                 codexBackend.selectConversation(id)
             }
             AgentKind.OPENROUTER -> {
@@ -353,13 +372,23 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 claudeBackend.detach()
                 deepseekBackend.detach()
                 codexBackend.detach()
+                opencodeBackend.detach()
                 openrouterBackend.selectConversation(id)
+            }
+            AgentKind.OPENCODE -> {
+                agyBackend.detach()
+                claudeBackend.detach()
+                deepseekBackend.detach()
+                codexBackend.detach()
+                openrouterBackend.detach()
+                opencodeBackend.selectConversation(id)
             }
             AgentKind.AGY -> {
                 claudeBackend.detach()
                 deepseekBackend.detach()
                 codexBackend.detach()
                 openrouterBackend.detach()
+                opencodeBackend.detach()
                 agyBackend.selectConversation(id)
             }
         }
@@ -371,6 +400,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.deleteConversation(id)
             AgentKind.CODEX -> codexBackend.deleteConversation(id)
             AgentKind.OPENROUTER -> openrouterBackend.deleteConversation(id)
+            AgentKind.OPENCODE -> opencodeBackend.deleteConversation(id)
             AgentKind.AGY -> agyBackend.deleteConversation(id)
         }
     }
@@ -392,6 +422,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 agyBackend.detach()
                 openrouterBackend.forkConversation(id)
             }
+            AgentKind.OPENCODE -> {
+                agyBackend.detach()
+                opencodeBackend.forkConversation(id)
+            }
             AgentKind.AGY -> {
                 claudeBackend.detach()
                 agyBackend.forkConversation(id)
@@ -403,6 +437,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             modelId.contains("claude", ignoreCase = true) -> AgentKind.CLAUDE
             modelId.contains("deepseek", ignoreCase = true) || modelId.contains("hermes", ignoreCase = true) -> AgentKind.DEEPSEEK_LOCAL
             modelId.contains("codex", ignoreCase = true) || modelId.contains("gpt", ignoreCase = true) || modelId.contains("openai", ignoreCase = true) -> AgentKind.CODEX
+            modelId.contains("opencode", ignoreCase = true) || modelId.contains("zen", ignoreCase = true) -> AgentKind.OPENCODE
             modelId.contains("openrouter", ignoreCase = true) || modelId.contains("codestral", ignoreCase = true) || modelId.contains("qwen", ignoreCase = true) || modelId.contains("custom", ignoreCase = true) -> AgentKind.OPENROUTER
             else -> AgentKind.AGY
         }
@@ -418,6 +453,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.selectModel(modelId)
             AgentKind.CODEX -> codexBackend.selectModel(modelId)
             AgentKind.OPENROUTER -> openrouterBackend.selectModel(modelId)
+            AgentKind.OPENCODE -> opencodeBackend.selectModel(modelId)
             AgentKind.AGY -> agyBackend.selectModel(modelId)
         }
 
@@ -428,6 +464,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             AgentKind.DEEPSEEK_LOCAL -> "DeepSeek"
             AgentKind.CODEX -> "OpenAI Codex"
             AgentKind.OPENROUTER -> "OpenRouter"
+            AgentKind.OPENCODE -> "OpenCode"
         }
         com.example.gemini.ui.components.AppToastHelper.showToast(
             "Switched to $modelName ($agentLabel)",
@@ -456,6 +493,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.sendMessage(actualContent)
             AgentKind.CODEX -> codexBackend.sendMessage(actualContent)
             AgentKind.OPENROUTER -> openrouterBackend.sendMessage(actualContent)
+            AgentKind.OPENCODE -> opencodeBackend.sendMessage(actualContent)
             AgentKind.AGY -> agyBackend.sendMessage(actualContent)
         }
 
@@ -475,6 +513,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.regenerate(messageId)
             AgentKind.CODEX -> codexBackend.regenerate(messageId)
             AgentKind.OPENROUTER -> openrouterBackend.regenerate(messageId)
+            AgentKind.OPENCODE -> opencodeBackend.regenerate(messageId)
             AgentKind.AGY -> agyBackend.retryMessage(messageId)
         }
     }
@@ -500,6 +539,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.renameConversation(id, title)
             AgentKind.CODEX -> codexBackend.renameConversation(id, title)
             AgentKind.OPENROUTER -> openrouterBackend.renameConversation(id, title)
+            AgentKind.OPENCODE -> opencodeBackend.renameConversation(id, title)
             AgentKind.AGY -> Unit
         }
     }
@@ -510,6 +550,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.stopStreaming()
             AgentKind.CODEX -> codexBackend.stopStreaming()
             AgentKind.OPENROUTER -> openrouterBackend.stopStreaming()
+            AgentKind.OPENCODE -> opencodeBackend.stopStreaming()
             AgentKind.AGY -> agyBackend.stopStreaming()
         }
     }
@@ -600,18 +641,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _conversations = store.conversations
     /** Sidebar list: Antigravity and Claude Code conversations together, newest first. */
     val conversations: StateFlow<List<Conversation>> = combine(
-        _conversations,
-        claudeBackend.conversations,
-        deepseekBackend.conversations,
-        codexBackend.conversations,
-        openrouterBackend.conversations
-    ) { agy, claude, deepseek, codex, openrouter ->
+        listOf(
+            _conversations,
+            claudeBackend.conversations,
+            deepseekBackend.conversations,
+            codexBackend.conversations,
+            openrouterBackend.conversations,
+            opencodeBackend.conversations
+        )
+    ) { arr ->
         mapOf(
-            AgentKind.AGY to agy,
-            AgentKind.CLAUDE to claude,
-            AgentKind.DEEPSEEK_LOCAL to deepseek,
-            AgentKind.CODEX to codex,
-            AgentKind.OPENROUTER to openrouter
+            AgentKind.AGY to arr[0],
+            AgentKind.CLAUDE to arr[1],
+            AgentKind.DEEPSEEK_LOCAL to arr[2],
+            AgentKind.CODEX to arr[3],
+            AgentKind.OPENROUTER to arr[4],
+            AgentKind.OPENCODE to arr[5]
         )
     }.combine(enabledAgents) { convMap, enabled ->
         val list = mutableListOf<Conversation>()

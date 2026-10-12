@@ -33,6 +33,24 @@ enum class AgentKind(
         "Google DeepMind agentic coding system",
         "39.9 MB",
     ),
+    CODEX_CLI(
+        "codex-cli",
+        "Codex CLI",
+        "OpenAI Codex & GPT-4o autonomous software engineering CLI",
+        "18.2 MB",
+    ),
+    OPENROUTER_CLI(
+        "openrouter-cli",
+        "OpenRouter CLI",
+        "Universal open-weights router (Mistral Codestral, Qwen 2.5, Llama 3.3)",
+        "14.5 MB",
+    ),
+    OPENCODE_CLI(
+        "opencode-cli",
+        "OpenCode CLI",
+        "OpenCode AI terminal coding assistant · OpenCode Zen & multi-model",
+        "16.0 MB",
+    ),
     ;
 
     companion object {

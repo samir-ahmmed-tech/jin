@@ -868,7 +868,8 @@ fun ChatHistoryDrawer(
                         com.example.gemini.domain.model.AgentKind.CLAUDE to "Claude",
                         com.example.gemini.domain.model.AgentKind.DEEPSEEK_LOCAL to "DeepSeek",
                         com.example.gemini.domain.model.AgentKind.CODEX to "Codex",
-                        com.example.gemini.domain.model.AgentKind.OPENROUTER to "OpenRouter"
+                        com.example.gemini.domain.model.AgentKind.OPENROUTER to "OpenRouter",
+                        com.example.gemini.domain.model.AgentKind.OPENCODE to "OpenCode"
                     )
                     items(filterOptions.size) { index ->
                         val (agent, label) = filterOptions[index]

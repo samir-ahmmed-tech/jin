@@ -6,5 +6,6 @@ enum class AgentKind {
     CLAUDE,
     DEEPSEEK_LOCAL,
     CODEX,
-    OPENROUTER
+    OPENROUTER,
+    OPENCODE
 }

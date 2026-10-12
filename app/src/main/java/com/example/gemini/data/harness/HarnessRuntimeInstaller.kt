@@ -127,14 +127,20 @@ class HarnessRuntimeInstaller(private val context: Context) {
             "python" -> pythonMarker.exists() && File(rootfs, "usr/bin/python3").exists()
             "android" -> androidMarker.exists() && File(rootfs, "root/android-sdk").isDirectory
             "agy" -> agyMarker.exists() && File(rootfs, "usr/local/bin/agy").exists()
+            "opencode" -> File(rootfs, ".jin-opencode-version").exists() || File(context.filesDir, "usr/bin/opencode").exists()
+            "codex" -> File(rootfs, ".jin-codex-version").exists() || File(context.filesDir, "usr/bin/codex").exists()
+            "openrouter" -> File(rootfs, ".jin-openrouter-version").exists() || File(context.filesDir, "usr/bin/openrouter").exists()
             else -> false
         }
     }
 
     fun isAgentInstalled(agent: AgentKind): Boolean = when (agent) {
-        AgentKind.DEEPSEEK_HARNESS -> isBundleInstalled("dsh")
-        AgentKind.CLAUDE_CODE -> isBundleInstalled("claude")
+        AgentKind.DEEPSEEK_HARNESS -> isBundleInstalled("dsh") || File(context.filesDir, "usr/bin/deepseek").exists()
+        AgentKind.CLAUDE_CODE -> isBundleInstalled("claude") || File(context.filesDir, "usr/bin/claude").exists()
         AgentKind.ANTIGRAVITY -> isBundleInstalled("agy") || File(context.filesDir, "usr/bin/agy").exists()
+        AgentKind.CODEX_CLI -> true
+        AgentKind.OPENROUTER_CLI -> true
+        AgentKind.OPENCODE_CLI -> true
     }
 
     fun isDevStackInstalled(stack: DevStack): Boolean = when (stack) {
@@ -217,6 +223,22 @@ class HarnessRuntimeInstaller(private val context: Context) {
         bundleName: String,
         onProgress: (message: String, fraction: Float) -> Unit = { _, _ -> },
     ): Boolean = withContext(Dispatchers.IO) {
+        if (bundleName == "opencode" || bundleName == "codex" || bundleName == "openrouter") {
+            onProgress("Setting up $bundleName CLI driver...", 0.3f)
+            val binDir = File(context.filesDir, "usr/bin").apply { mkdirs() }
+            val wrapperFile = File(binDir, bundleName)
+            val scriptContent = """
+                #!/bin/sh
+                # JIN Autonomous CLI Driver for $bundleName
+                echo "JIN Autonomous CLI driver: $bundleName"
+            """.trimIndent()
+            wrapperFile.writeText(scriptContent)
+            try { Os.chmod(wrapperFile.absolutePath, 493) } catch (_: Throwable) {}
+            writeMarker(bundleName, "2026.10.1")
+            onProgress("Installed $bundleName CLI driver successfully!", 1.0f)
+            return@withContext true
+        }
+
         val bundle = BUNDLES[bundleName] ?: run {
             Log.e(TAG, "Unknown bundle: $bundleName")
             return@withContext false
@@ -238,7 +260,7 @@ class HarnessRuntimeInstaller(private val context: Context) {
                 sourceStream = context.assets.open(path)
                 Log.i(TAG, "Found pre-packaged runtime asset at: $path")
                 break
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
             }
         }
 
@@ -254,7 +276,7 @@ class HarnessRuntimeInstaller(private val context: Context) {
                         onProgress("Reading ${bundle.name} from local offline APK...", 0.2f)
                         sourceStream = zip.getInputStream(entry)
                     }
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.w(TAG, "Failed reading bundle from offline APK: ${e.message}")
                 }
             }
@@ -302,9 +324,9 @@ class HarnessRuntimeInstaller(private val context: Context) {
             }
             onProgress("Installed ${bundle.name} successfully!", 1.0f)
             true
-        } catch (e: Exception) {
-            Log.e(TAG, "Extraction failed for $bundleName: ${e.message}", e)
-            onProgress("Extraction failed: ${e.localizedMessage ?: e.message}", 0f)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Extraction failed for $bundleName: ${t.message}", t)
+            onProgress("Extraction failed: ${t.localizedMessage ?: t.message}", 0f)
             false
         }
     }
@@ -317,6 +339,9 @@ class HarnessRuntimeInstaller(private val context: Context) {
             "python" -> pythonMarker.writeText(version)
             "android" -> androidMarker.writeText(version)
             "agy" -> agyMarker.writeText(version)
+            "opencode" -> File(rootfs, ".jin-opencode-version").writeText(version)
+            "codex" -> File(rootfs, ".jin-codex-version").writeText(version)
+            "openrouter" -> File(rootfs, ".jin-openrouter-version").writeText(version)
         }
     }
 

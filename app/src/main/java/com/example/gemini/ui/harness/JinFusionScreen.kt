@@ -639,7 +639,8 @@ private fun FusionAgentTab(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
+                    .padding(8.dp)
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -647,20 +648,19 @@ private fun FusionAgentTab(
                 AgentKind.entries.forEach { ag ->
                     val isSel = selectedAgent == ag
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = if (isSel) FusionAmber else Color.Transparent,
                         border = BorderStroke(1.dp, if (isSel) FusionAmber else FusionBorder),
                         modifier = Modifier
-                            .weight(1f)
                             .clickable { onSelectAgent(ag) }
                     ) {
                         Text(
                             text = ag.title,
-                            fontSize = 10.sp,
-                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSel) Color.Black else Color.White.copy(alpha = 0.7f),
+                            fontSize = 11.sp,
+                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSel) Color.Black else Color.White.copy(alpha = 0.85f),
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = 5.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             maxLines = 1
                         )
                     }

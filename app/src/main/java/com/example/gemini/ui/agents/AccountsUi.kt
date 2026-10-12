@@ -131,10 +131,11 @@ fun AccountsButton(
     deepseek: AgentStatusEntry? = null,
     codex: AgentStatusEntry? = null,
     openrouter: AgentStatusEntry? = null,
+    opencode: AgentStatusEntry? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val entries = listOfNotNull(agy, claude, deepseek, codex, openrouter)
+    val entries = listOfNotNull(agy, claude, deepseek, codex, openrouter, opencode)
     val needsSignIn = entries.any { it.isSignedOut }
     val single = entries.singleOrNull()
     Surface(
@@ -151,6 +152,7 @@ fun AccountsButton(
                 deepseek?.let { AccountAvatar(AgentKind.DEEPSEEK_LOCAL, it, 'D') }
                 codex?.let { AccountAvatar(AgentKind.CODEX, it, 'C') }
                 openrouter?.let { AccountAvatar(AgentKind.OPENROUTER, it, 'O') }
+                opencode?.let { AccountAvatar(AgentKind.OPENCODE, it, 'P') }
             }
             Spacer(Modifier.width(7.dp))
             val text = when {
@@ -188,6 +190,7 @@ fun AccountsDialog(
     deepseek: AgentStatusEntry? = null,
     codex: AgentStatusEntry? = null,
     openrouter: AgentStatusEntry? = null,
+    opencode: AgentStatusEntry? = null,
     onOpenApiKeys: () -> Unit = {},
     onSaveApiKey: (AgentKind, String) -> Unit = { _, _ -> },
     onDismiss: () -> Unit
@@ -481,6 +484,33 @@ fun AccountsDialog(
                         if (entry.isReady) {
                             SectionButton("Clear Key", Icons.AutoMirrored.Outlined.Logout, danger = true) {
                                 onSaveApiKey(AgentKind.OPENROUTER, "")
+                            }
+                        }
+                        SectionButton("API Settings", Icons.Outlined.Settings) {
+                            onOpenApiKeys()
+                            onDismiss()
+                        }
+                    }
+                }
+                opencode?.let { entry ->
+                    AccountSection(
+                        entry = entry,
+                        avatar = { AccountAvatar(AgentKind.OPENCODE, entry, 'P', size = 44.dp) },
+                        title = AgentKind.OPENCODE.label(),
+                        subtitle = if (entry.isReady) "OpenCode Zen gateway & models active" else (entry.detail ?: "Use free OpenCode Zen gateway or set API key"),
+                        facts = listOf("OpenCode TUI", "Zen Gateway", "Polyglot Coder")
+                    ) {
+                        SectionButton("Set API Key", Icons.Outlined.Settings) {
+                            editingAgentApiKey = AgentKind.OPENCODE
+                        }
+                        if (!entry.isReady) {
+                            SectionButton("Free OpenCode Zen", Icons.AutoMirrored.Outlined.Login, primary = AgentKind.OPENCODE.accent()) {
+                                onSaveApiKey(AgentKind.OPENCODE, "opencode_zen_free")
+                            }
+                        }
+                        if (entry.isReady) {
+                            SectionButton("Clear Key", Icons.AutoMirrored.Outlined.Logout, danger = true) {
+                                onSaveApiKey(AgentKind.OPENCODE, "")
                             }
                         }
                         SectionButton("API Settings", Icons.Outlined.Settings) {

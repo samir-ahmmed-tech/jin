@@ -175,6 +175,7 @@ fun directAgentStatusEntry(
             AgentKind.DEEPSEEK_LOCAL -> "DeepSeek V3 / Coder ready"
             AgentKind.CODEX -> "OpenAI GPT-4o / Codex ready"
             AgentKind.OPENROUTER -> "OpenRouter Universal models ready"
+            AgentKind.OPENCODE -> "OpenCode Zen / Coder ready"
             else -> "Ready"
         }
         val labelText = if (apiKey == "google_ai_session") "Ready (Google AI)" else "Ready"
@@ -240,6 +241,7 @@ fun AgentMark(agent: AgentKind, modifier: Modifier = Modifier, size: Dp = 32.dp,
                 AgentKind.DEEPSEEK_LOCAL -> Text("⚡", color = accent, fontWeight = FontWeight.Bold, fontSize = (size.value * 0.5f).sp)
                 AgentKind.CODEX -> Icon(Icons.Outlined.Terminal, null, tint = accent, modifier = Modifier.size(size * 0.52f))
                 AgentKind.OPENROUTER -> Text("🌐", color = accent, fontWeight = FontWeight.Bold, fontSize = (size.value * 0.5f).sp)
+                AgentKind.OPENCODE -> Text("⌘", color = accent, fontWeight = FontWeight.Bold, fontSize = (size.value * 0.5f).sp)
             }
         }
         if (statusColor != null) {

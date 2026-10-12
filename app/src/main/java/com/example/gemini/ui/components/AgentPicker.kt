@@ -37,6 +37,7 @@ fun AgentKind.label(): String = when (this) {
     AgentKind.DEEPSEEK_LOCAL -> "DeepSeek"
     AgentKind.CODEX -> "Codex"
     AgentKind.OPENROUTER -> "OpenRouter"
+    AgentKind.OPENCODE -> "OpenCode"
 }
 
 fun AgentKind.accent(): Color = when (this) {
@@ -45,6 +46,7 @@ fun AgentKind.accent(): Color = when (this) {
     AgentKind.DEEPSEEK_LOCAL -> Color(0xFF3B82F6) // DeepSeek blue
     AgentKind.CODEX -> Color(0xFF10A37F) // OpenAI green
     AgentKind.OPENROUTER -> Color(0xFF8B5CF6) // Purple
+    AgentKind.OPENCODE -> Color(0xFF06B6D4) // OpenCode Cyan
 }
 
 /**

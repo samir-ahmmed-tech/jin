@@ -84,6 +84,7 @@ class DirectAgentChatBackend(
         AgentKind.DEEPSEEK_LOCAL -> "deepseek-chat"
         AgentKind.CODEX -> "gpt-4o"
         AgentKind.OPENROUTER -> "meta-llama/llama-3.3-70b-instruct:free"
+        AgentKind.OPENCODE -> "opencode-zen-deepseek"
         else -> ""
     }
 
@@ -103,6 +104,12 @@ class DirectAgentChatBackend(
             AiModel("mistralai/codestral-2501", "Mistral Codestral 25B", ModelFamily.OTHER, false, "Mistral AI cutting-edge coding model"),
             AiModel("qwen/qwen-2.5-coder-32b-instruct", "Qwen 2.5 Coder 32B", ModelFamily.OTHER, false, "Alibaba Cloud flagship code model for polyglot software engineering"),
             AiModel("custom-api", "Custom OpenAI-Compatible API", ModelFamily.OTHER, false, "Connect to any custom base URL (Ollama, LM Studio, vLLM, OpenRouter)")
+        )
+        AgentKind.OPENCODE -> listOf(
+            AiModel("opencode-zen-deepseek", "OpenCode DeepSeek V3", ModelFamily.OTHER, false, "Direct high-speed coding gateway via OpenCode Zen", isDefault = true),
+            AiModel("opencode-zen-coder", "OpenCode Zen Coder", ModelFamily.OTHER, false, "Optimized programming model for polyglot software engineering"),
+            AiModel("opencode-zen-qwen", "OpenCode Qwen 2.5 Coder 32B", ModelFamily.OTHER, false, "Alibaba Cloud flagship code model via OpenCode Zen"),
+            AiModel("opencode-zen-r1", "OpenCode DeepSeek R1 Hermes", ModelFamily.OTHER, true, "Deep reasoning and chain-of-thought MoE architecture")
         )
         else -> emptyList()
     }
@@ -196,6 +203,16 @@ class DirectAgentChatBackend(
                     Triple("https://openrouter.ai/api/v1", key, m)
                 }
             }
+            AgentKind.OPENCODE -> {
+                val key = authPrefs.getOpenCodeApiKeySync().trim()
+                val m = when {
+                    rawModel.contains("r1", ignoreCase = true) -> "deepseek-r1"
+                    rawModel.contains("qwen", ignoreCase = true) -> "qwen2.5-coder-32b"
+                    rawModel.contains("coder", ignoreCase = true) -> "opencode-zen-coder"
+                    else -> "deepseek-v4-flash"
+                }
+                Triple("https://opencode.ai/zen/v1", key, m)
+            }
             else -> Triple("", "", rawModel)
         }
 
@@ -220,7 +237,7 @@ class DirectAgentChatBackend(
         store.messages.value = currentList
         saveMessagesToDisk(conv.id, currentList)
 
-        val isDirectKey = apiKey.isNotBlank() && apiKey != "google_ai_session"
+        val isDirectKey = (apiKey.isNotBlank() && apiKey != "google_ai_session") || kind == AgentKind.OPENCODE
 
         val assistantMsgId = UUID.randomUUID().toString()
         val assistantMsg = ChatMessage(
@@ -238,6 +255,7 @@ class DirectAgentChatBackend(
 
         activeStreamJob = backendScope.launch(Dispatchers.IO) {
             val responseBuffer = StringBuilder()
+            val thoughtBuffer = StringBuilder()
             val history = currentList.filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
                 .takeLast(20)
                 .map { (if (it.role == MessageRole.USER) "user" else "assistant") to it.content }
@@ -270,7 +288,16 @@ class DirectAgentChatBackend(
                         apiKey = apiKey,
                         model = effectiveModel,
                         messages = history,
-                        systemPrompt = "You are JIN, an advanced agentic AI coding super-assistant created by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin). Assist the developer with clear, high-quality, production-ready code, explanation, and debugging."
+                        systemPrompt = "You are JIN, an advanced agentic AI coding super-assistant created by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin). Assist the developer with clear, high-quality, production-ready code, explanation, and debugging.",
+                        onReasoning = { rToken ->
+                            thoughtBuffer.append(rToken)
+                            val updatedThought = thoughtBuffer.toString()
+                            val liveList = _messages.value.map {
+                                if (it.id == assistantMsgId) it.copy(thoughtText = updatedThought) else it
+                            }
+                            _messages.value = liveList
+                            store.messages.value = liveList
+                        }
                     ) { token ->
                         responseBuffer.append(token)
                         val updatedText = responseBuffer.toString()

@@ -95,6 +95,12 @@ val AGENT_ITEMS = listOf(
         "OpenRouter Universal Swarm",
         "Connects to 100+ open-source models (Llama 3.3, Mistral, Qwen) via OpenRouter API.",
         "Swarm"
+    ),
+    AgentItemInfo(
+        AgentKind.OPENCODE,
+        "OpenCode AI Terminal CLI",
+        "Open-source terminal AI coding assistant powered by OpenCode Zen & polyglot models.",
+        "OpenCode"
     )
 )
 

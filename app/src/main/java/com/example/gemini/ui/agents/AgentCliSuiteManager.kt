@@ -118,6 +118,19 @@ object AgentCliSuiteRegistry {
             features = listOf("Open Cloud Login", "Codestral 25B", "Qwen 2.5 Coder", "Auto Failover"),
             loginUrl = "https://openrouter.ai",
             installCommand = "npm install -g openrouter-cli opencloud-cli"
+        ),
+        AgentCliPackage(
+            id = "opencode",
+            name = "OpenCode AI Terminal Coding CLI",
+            agentKind = AgentKind.OPENCODE,
+            description = "Open-source terminal AI coding assistant with OpenCode Zen gateway and polyglot coding engines.",
+            sizeMb = 145.0f,
+            authType = "OpenCode Zen / Free Gateway",
+            icon = Icons.Outlined.Terminal,
+            accentColor = Color(0xFF06B6D4),
+            features = listOf("OpenCode TUI", "Zen Gateway", "Autonomous Refactoring", "Termux Native Execution"),
+            loginUrl = "https://opencode.ai",
+            installCommand = "npm install -g opencode-ai || curl -fsSL https://opencode.ai/install | bash"
         )
     )
 }

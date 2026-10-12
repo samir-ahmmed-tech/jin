@@ -1746,6 +1746,9 @@ private fun RuntimesAndEnginesTab(context: Context) {
     val isClaudeInstalled = remember(refreshTrigger) { installer.isAgentInstalled(AgentKind.CLAUDE_CODE) }
     val isDshInstalled = remember(refreshTrigger) { installer.isAgentInstalled(AgentKind.DEEPSEEK_HARNESS) }
     val isAgyInstalled = remember(refreshTrigger) { installer.isAgentInstalled(AgentKind.ANTIGRAVITY) }
+    val isCodexInstalled = remember(refreshTrigger) { installer.isBundleInstalled("codex") }
+    val isOpenRouterInstalled = remember(refreshTrigger) { installer.isBundleInstalled("openrouter") }
+    val isOpenCodeInstalled = remember(refreshTrigger) { installer.isBundleInstalled("opencode") }
 
     val isPythonInstalled = remember(refreshTrigger) { installer.isDevStackInstalled(DevStack.PYTHON) }
     val isAndroidInstalled = remember(refreshTrigger) { installer.isDevStackInstalled(DevStack.ANDROID) }
@@ -1959,9 +1962,12 @@ private fun RuntimesAndEnginesTab(context: Context) {
         )
 
         val agents = listOf(
-            Triple("Claude Code", "Anthropic's coding agent · broad provider support · 71.8 MB", isClaudeInstalled to "claude"),
-            Triple("DeepSeek Harness", "Official DeepSeek coding agent · API-key provider · 26.5 MB", isDshInstalled to "dsh"),
-            Triple("Antigravity CLI", "Google's official coding agent · Google account / OAuth · 39.9 MB", isAgyInstalled to "agy")
+            Triple("DeepSeek Harness", "Official DeepSeek coding agent · API-key provider & local reasoning · 26.5 MB", isDshInstalled to "dsh"),
+            Triple("OpenCode CLI", "OpenCode AI terminal coding assistant · OpenCode Zen & multi-model · 16.0 MB", isOpenCodeInstalled to "opencode"),
+            Triple("Claude Code", "Anthropic's frontier coding agent · broad provider support · 71.8 MB", isClaudeInstalled to "claude"),
+            Triple("Antigravity CLI", "Google DeepMind agentic coding system · 39.9 MB", isAgyInstalled to "agy"),
+            Triple("Codex CLI", "OpenAI Codex & GPT-4o autonomous software engineer · 18.2 MB", isCodexInstalled to "codex"),
+            Triple("OpenRouter CLI", "Universal open-weights router (Mistral, Qwen 2.5, Llama 3.3) · 14.5 MB", isOpenRouterInstalled to "openrouter")
         )
 
         agents.forEach { (title, subtitle, state) ->

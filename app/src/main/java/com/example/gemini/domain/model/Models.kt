@@ -172,6 +172,9 @@ data class AiModel(
             AiModel("gemini-2.5-flash", "Gemini 2.5 Flash", ModelFamily.GEMINI, true, "Google high-speed low-latency multimodal reasoning model"),
             AiModel("openrouter-codestral", "Mistral Codestral 25B", ModelFamily.OTHER, false, "Mistral AI cutting-edge open weights coding model"),
             AiModel("openrouter-qwen", "Qwen 2.5 Coder 32B", ModelFamily.OTHER, false, "Alibaba Cloud flagship code model for polyglot software engineering"),
+            AiModel("opencode-zen-deepseek", "OpenCode DeepSeek V3", ModelFamily.OTHER, false, "Direct high-speed coding gateway via OpenCode Zen"),
+            AiModel("opencode-zen-coder", "OpenCode Zen Coder", ModelFamily.OTHER, false, "Optimized programming model for polyglot software engineering"),
+            AiModel("opencode-zen-r1", "OpenCode DeepSeek R1 Hermes", ModelFamily.OTHER, true, "Deep reasoning and chain-of-thought MoE architecture"),
             AiModel("custom-api", "Custom OpenAI-Compatible API", ModelFamily.OTHER, false, "Connect to any custom base URL (Ollama, LM Studio, vLLM, OpenRouter)")
         )
 

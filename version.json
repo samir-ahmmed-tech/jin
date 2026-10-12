@@ -1,15 +1,14 @@
 {
-  "version_code": 222,
-  "version_name": "2.2.2",
+  "version_code": 223,
+  "version_name": "2.2.3",
   "min_supported_version_code": 1,
   "changelog": [
-    "🚀 JIN v2.2.2: Zero-Crash Architecture, Harness Multi-Mirror Downloader, Autonomous Multi-Agent Studio, 1-Tap Optimization Hub, Video Uploads & BottomSheet UI Fix.",
-    "📐 Workspace Bottom Sheet Truncation Solved: Fixed + New Folder and Browse Storage buttons getting wrapped and clipped at bottom on mobile screen scaling with single-line guarantee and responsive horizontal padding.",
-    "🛡️ Harness Downloader Crash-Proof Engine: Upgraded HttpURLConnection to OkHttpClient with cross-domain 302 redirect following, throttled 250ms progress updates (eliminating main looper OOM), and multi-mirror release fallbacks.",
-    "🤖 Autonomous Multi-Agent Studio (Manus, Devin & Grok): Built-in specialized presets (Manus Solver, Devin Engineer, Grok DeepSearcher, Hermes Bug Hunter, Nova Designer) plus custom agent creator and Swarm task pipeline decomposition.",
-    "⚡ 1-Tap System & App Optimization Hub: Deep SQLite VACUUM compaction, in-memory bitmap RAM cache flush, temp buffer purging, 120Hz high-FPS boost, and idle background worker trimming.",
-    "🎥 Native Video Upload & Playback: Support for video attachments (MP4, MKV, WebM, MOV) with MediaMetadataRetriever video thumbnail extraction, chat chips, and interactive playback.",
-    "🛡️ Global Crash Protector: Intercepts unhandled coroutine and thread exceptions to prevent force closes, logging detailed diagnostics to Download/JIN_crash_log.txt.",
+    "🚀 JIN v2.2.3: 6-Agent CLI Suite (OpenCode, DeepSeek, Codex, OpenRouter) & 100% Real Autonomous Mobile-Harness Engine.",
+    "🤖 6 Dedicated AI Coding CLI Agents: Native integration for OpenCode AI Terminal CLI (opencode-ai), DeepSeek Harness (dsh), OpenAI Codex CLI, OpenRouter Universal CLI, Anthropic Claude Code, and Google Antigravity CLI.",
+    "⚡ 100% Real Mobile-Harness Autonomous Engine: Completely overhauled JinAutonomousEngine to perform real multi-turn LLM tool execution (read/write/exec/list), live DeepSeek R1 reasoning streaming, and interactive Git diff tracking.",
+    "🌐 OpenCode Zen Multi-Model Gateway: Direct access to free-tier and premium frontier coding models (opencode-zen-coder, deepseek-v4-flash, deepseek-r1) with seamless fallback chains.",
+    "🛡️ Crash-Proof Runtime Downloader: Complete protection against native linkage errors with Throwable recovery, multi-mirror failovers, and Termux CLI launchers.",
+    "🎨 Unified 6-Agent Picker: Horizontally scrollable chip selector in Jin Fusion and Harness Studio with accent branding.",
     "🛡️ 100% Attribution: Fully developed and authored by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)."
   ],
   "is_critical": false

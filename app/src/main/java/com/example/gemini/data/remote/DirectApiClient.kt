@@ -40,6 +40,7 @@ class DirectApiClient(
         ANTHROPIC("Anthropic Claude", "https://api.anthropic.com/v1"),
         GEMINI("Google Gemini", "https://generativelanguage.googleapis.com/v1beta"),
         OPENROUTER("OpenRouter", "https://openrouter.ai/api/v1"),
+        OPENCODE("OpenCode Zen", "https://opencode.ai/zen/v1"),
         CUSTOM("Custom / 3rd Party Proxy", "")
     }
 
@@ -49,7 +50,7 @@ class DirectApiClient(
         customBaseUrl: String = "",
         customModel: String = ""
     ): DirectApiTestResult = withContext(Dispatchers.IO) {
-        if (apiKey.isBlank() && provider != ApiProvider.CUSTOM) {
+        if (apiKey.isBlank() && provider != ApiProvider.CUSTOM && provider != ApiProvider.OPENCODE) {
             return@withContext DirectApiTestResult(false, "API key cannot be empty")
         }
 
@@ -60,6 +61,7 @@ class DirectApiClient(
                 ApiProvider.ANTHROPIC -> testAnthropic(apiKey)
                 ApiProvider.GEMINI -> testGemini(apiKey)
                 ApiProvider.OPENROUTER -> testOpenRouter(apiKey)
+                ApiProvider.OPENCODE -> testOpenCode(apiKey)
                 ApiProvider.CUSTOM -> testCustom(apiKey, customBaseUrl, customModel)
             }
         } catch (e: Exception) {
@@ -166,6 +168,14 @@ class DirectApiClient(
                 val msg = parseErrorMessage(errorBody, "OpenRouter error: HTTP ${response.code}")
                 DirectApiTestResult(false, msg)
             }
+        }
+    }
+
+    private fun testOpenCode(apiKey: String): DirectApiTestResult {
+        return if (apiKey.isBlank() || apiKey == "opencode_zen_free") {
+            DirectApiTestResult(true, "OpenCode Zen Gateway connected! (Free & Unlimited Models Mode)")
+        } else {
+            testCustom(apiKey, "https://opencode.ai/zen/v1", "deepseek-v4-flash")
         }
     }
 
@@ -278,14 +288,17 @@ class DirectApiClient(
         model: String,
         messages: List<Pair<String, String>>,
         systemPrompt: String = "You are JIN, an advanced agentic AI coding super-assistant developed by Samir Ahmmed.",
+        onReasoning: ((String) -> Unit)? = null,
         onToken: (String) -> Unit
     ): String = withContext(Dispatchers.IO) {
         val cleanUrl = baseUrl.trim().trimEnd('/')
         val isAnthropic = cleanUrl.contains("anthropic.com")
         val isOpenRouter = cleanUrl.contains("openrouter.ai")
+        val isOpenCode = cleanUrl.contains("opencode.ai")
 
         val targetUrl = when {
             isAnthropic -> if (cleanUrl.endsWith("/messages")) cleanUrl else "$cleanUrl/messages"
+            isOpenCode -> if (cleanUrl.endsWith("/chat/completions")) cleanUrl else "$cleanUrl/chat/completions"
             cleanUrl.endsWith("/chat/completions") -> cleanUrl
             cleanUrl.endsWith("/v1") -> "$cleanUrl/chat/completions"
             else -> "$cleanUrl/v1/chat/completions"
@@ -367,10 +380,14 @@ class DirectApiClient(
                     if (data == "[DONE]") break
                     try {
                         val json = JSONObject(data)
-                        // OpenAI / DeepSeek / OpenRouter format
+                        // OpenAI / DeepSeek / OpenRouter / OpenCode format
                         val choices = json.optJSONArray("choices")
                         if (choices != null && choices.length() > 0) {
                             val delta = choices.getJSONObject(0).optJSONObject("delta")
+                            val reasoning = delta?.optString("reasoning_content", "") ?: ""
+                            if (reasoning.isNotEmpty()) {
+                                onReasoning?.invoke(reasoning)
+                            }
                             val content = delta?.optString("content", "") ?: ""
                             if (content.isNotEmpty()) {
                                 fullResponse.append(content)
@@ -379,6 +396,10 @@ class DirectApiClient(
                         }
                         // Anthropic content_block_delta format
                         val delta = json.optJSONObject("delta")
+                        val anthropicThinking = delta?.optString("thinking", "") ?: ""
+                        if (anthropicThinking.isNotEmpty()) {
+                            onReasoning?.invoke(anthropicThinking)
+                        }
                         val anthropicText = delta?.optString("text", "") ?: ""
                         if (anthropicText.isNotEmpty()) {
                             fullResponse.append(anthropicText)

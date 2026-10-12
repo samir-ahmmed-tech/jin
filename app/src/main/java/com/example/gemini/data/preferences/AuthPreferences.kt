@@ -96,6 +96,7 @@ class AuthPreferences(private val context: Context) {
         val ANTHROPIC_API_KEY = stringPreferencesKey("anthropic_api_key")
         val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
         val OPENROUTER_API_KEY = stringPreferencesKey("openrouter_api_key")
+        val OPENCODE_API_KEY = stringPreferencesKey("opencode_api_key")
         val CUSTOM_API_KEY = stringPreferencesKey("custom_api_key")
         val CUSTOM_API_BASE_URL = stringPreferencesKey("custom_api_base_url")
         val CUSTOM_API_MODEL_NAME = stringPreferencesKey("custom_api_model_name")
@@ -995,6 +996,15 @@ class AuthPreferences(private val context: Context) {
         val encrypted = SecureStorageManager.encrypt(trimmed)
         syncPrefs.edit().putString("openrouter_api_key", encrypted).apply()
         context.dataStore.edit { it[OPENROUTER_API_KEY] = encrypted }
+    }
+
+    val openCodeApiKey: Flow<String> = context.dataStore.data.map { SecureStorageManager.decrypt(it[OPENCODE_API_KEY] ?: getOpenCodeApiKeySync()) }
+    fun getOpenCodeApiKeySync(): String = SecureStorageManager.decrypt(syncPrefs.getString("opencode_api_key", "") ?: "")
+    suspend fun saveOpenCodeApiKey(key: String) {
+        val trimmed = key.trim()
+        val encrypted = SecureStorageManager.encrypt(trimmed)
+        syncPrefs.edit().putString("opencode_api_key", encrypted).apply()
+        context.dataStore.edit { it[OPENCODE_API_KEY] = encrypted }
     }
 
     val customApiKey: Flow<String> = context.dataStore.data.map { SecureStorageManager.decrypt(it[CUSTOM_API_KEY] ?: getCustomApiKeySync()) }

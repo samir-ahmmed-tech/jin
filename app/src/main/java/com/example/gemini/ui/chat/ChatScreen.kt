@@ -429,7 +429,16 @@ fun ChatScreen(
         )
     } else null
 
-    val agentEntries = listOfNotNull(agyEntry, claudeEntry, deepseekEntry, codexEntry, openrouterEntry)
+    val opencodeEntry = if (com.example.gemini.domain.model.AgentKind.OPENCODE in enabledAgents) {
+        com.example.gemini.ui.agents.directAgentStatusEntry(
+            agent = com.example.gemini.domain.model.AgentKind.OPENCODE,
+            apiKey = viewModel.authPreferences.getOpenCodeApiKeySync(),
+            isGoogleAuthReady = isGoogleAuthReady,
+            onOpenSettings = { showSettingsDialog = true }
+        )
+    } else null
+
+    val agentEntries = listOfNotNull(agyEntry, claudeEntry, deepseekEntry, codexEntry, openrouterEntry, opencodeEntry)
 
     // Slash commands Claude's CLI only shows in a terminal: the app opens its own screen instead
     val handleClaudeCommand: (com.example.gemini.data.agent.claude.ClaudeAppCommand) -> Unit = { cmd ->
@@ -1049,6 +1058,7 @@ fun ChatScreen(
                         deepseek = deepseekEntry,
                         codex = codexEntry,
                         openrouter = openrouterEntry,
+                        opencode = opencodeEntry,
                         onClick = { showAccountsDialog = true }
                     )
                 },
@@ -2582,6 +2592,7 @@ fun ChatScreen(
             deepseek = deepseekEntry,
             codex = codexEntry,
             openrouter = openrouterEntry,
+            opencode = opencodeEntry,
             onOpenApiKeys = {
                 scope.launch { drawerState.close() }
                 showSettingsDialog = true
@@ -2592,6 +2603,7 @@ fun ChatScreen(
                         com.example.gemini.domain.model.AgentKind.DEEPSEEK_LOCAL -> viewModel.authPreferences.saveDeepSeekApiKey(key)
                         com.example.gemini.domain.model.AgentKind.CODEX -> viewModel.authPreferences.saveOpenAiApiKey(key)
                         com.example.gemini.domain.model.AgentKind.OPENROUTER -> viewModel.authPreferences.saveOpenRouterApiKey(key)
+                        com.example.gemini.domain.model.AgentKind.OPENCODE -> viewModel.authPreferences.saveOpenCodeApiKey(key)
                         else -> {}
                     }
                     val msg = if (key.isBlank()) "${agent.label()} key cleared" else "${agent.label()} configured successfully!"
