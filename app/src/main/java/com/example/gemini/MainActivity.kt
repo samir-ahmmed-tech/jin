@@ -488,6 +488,14 @@ class MainActivity : ComponentActivity() {
                                             previousViewMode = currentViewMode
                                             currentViewMode = AppViewMode.TERMINAL
                                         },
+                                        onNavigateToFusion = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.FUSION
+                                        },
+                                        onNavigateToHarness = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.HARNESS
+                                        },
                                         onOpenTranslator = {
                                             showTranslatorSheet = true
                                         },
