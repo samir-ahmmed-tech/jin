@@ -502,9 +502,31 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         if (isSwarm) {
             com.example.gemini.ui.components.AppToastHelper.showToast(
-                "⚡ Swarm Orchestrator Active: Dispatched prompt across agent networks",
+                "⚡ Swarm Active: Collaborative multi-agent network engaged",
                 com.example.gemini.ui.components.ChatToastType.INFO
             )
+            viewModelScope.launch(Dispatchers.IO) {
+                val peerBackends = listOf(
+                    AgentKind.DEEPSEEK_LOCAL to deepseekBackend,
+                    AgentKind.CODEX to codexBackend,
+                    AgentKind.OPENCODE to opencodeBackend,
+                    AgentKind.OPENROUTER to openrouterBackend
+                ).filter { it.first != curAgent }
+
+                for ((subKind, subBackend) in peerBackends) {
+                    val isAvailable = when (subKind) {
+                        AgentKind.DEEPSEEK_LOCAL -> authPrefs.getDeepSeekApiKeySync().isNotBlank()
+                        AgentKind.CODEX -> authPrefs.getOpenAiApiKeySync().isNotBlank()
+                        AgentKind.OPENCODE -> true
+                        AgentKind.OPENROUTER -> authPrefs.getOpenRouterApiKeySync().isNotBlank() || authPrefs.getCustomApiKeySync().isNotBlank()
+                        else -> false
+                    }
+                    if (isAvailable) {
+                        subBackend.sendMessage("[Cooperative Multi-Agent Turn - ${curAgent.name} Collab]: $actualContent")
+                        break
+                    }
+                }
+            }
         }
     }
     val isTranscribingAudio = agyBackend.isTranscribingAudio

@@ -170,12 +170,15 @@ data class AiModel(
             AiModel("claude-3-5-sonnet", "Claude 3.5 Sonnet", ModelFamily.CLAUDE, false, "Anthropic top-tier code intelligence and refactoring engine"),
             AiModel("gemini-2.5-pro", "Gemini 2.5 Pro", ModelFamily.GEMINI, true, "Google multimodal frontier model with 2M token context"),
             AiModel("gemini-2.5-flash", "Gemini 2.5 Flash", ModelFamily.GEMINI, true, "Google high-speed low-latency multimodal reasoning model"),
-            AiModel("openrouter-codestral", "Mistral Codestral 25B", ModelFamily.OTHER, false, "Mistral AI cutting-edge open weights coding model"),
-            AiModel("openrouter-qwen", "Qwen 2.5 Coder 32B", ModelFamily.OTHER, false, "Alibaba Cloud flagship code model for polyglot software engineering"),
+            AiModel("qwen/qwen-2.5-coder-32b-instruct", "Qwen 2.5 Coder 32B (OpenRouter)", ModelFamily.OTHER, false, "Alibaba Cloud flagship code model for polyglot software engineering"),
+            AiModel("mistralai/codestral-2501", "Mistral Codestral 25B", ModelFamily.OTHER, false, "Mistral AI cutting-edge open weights coding model"),
+            AiModel("meta-llama/llama-3.3-70b-instruct:free", "Llama 3.3 70B (Free OpenRouter)", ModelFamily.OTHER, false, "Meta flagship open weights model on free tier"),
+            AiModel("deepseek/deepseek-r1:free", "DeepSeek R1 (Free OpenRouter)", ModelFamily.OTHER, true, "DeepSeek R1 full chain-of-thought reasoning on free tier"),
+            AiModel("google/gemini-2.0-flash-exp:free", "Gemini 2.0 Flash (Free OpenRouter)", ModelFamily.OTHER, true, "Google high-speed low-latency multimodal on free tier"),
             AiModel("opencode-zen-deepseek", "OpenCode DeepSeek V3", ModelFamily.OTHER, false, "Direct high-speed coding gateway via OpenCode Zen"),
             AiModel("opencode-zen-coder", "OpenCode Zen Coder", ModelFamily.OTHER, false, "Optimized programming model for polyglot software engineering"),
             AiModel("opencode-zen-r1", "OpenCode DeepSeek R1 Hermes", ModelFamily.OTHER, true, "Deep reasoning and chain-of-thought MoE architecture"),
-            AiModel("custom-api", "Custom OpenAI-Compatible API", ModelFamily.OTHER, false, "Connect to any custom base URL (Ollama, LM Studio, vLLM, OpenRouter)")
+            AiModel("custom-api", "Custom 3rd-Party / GitHub API", ModelFamily.OTHER, false, "Connect to any custom base URL (GitHub Free LLM APIs, Groq, Ollama, Together, DeepSeek)")
         )
 
         fun fromApi(id: String, displayName: String?, description: String? = null): AiModel {

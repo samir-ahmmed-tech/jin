@@ -1,14 +1,14 @@
 {
-  "version_code": 223,
-  "version_name": "2.2.3",
+  "version_code": 224,
+  "version_name": "2.2.4",
   "min_supported_version_code": 1,
   "changelog": [
-    "🚀 JIN v2.2.3: 6-Agent CLI Suite (OpenCode, DeepSeek, Codex, OpenRouter) & 100% Real Autonomous Mobile-Harness Engine.",
-    "🤖 6 Dedicated AI Coding CLI Agents: Native integration for OpenCode AI Terminal CLI (opencode-ai), DeepSeek Harness (dsh), OpenAI Codex CLI, OpenRouter Universal CLI, Anthropic Claude Code, and Google Antigravity CLI.",
-    "⚡ 100% Real Mobile-Harness Autonomous Engine: Completely overhauled JinAutonomousEngine to perform real multi-turn LLM tool execution (read/write/exec/list), live DeepSeek R1 reasoning streaming, and interactive Git diff tracking.",
-    "🌐 OpenCode Zen Multi-Model Gateway: Direct access to free-tier and premium frontier coding models (opencode-zen-coder, deepseek-v4-flash, deepseek-r1) with seamless fallback chains.",
-    "🛡️ Crash-Proof Runtime Downloader: Complete protection against native linkage errors with Throwable recovery, multi-mirror failovers, and Termux CLI launchers.",
-    "🎨 Unified 6-Agent Picker: Horizontally scrollable chip selector in Jin Fusion and Harness Studio with accent branding.",
+    "🚀 JIN v2.2.4: Universal 3rd-Party & GitHub Free API Hub, Multi-Agent Swarm Collaboration, Unlimited Concurrent Background Chats & 3D Galaxy Voice.",
+    "🌐 Universal 3rd-Party / GitHub API Support: Connect to ANY OpenAI-compatible API endpoint (GitHub Free LLM resources, Groq, Together, Ollama, DeepSeek, Mistral) with dynamic model fetching from /models and robust fallback decoding.",
+    "⚡ Fixed OpenRouter Slugs: Resolved invalid model ID errors with verified active slugs (qwen/qwen-2.5-coder-32b-instruct, meta-llama/llama-3.3-70b-instruct:free, deepseek/deepseek-r1:free, google/gemini-2.0-flash-exp:free).",
+    "🤖 Real Multi-Agent Swarm Collaboration: Revived and enhanced cooperative agent workflows from v1.0.3/1.0.5 - active agents collaborate across peer networks in real-time.",
+    "🔄 Unlimited Concurrent Background Chats: Switching chats no longer cancels ongoing streams - tasks continue generating concurrently in the background.",
+    "🎙️ 3D Rotating Galaxy Voice Assistant: Immersive 3D star sphere and orbital galaxy particles reacting in real-time to speech amplitude, plus dedicated Captions ON/OFF toggle.",
     "🛡️ 100% Attribution: Fully developed and authored by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)."
   ],
   "is_critical": false

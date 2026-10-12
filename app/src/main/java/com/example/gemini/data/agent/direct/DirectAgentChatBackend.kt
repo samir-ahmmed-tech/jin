@@ -74,7 +74,7 @@ class DirectAgentChatBackend(
     private val _selectedModelId = MutableStateFlow(defaultModelIdForKind())
     val selectedModelId: StateFlow<String> = _selectedModelId.asStateFlow()
 
-    private var activeStreamJob: Job? = null
+    private val activeStreamJobs = java.util.concurrent.ConcurrentHashMap<String, Job>()
 
     init {
         loadConversationsFromDisk()
@@ -154,12 +154,12 @@ class DirectAgentChatBackend(
     }
 
     override fun selectConversation(id: String) {
-        stopStreaming()
         val target = _conversations.value.find { it.id == id } ?: return
         _currentConversation.value = target
         store.currentConversation.value = target
         _conversationError.value = null
         loadMessagesForConversation(id)
+        _isStreaming.value = activeStreamJobs[id]?.isActive == true
     }
 
     override fun sendMessage(content: String) {
@@ -192,14 +192,21 @@ class DirectAgentChatBackend(
                 Triple("https://api.openai.com/v1", key, m)
             }
             AgentKind.OPENROUTER -> {
-                if (rawModel == "custom-api") {
+                if (rawModel == "custom-api" || rawModel.startsWith("custom-")) {
                     val key = authPrefs.getCustomApiKeySync().trim()
-                    val url = authPrefs.getCustomApiBaseUrlSync().trim()
+                    val url = authPrefs.getCustomApiBaseUrlSync().trim().ifBlank { "https://api.openai.com/v1" }
                     val m = authPrefs.getCustomApiModelNameSync().trim().ifBlank { "gpt-4o" }
                     Triple(url, key, m)
                 } else {
                     val key = authPrefs.getOpenRouterApiKeySync().trim()
-                    val m = rawModel.ifBlank { "meta-llama/llama-3.3-70b-instruct:free" }
+                    val m = when (rawModel) {
+                        "openrouter-qwen", "qwen" -> "qwen/qwen-2.5-coder-32b-instruct"
+                        "openrouter-codestral", "codestral" -> "mistralai/codestral-2501"
+                        "meta-llama/llama-3.3-70b-instruct" -> "meta-llama/llama-3.3-70b-instruct:free"
+                        "meta-llama/llama-3.3-70b-instruct:free" -> "meta-llama/llama-3.3-70b-instruct:free"
+                        "deepseek-r1", "r1" -> "deepseek/deepseek-r1:free"
+                        else -> rawModel.ifBlank { "qwen/qwen-2.5-coder-32b-instruct" }
+                    }
                     Triple("https://openrouter.ai/api/v1", key, m)
                 }
             }
@@ -253,7 +260,8 @@ class DirectAgentChatBackend(
         store.messages.value = currentList + assistantMsg
         _isStreaming.value = true
 
-        activeStreamJob = backendScope.launch(Dispatchers.IO) {
+        activeStreamJobs[conv.id]?.cancel()
+        val streamJob = backendScope.launch(Dispatchers.IO) {
             val responseBuffer = StringBuilder()
             val thoughtBuffer = StringBuilder()
             val history = currentList.filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
@@ -274,10 +282,12 @@ class DirectAgentChatBackend(
                 val updatedWithNotice = currentList.map {
                     if (it.id == assistantMsgId) it.copy(content = fallbackNotice, isStreaming = false) else it
                 }
-                _messages.value = updatedWithNotice
-                store.messages.value = updatedWithNotice
+                if (_currentConversation.value?.id == conv.id) {
+                    _messages.value = updatedWithNotice
+                    store.messages.value = updatedWithNotice
+                    _isStreaming.value = false
+                }
                 saveMessagesToDisk(conv.id, updatedWithNotice)
-                _isStreaming.value = false
                 return@launch
             }
 
@@ -292,20 +302,24 @@ class DirectAgentChatBackend(
                         onReasoning = { rToken ->
                             thoughtBuffer.append(rToken)
                             val updatedThought = thoughtBuffer.toString()
-                            val liveList = _messages.value.map {
-                                if (it.id == assistantMsgId) it.copy(thoughtText = updatedThought) else it
+                            if (_currentConversation.value?.id == conv.id) {
+                                val liveList = _messages.value.map {
+                                    if (it.id == assistantMsgId) it.copy(thoughtText = updatedThought) else it
+                                }
+                                _messages.value = liveList
+                                store.messages.value = liveList
                             }
-                            _messages.value = liveList
-                            store.messages.value = liveList
                         }
                     ) { token ->
                         responseBuffer.append(token)
                         val updatedText = responseBuffer.toString()
-                        val liveList = _messages.value.map {
-                            if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                        if (_currentConversation.value?.id == conv.id) {
+                            val liveList = _messages.value.map {
+                                if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                            }
+                            _messages.value = liveList
+                            store.messages.value = liveList
                         }
-                        _messages.value = liveList
-                        store.messages.value = liveList
                     }
                 } else {
                     responseBuffer.append("> ⚡ **${kind.label()} Connected via Google AI Pro**\n\n")
@@ -320,20 +334,24 @@ class DirectAgentChatBackend(
                         if (event is StreamEvent.TextChunk) {
                             responseBuffer.append(event.text)
                             val updatedText = responseBuffer.toString()
-                            val liveList = _messages.value.map {
-                                if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                            if (_currentConversation.value?.id == conv.id) {
+                                val liveList = _messages.value.map {
+                                    if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                                }
+                                _messages.value = liveList
+                                store.messages.value = liveList
                             }
-                            _messages.value = liveList
-                            store.messages.value = liveList
                         }
                     }
                 }
 
-                val finalList = _messages.value.map {
+                val finalList = (if (_currentConversation.value?.id == conv.id) _messages.value else currentList + assistantMsg).map {
                     if (it.id == assistantMsgId) it.copy(content = responseBuffer.toString(), isStreaming = false) else it
                 }
-                _messages.value = finalList
-                store.messages.value = finalList
+                if (_currentConversation.value?.id == conv.id) {
+                    _messages.value = finalList
+                    store.messages.value = finalList
+                }
                 saveMessagesToDisk(conv.id, finalList)
                 saveConversationMeta(conv.copy(updatedAt = System.currentTimeMillis()))
             } catch (e: Exception) {
@@ -360,18 +378,22 @@ class DirectAgentChatBackend(
                             ) { token: String ->
                                 responseBuffer.append(token)
                                 val updatedText = responseBuffer.toString()
-                                val liveList = _messages.value.map {
-                                    if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                                if (_currentConversation.value?.id == conv.id) {
+                                    val liveList = _messages.value.map {
+                                        if (it.id == assistantMsgId) it.copy(content = updatedText) else it
+                                    }
+                                    _messages.value = liveList
+                                    store.messages.value = liveList
                                 }
-                                _messages.value = liveList
-                                store.messages.value = liveList
                             }
 
-                            val finalList = _messages.value.map {
+                            val finalList = (if (_currentConversation.value?.id == conv.id) _messages.value else currentList + assistantMsg).map {
                                 if (it.id == assistantMsgId) it.copy(content = responseBuffer.toString(), isStreaming = false) else it
                             }
-                            _messages.value = finalList
-                            store.messages.value = finalList
+                            if (_currentConversation.value?.id == conv.id) {
+                                _messages.value = finalList
+                                store.messages.value = finalList
+                            }
                             saveMessagesToDisk(conv.id, finalList)
                             saveConversationMeta(conv.copy(updatedAt = System.currentTimeMillis()))
                             return@launch
@@ -384,21 +406,35 @@ class DirectAgentChatBackend(
                 val errText = responseBuffer.toString().ifBlank {
                     "❌ **Connection Error**: ${e.localizedMessage ?: e.message ?: "Failed to receive response from provider."}"
                 }
-                val errorList = _messages.value.map {
+                val errorList = (if (_currentConversation.value?.id == conv.id) _messages.value else currentList + assistantMsg).map {
                     if (it.id == assistantMsgId) it.copy(content = errText, isStreaming = false) else it
                 }
-                _messages.value = errorList
-                store.messages.value = errorList
+                if (_currentConversation.value?.id == conv.id) {
+                    _messages.value = errorList
+                    store.messages.value = errorList
+                }
                 saveMessagesToDisk(conv.id, errorList)
             } finally {
+                if (_currentConversation.value?.id == conv.id) {
+                    _isStreaming.value = false
+                }
+            }
+        }
+        activeStreamJobs[conv.id] = streamJob
+        streamJob.invokeOnCompletion {
+            activeStreamJobs.remove(conv.id)
+            if (_currentConversation.value?.id == conv.id) {
                 _isStreaming.value = false
             }
         }
     }
 
     override fun stopStreaming() {
-        activeStreamJob?.cancel()
-        activeStreamJob = null
+        val curId = _currentConversation.value?.id
+        if (curId != null) {
+            activeStreamJobs[curId]?.cancel()
+            activeStreamJobs.remove(curId)
+        }
         _isStreaming.value = false
         val currentList = _messages.value.map {
             if (it.isStreaming) it.copy(isStreaming = false) else it

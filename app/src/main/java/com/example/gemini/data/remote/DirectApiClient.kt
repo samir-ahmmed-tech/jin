@@ -179,22 +179,111 @@ class DirectApiClient(
         }
     }
 
+    suspend fun fetchAvailableModels(baseUrl: String, apiKey: String): List<String> = withContext(Dispatchers.IO) {
+        val cleanUrl = baseUrl.trim().trimEnd('/')
+        if (cleanUrl.isBlank()) return@withContext emptyList()
+
+        val candidateUrls = listOf(
+            if (cleanUrl.endsWith("/v1")) "$cleanUrl/models" else "$cleanUrl/v1/models",
+            "$cleanUrl/models",
+            if (cleanUrl.endsWith("/v1")) "$cleanUrl/models" else "$cleanUrl/api/v1/models"
+        ).distinct()
+
+        for (targetUrl in candidateUrls) {
+            try {
+                val reqBuilder = Request.Builder().url(targetUrl).get()
+                if (apiKey.isNotBlank()) {
+                    reqBuilder.header("Authorization", "Bearer $apiKey")
+                }
+                client.newCall(reqBuilder.build()).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string() ?: ""
+                        val json = JSONObject(body)
+                        val modelList = mutableListOf<String>()
+
+                        // Standard OpenAI format: {"data": [{"id": "..."}, ...]}
+                        val dataArray = json.optJSONArray("data")
+                        if (dataArray != null) {
+                            for (i in 0 until dataArray.length()) {
+                                val item = dataArray.optJSONObject(i)
+                                val id = item?.optString("id") ?: ""
+                                if (id.isNotBlank()) modelList.add(id)
+                            }
+                        }
+
+                        // Ollama / custom format: {"models": [{"name": "..."}, ...]}
+                        if (modelList.isEmpty()) {
+                            val modelsArray = json.optJSONArray("models")
+                            if (modelsArray != null) {
+                                for (i in 0 until modelsArray.length()) {
+                                    val item = modelsArray.optJSONObject(i)
+                                    val name = item?.optString("name") ?: item?.optString("id") ?: ""
+                                    if (name.isNotBlank()) modelList.add(name)
+                                }
+                            }
+                        }
+
+                        if (modelList.isNotEmpty()) {
+                            return@withContext modelList
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+        emptyList()
+    }
+
     private fun testCustom(apiKey: String, baseUrl: String, model: String): DirectApiTestResult {
         val cleanUrl = baseUrl.trim().trimEnd('/')
         if (cleanUrl.isBlank()) {
             return DirectApiTestResult(false, "Base URL cannot be empty")
         }
 
-        val targetUrl = if (cleanUrl.endsWith("/v1")) "$cleanUrl/models" else "$cleanUrl/v1/models"
-        val reqBuilder = Request.Builder().url(targetUrl).get()
-        if (apiKey.isNotBlank()) {
-            reqBuilder.header("Authorization", "Bearer $apiKey")
+        val candidateUrls = listOf(
+            if (cleanUrl.endsWith("/v1")) "$cleanUrl/models" else "$cleanUrl/v1/models",
+            "$cleanUrl/models"
+        ).distinct()
+
+        for (targetUrl in candidateUrls) {
+            try {
+                val reqBuilder = Request.Builder().url(targetUrl).get()
+                if (apiKey.isNotBlank()) {
+                    reqBuilder.header("Authorization", "Bearer $apiKey")
+                }
+                client.newCall(reqBuilder.build()).execute().use { response ->
+                    if (response.isSuccessful) {
+                        return DirectApiTestResult(true, "Custom endpoint connected successfully (HTTP ${response.code})")
+                    }
+                }
+            } catch (_: Exception) {}
         }
 
+        // Fallback test: attempt a minimal completions ping
         return try {
+            val completionsUrl = when {
+                cleanUrl.endsWith("/chat/completions") -> cleanUrl
+                cleanUrl.endsWith("/v1") -> "$cleanUrl/chat/completions"
+                else -> "$cleanUrl/v1/chat/completions"
+            }
+            val payload = JSONObject().apply {
+                put("model", model.ifBlank { "gpt-4o" })
+                put("max_tokens", 2)
+                put("messages", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("role", "user")
+                        put("content", "ping")
+                    })
+                })
+            }
+            val reqBuilder = Request.Builder()
+                .url(completionsUrl)
+                .post(payload.toString().toRequestBody("application/json".toMediaType()))
+            if (apiKey.isNotBlank()) {
+                reqBuilder.header("Authorization", "Bearer $apiKey")
+            }
             client.newCall(reqBuilder.build()).execute().use { response ->
                 if (response.isSuccessful) {
-                    DirectApiTestResult(true, "Custom endpoint responded successfully (HTTP ${response.code})")
+                    DirectApiTestResult(true, "Custom endpoint verified successfully (HTTP ${response.code})")
                 } else {
                     val errorBody = response.body?.string() ?: ""
                     val msg = parseErrorMessage(errorBody, "Endpoint error: HTTP ${response.code}")
@@ -373,9 +462,13 @@ class DirectApiClient(
             val reader = BufferedReader(InputStreamReader(source))
 
             var line: String?
+            val rawBuffer = StringBuilder()
+            var sawSseData = false
             while (reader.readLine().also { line = it } != null) {
                 val l = line?.trim() ?: continue
+                rawBuffer.append(l).append("\n")
                 if (l.startsWith("data:")) {
+                    sawSseData = true
                     val data = l.removePrefix("data:").trim()
                     if (data == "[DONE]") break
                     try {
@@ -407,6 +500,22 @@ class DirectApiClient(
                         }
                     } catch (_: Exception) {}
                 }
+            }
+
+            // Fallback for non-streaming standard JSON responses
+            if (!sawSseData && fullResponse.isEmpty() && rawBuffer.isNotBlank()) {
+                try {
+                    val fullJson = JSONObject(rawBuffer.toString().trim())
+                    val choices = fullJson.optJSONArray("choices")
+                    val content = choices?.optJSONObject(0)?.optJSONObject("message")?.optString("content", "")
+                        ?: choices?.optJSONObject(0)?.optString("text", "")
+                        ?: fullJson.optJSONArray("content")?.optJSONObject(0)?.optString("text", "")
+                        ?: ""
+                    if (content.isNotEmpty()) {
+                        fullResponse.append(content)
+                        onToken(content)
+                    }
+                } catch (_: Exception) {}
             }
         }
 

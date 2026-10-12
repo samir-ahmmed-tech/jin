@@ -10643,25 +10643,48 @@ private fun ApiKeysSubScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                testingProvider = "CUSTOM"
-                                customStatus = "Testing endpoint..."
-                                val res = apiClient.testConnection(
-                                    DirectApiClient.ApiProvider.CUSTOM,
-                                    customKey,
-                                    customBaseUrl,
-                                    customModelName
-                                )
-                                customStatus = if (res.success) "✓ ${res.message}" else "✗ ${res.message}"
-                                testingProvider = null
-                            }
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        enabled = testingProvider != "CUSTOM"
-                    ) {
-                        Text(if (testingProvider == "CUSTOM") "Connecting..." else "Test Endpoint")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    testingProvider = "CUSTOM"
+                                    customStatus = "Testing endpoint..."
+                                    val res = apiClient.testConnection(
+                                        DirectApiClient.ApiProvider.CUSTOM,
+                                        customKey,
+                                        customBaseUrl,
+                                        customModelName
+                                    )
+                                    customStatus = if (res.success) "✓ ${res.message}" else "✗ ${res.message}"
+                                    testingProvider = null
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            enabled = testingProvider != "CUSTOM"
+                        ) {
+                            Text(if (testingProvider == "CUSTOM") "Connecting..." else "Test")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    testingProvider = "FETCH_MODELS"
+                                    customStatus = "Fetching models from /models..."
+                                    val models = apiClient.fetchAvailableModels(customBaseUrl, customKey)
+                                    if (models.isNotEmpty()) {
+                                        customModelName = models.first()
+                                        customStatus = "✓ Found ${models.size} models! Selected: ${models.first()}"
+                                    } else {
+                                        customStatus = "✗ No models returned or endpoint requires auth"
+                                    }
+                                    testingProvider = null
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            enabled = testingProvider != "FETCH_MODELS"
+                        ) {
+                            Text(if (testingProvider == "FETCH_MODELS") "Fetching..." else "Fetch Models")
+                        }
                     }
 
                     if (customStatus != null) {
