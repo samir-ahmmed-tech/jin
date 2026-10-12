@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.harness.*
+import com.example.gemini.data.local.LocalEnvironmentManager
 import com.example.gemini.data.preferences.AuthPreferences
 import com.example.gemini.theme.ChatGptEmerald
 import com.example.gemini.theme.ClaudeTerracotta
@@ -495,10 +496,7 @@ fun HarnessStudioScreen(
                                     }
                                     val res = LocalEnvironmentManager.executeCommand(cmd, context, workspace.absolutePath)
                                     withContext(Dispatchers.Main) {
-                                        buildLogs += res.stdout
-                                        if (res.stderr.isNotBlank()) {
-                                            buildLogs += "\n" + res.stderr
-                                        }
+                                        buildLogs += res.output
                                     }
                                     val apk = AndroidBuildSupport.findDebugApk(workspace)
                                     withContext(Dispatchers.Main) {

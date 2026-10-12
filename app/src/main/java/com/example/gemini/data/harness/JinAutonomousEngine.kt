@@ -322,10 +322,10 @@ class JinAutonomousEngine(private val context: Context) {
             val buildResult = LocalEnvironmentManager.executeCommand(gradleCmd, context, root.absolutePath)
             if (buildResult.exitCode == 0) {
                 onEvent(RuntimeEvent.ToolCompleted(sessionId, "GradleBuild", "Build succeeded!"))
-                onEvent(RuntimeEvent.AssistantDelta(sessionId, "Build output:\n```\n${buildResult.stdout.takeLast(1000)}\n```\n"))
+                onEvent(RuntimeEvent.AssistantDelta(sessionId, "Build output:\n```\n${buildResult.output.takeLast(1000)}\n```\n"))
             } else {
                 onEvent(RuntimeEvent.ToolCompleted(sessionId, "GradleBuild", "Build finished with code ${buildResult.exitCode}"))
-                onEvent(RuntimeEvent.AssistantDelta(sessionId, "Build diagnostics:\n```\n${(buildResult.stderr + "\n" + buildResult.stdout).takeLast(1500)}\n```\n"))
+                onEvent(RuntimeEvent.AssistantDelta(sessionId, "Build diagnostics:\n```\n${buildResult.output.takeLast(1500)}\n```\n"))
             }
         }
 

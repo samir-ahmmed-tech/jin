@@ -237,8 +237,8 @@ fun FloatingSwitcherWidget(
 
                                 val iconVector: ImageVector = when (itemId.lowercase()) {
                                     "chat" -> Icons.Outlined.ChatBubbleOutline
-                                    "fusion" -> Icons.Outlined.Bolt
-                                    "harness" -> Icons.Outlined.SmartToy
+                                    "fusion" -> Icons.Outlined.AutoAwesome
+                                    "harness" -> Icons.Outlined.RocketLaunch
                                     "ide" -> Icons.Outlined.Code
                                     "terminal" -> Icons.Outlined.Terminal
                                     "browser" -> Icons.Outlined.Language
@@ -301,8 +301,8 @@ fun FloatingSwitcherWidget(
 
                                 val iconVector: ImageVector = when (itemId.lowercase()) {
                                     "chat" -> Icons.Outlined.ChatBubbleOutline
-                                    "fusion" -> Icons.Outlined.Bolt
-                                    "harness" -> Icons.Outlined.SmartToy
+                                    "fusion" -> Icons.Outlined.AutoAwesome
+                                    "harness" -> Icons.Outlined.RocketLaunch
                                     "ide" -> Icons.Outlined.Code
                                     "terminal" -> Icons.Outlined.Terminal
                                     "browser" -> Icons.Outlined.Language

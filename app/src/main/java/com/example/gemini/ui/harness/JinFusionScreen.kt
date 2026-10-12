@@ -528,8 +528,7 @@ fun JinFusionScreen(
 
                                     val res = LocalEnvironmentManager.executeCommand(cmd, context, workspace.absolutePath)
                                     withContext(Dispatchers.Main) {
-                                        buildLogs += res.stdout
-                                        if (res.stderr.isNotBlank()) buildLogs += "\n" + res.stderr
+                                        buildLogs += res.output
                                     }
 
                                     val apk = AndroidBuildSupport.findDebugApk(workspace)
@@ -809,7 +808,7 @@ private fun FusionAgentTab(
                     Spacer(modifier = Modifier.height(8.dp))
                     MarkdownContent(
                         content = finalResult,
-                        fontSizeMultiplier = 0.95f
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
