@@ -20,6 +20,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -1107,168 +1108,262 @@ fun ChatScreen(
         Scaffold(
             snackbarHost = {},
             topBar = {
-                TopAppBar(
-                    title = {
-                        val displayedChatTitle = remember(currentConv?.title, conversations, currentConv?.id) {
-                            val fromList = conversations.firstOrNull { it.id == currentConv?.id }
-                            val listTitle = fromList?.title?.takeIf {
-                                it.isNotBlank() && it != "New Chat" && it != "Conversation"
-                            }
-                            val activeTitle = currentConv?.title?.takeIf {
-                                it.isNotBlank() && it != "New Chat" && it != "Conversation"
-                            }
-                            listTitle ?: activeTitle ?: currentConv?.title?.takeIf { it.isNotBlank() } ?: "Antigravity Chat"
-                        }
-
-                        Column {
-                            Text(
-                                text = displayedChatTitle,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val isChatStarted = messages.isNotEmpty()
-                                val displayedProjectName = remember(currentConv?.workspaceUri, isChatStarted) {
-                                    val convUri = currentConv?.workspaceUri
-                                    if (!convUri.isNullOrBlank()) {
-                                        val clean = convUri.removePrefix("file://").trimEnd('/')
-                                        File(clean).name.ifBlank { "Workspace" }
-                                    } else {
-                                        if (isChatStarted) "Outside" else "Select Project"
-                                    }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    TopAppBar(
+                        title = {
+                            val displayedChatTitle = remember(currentConv?.title, conversations, currentConv?.id) {
+                                val fromList = conversations.firstOrNull { it.id == currentConv?.id }
+                                val listTitle = fromList?.title?.takeIf {
+                                    it.isNotBlank() && it != "New Chat" && it != "Conversation"
                                 }
+                                val activeTitle = currentConv?.title?.takeIf {
+                                    it.isNotBlank() && it != "New Chat" && it != "Conversation"
+                                }
+                                listTitle ?: activeTitle ?: currentConv?.title?.takeIf { it.isNotBlank() } ?: "Antigravity Chat"
+                            }
 
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isChatStarted) 0.5f else 0.7f),
-                                    modifier = Modifier.clickable {
-                                        showProjectPickerDialog = true
+                            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                Text(
+                                    text = displayedChatTitle,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val isChatStarted = messages.isNotEmpty()
+                                    val displayedProjectName = remember(currentConv?.workspaceUri, isChatStarted) {
+                                        val convUri = currentConv?.workspaceUri
+                                        if (!convUri.isNullOrBlank()) {
+                                            val clean = convUri.removePrefix("file://").trimEnd('/')
+                                            File(clean).name.ifBlank { "Workspace" }
+                                        } else {
+                                            if (isChatStarted) "Outside" else "Select Project"
+                                        }
                                     }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isChatStarted) 0.5f else 0.7f),
+                                        modifier = Modifier.clickable {
+                                            showProjectPickerDialog = true
+                                        }
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Folder,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(11.dp),
-                                            tint = if (isChatStarted) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = displayedProjectName,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 11.sp,
-                                            color = if (isChatStarted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        if (!isChatStarted) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             Icon(
-                                                imageVector = Icons.Default.ArrowDropDown,
+                                                imageVector = Icons.Default.Folder,
                                                 contentDescription = null,
-                                                modifier = Modifier.size(14.dp),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                modifier = Modifier.size(12.dp),
+                                                tint = if (isChatStarted) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary
                                             )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = displayedProjectName,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                color = if (isChatStarted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            if (!isChatStarted) {
+                                                Icon(
+                                                    imageVector = Icons.Default.ArrowDropDown,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(14.dp),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                    },
-                    navigationIcon = {
-                        if (conversationBackStack.isNotEmpty()) {
-                            IconButton(onClick = navigateBackConversation) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        } else {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = "Open Drawer",
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-                        if (isInFloatingWindow) {
-                            IconButton(onClick = onMinimizeWindow) {
-                                Icon(
-                                    imageVector = Icons.Default.Remove,
-                                    contentDescription = "Minimize to Bubble",
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-                                )
-                            }
-                            IconButton(onClick = onOpenFullScreen) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                                    contentDescription = "Open Full Screen",
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-                                )
-                            }
-                        }
-                        if (isLocalToolsInstalled || com.example.gemini.data.local.LocalEnvironmentManager.isInstalled(context) || systemConnectionState.status != com.example.gemini.data.remote.SystemStatus.OFFLINE) {
-                            // upper half Antigravity, lower half Claude Code (one solid dot when they agree)
-                            com.example.gemini.ui.agents.AgentStatusIndicator(
-                                entries = agentEntries,
-                                onOpenServerLogs = { showLocalServerOutputDialog = true }
-                            )
-                        }
-                        IconButton(onClick = onNavigateToBrowser) {
-                            Icon(
-                                imageVector = Icons.Outlined.Language,
-                                contentDescription = "Web Browser Preview",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-                            )
-                        }
-                        IconButton(onClick = {
-                            if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) {
-                                onNavigateToTerminal()
-                            } else if (isLocalToolsInstalled) {
-                                viewModel.setLocalToolsEnabled(true)
-                                onNavigateToTerminal()
+                        },
+                        navigationIcon = {
+                            if (conversationBackStack.isNotEmpty()) {
+                                IconButton(onClick = navigateBackConversation) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                             } else {
-                                showLocalToolsInstallDialog = true
+                                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Menu,
+                                        contentDescription = "Open Drawer",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                             }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Outlined.Terminal,
-                                contentDescription = "Terminal",
-                                tint = if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-                            )
-                        }
-                        IconButton(onClick = onNavigateToIde) {
-                            Icon(
-                                imageVector = Icons.Default.Code,
-                                contentDescription = "Code Editor IDE",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        },
+                        actions = {
+                            if (isInFloatingWindow) {
+                                IconButton(onClick = onMinimizeWindow) {
+                                    Icon(
+                                        imageVector = Icons.Default.Remove,
+                                        contentDescription = "Minimize to Bubble",
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                                    )
+                                }
+                                IconButton(onClick = onOpenFullScreen) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                                        contentDescription = "Open Full Screen",
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                                    )
+                                }
+                            }
+                            if (isLocalToolsInstalled || com.example.gemini.data.local.LocalEnvironmentManager.isInstalled(context) || systemConnectionState.status != com.example.gemini.data.remote.SystemStatus.OFFLINE) {
+                                // upper half Antigravity, lower half Claude Code (one solid dot when they agree)
+                                com.example.gemini.ui.agents.AgentStatusIndicator(
+                                    entries = agentEntries,
+                                    onOpenServerLogs = { showLocalServerOutputDialog = true }
+                                )
+                            }
+                            if (isDevModeEnabled) {
+                                IconButton(onClick = { showChatTelemetryDialog = true }) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Analytics,
+                                        contentDescription = "Chat Telemetry & Tokens",
+                                        tint = ClaudeTerracotta
+                                    )
+                                }
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background
+                        )
+                    )
+
+                    // Dedicated Horizontal Mode & Quick Tools Bar (Never squishes TopAppBar title)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // 1. Classic Mode (Active)
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = ClaudeTerracotta.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.4f)),
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.ChatBubbleOutline,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Classic",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        // 2. Fusion Mode (⚡)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.45f)),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onNavigateToFusion() }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Fusion",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        // 3. Harness Studio (🚀)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onNavigateToHarness() }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.RocketLaunch,
+                                    contentDescription = null,
+                                    tint = ClaudeTerracotta,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Harness",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        // Subtle Divider
+                        Box(
+                            modifier = Modifier
+                                .height(16.dp)
+                                .width(1.dp)
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+                        )
+
+                        // 4. 100 Tools Hub
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = ClaudeTerracotta.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
                                 .clickable { showPcFeaturesHub = true }
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.AutoAwesome,
                                     contentDescription = null,
                                     tint = ClaudeTerracotta,
-                                    modifier = Modifier.size(15.dp)
+                                    modifier = Modifier.size(13.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
@@ -1279,74 +1374,104 @@ fun ChatScreen(
                                 )
                             }
                         }
+
+                        // 5. Terminal Quick Pill
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .clickable { onNavigateToFusion() }
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) {
+                                        onNavigateToTerminal()
+                                    } else if (isLocalToolsInstalled) {
+                                        viewModel.setLocalToolsEnabled(true)
+                                        onNavigateToTerminal()
+                                    } else {
+                                        showLocalToolsInstallDialog = true
+                                    }
+                                }
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Bolt,
-                                    contentDescription = null,
-                                    tint = Color(0xFFF59E0B),
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "Fusion",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .clickable { onNavigateToHarness() }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.SmartToy,
+                                    imageVector = Icons.Outlined.Terminal,
                                     contentDescription = null,
                                     tint = ClaudeTerracotta,
-                                    modifier = Modifier.size(15.dp)
+                                    modifier = Modifier.size(13.dp)
                                 )
-                                Spacer(modifier = Modifier.width(3.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Harness",
+                                    text = "Terminal",
                                     fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
-                        if (isDevModeEnabled) {
-                            IconButton(onClick = { showChatTelemetryDialog = true }) {
+
+                        // 6. IDE Editor Pill
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onNavigateToIde() }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Analytics,
-                                    contentDescription = "Chat Telemetry & Tokens",
-                                    tint = ClaudeTerracotta
+                                    imageVector = Icons.Default.Code,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "IDE",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
-                )
+
+                        // 7. Browser Preview Pill
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onNavigateToBrowser() }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Language,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Browser",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
             },
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets.statusBars
