@@ -1,16 +1,15 @@
 {
-  "version_code": 215,
-  "version_name": "2.1.5",
+  "version_code": 216,
+  "version_name": "2.1.6",
   "min_supported_version_code": 1,
   "changelog": [
-    "🚀 Single Unified JIN APK (jin-termux-v2.1.5): Complete production release combining JIN-Termux, PRoot rootfs, 100 PC Power Tools, Real-Time Voice, and Mobile-Harness Studio.",
-    "🛡️ Universal Bootstrap & Agent Vault: Persistent Agent Vault safeguards Antigravity (agy), Claude Code, and IDE Bridge across custom bootstrap ZIP uploads (both heavy full rootfs and ultra-light BusyBox/Alpine micro-environments).",
-    "⚡ Seamless Rootfs Compatibility: Automatic agent binary restoration, shell fallback symlinking (bash -> sh/ash), dynamic PRoot path bindings (/antigem/bin), and self-healing engine downloads guarantee 100% agent execution reliability on any uploaded bootstrap.",
-    "🛠️ 100 PC Tools Hub: Smooth horizontal scrolling category pills row, completely eliminating vertical letter-wrapping. Exactly 100 features verified across 10 categories.",
-    "🤖 Harness Studio Revamped: Interactive Provider Selection Modal (OpenCode Zen, DeepSeek, OpenRouter, Anthropic, Claude, Kimi, NVIDIA NIM, Custom) and Model Search & Preset Picker Dialog.",
-    "📦 Unlimited GB Zero-Memory File Streaming: Added StreamingFileUtils utilizing 64KB NIO chunk buffers directly to disk; uploads of any size process without OOM heap crashes.",
-    "🔑 AI Provider Credentials Manager: Secure on-device AES API key vault in Harness Studio Runtimes & Engines tab to save and test keys for all providers.",
-    "✨ 100% Rebranded & Authored by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)"
+    "🚀 JIN v2.1.6: 100% Complete Mobile-Harness Integration & Dedicated JIN Fusion Hybrid Interface.",
+    "⚡ Brand New JIN Fusion Interface: Dedicated Cyberpunk Obsidian & Electric Amber layout uniting conversational AI with a live autonomous coding console, real-time reasoning stream, and instant Android project actions.",
+    "🤖 Full 100% Mobile-Harness Engine: Powered by JinAutonomousEngine driving Antigravity CLI, DeepSeek Harness, Claude Code, and built-in resilient autonomous loop with real file reads/writes, bash execution, and tests.",
+    "📝 Real Checkpoints & Syntax-Colored Diffs: Full line-by-line diff inspector with additions (+), deletions (-), per-file Revert/Accept, and 1-tap Accept All / Revert All baseline controls.",
+    "🔨 Working Android Build & 1-Click Installer: Compiles Android projects inside Termux/PRoot using AAPT2/Gradle wrapper, diagnoses compiler issues, and installs generated debug APK directly to phone via AndroidAppInstaller.",
+    "🔄 3 Distinct Dedicated UI Modes: Seamless 1-tap switcher between JIN Classic (Gemini Deep Blue), JIN Fusion (Cyberpunk Amber), and Harness Studio (Claude Terracotta) in headers and Floating Switcher.",
+    "🛡️ 100% Attribution: Fully developed and authored by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)."
   ],
   "is_critical": false
 }

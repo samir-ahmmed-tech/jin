@@ -52,6 +52,8 @@ fun FloatingSwitcherWidget(
     onNavigateToIde: () -> Unit,
     onNavigateToBrowser: () -> Unit,
     onNavigateToTerminal: () -> Unit,
+    onNavigateToHarness: () -> Unit = {},
+    onNavigateToFusion: () -> Unit = {},
     onOpenTranslator: () -> Unit = {},
     onOpenPcTools: () -> Unit = {},
     onPositionSaved: (Float, Float) -> Unit,
@@ -225,6 +227,8 @@ fun FloatingSwitcherWidget(
                             items.forEach { itemId ->
                                 val isSelected = when (itemId.lowercase()) {
                                     "chat" -> currentViewMode == AppViewMode.CHAT
+                                    "fusion" -> currentViewMode == AppViewMode.FUSION
+                                    "harness" -> currentViewMode == AppViewMode.HARNESS
                                     "ide" -> currentViewMode == AppViewMode.IDE
                                     "browser" -> currentViewMode == AppViewMode.BROWSER
                                     "terminal" -> currentViewMode == AppViewMode.TERMINAL
@@ -233,6 +237,8 @@ fun FloatingSwitcherWidget(
 
                                 val iconVector: ImageVector = when (itemId.lowercase()) {
                                     "chat" -> Icons.Outlined.ChatBubbleOutline
+                                    "fusion" -> Icons.Outlined.Bolt
+                                    "harness" -> Icons.Outlined.SmartToy
                                     "ide" -> Icons.Outlined.Code
                                     "terminal" -> Icons.Outlined.Terminal
                                     "browser" -> Icons.Outlined.Language
@@ -243,6 +249,8 @@ fun FloatingSwitcherWidget(
 
                                 val contentDesc = when (itemId.lowercase()) {
                                     "chat" -> "Chat"
+                                    "fusion" -> "Fusion"
+                                    "harness" -> "Harness"
                                     "ide" -> "IDE"
                                     "terminal" -> "Terminal"
                                     "browser" -> "Browser"
@@ -259,6 +267,8 @@ fun FloatingSwitcherWidget(
                                         lastInteractionTimestamp = System.currentTimeMillis()
                                         when (itemId.lowercase()) {
                                             "chat" -> onNavigateToChat()
+                                            "fusion" -> onNavigateToFusion()
+                                            "harness" -> onNavigateToHarness()
                                             "ide" -> onNavigateToIde()
                                             "browser" -> onNavigateToBrowser()
                                             "terminal" -> onNavigateToTerminal()
@@ -268,6 +278,7 @@ fun FloatingSwitcherWidget(
                                     }
                                 )
                             }
+
                         }
                     } else {
                         // Horizontal Layout: Icons on left, collapse arrow on right
@@ -280,6 +291,8 @@ fun FloatingSwitcherWidget(
                             items.forEach { itemId ->
                                 val isSelected = when (itemId.lowercase()) {
                                     "chat" -> currentViewMode == AppViewMode.CHAT
+                                    "fusion" -> currentViewMode == AppViewMode.FUSION
+                                    "harness" -> currentViewMode == AppViewMode.HARNESS
                                     "ide" -> currentViewMode == AppViewMode.IDE
                                     "browser" -> currentViewMode == AppViewMode.BROWSER
                                     "terminal" -> currentViewMode == AppViewMode.TERMINAL
@@ -288,6 +301,8 @@ fun FloatingSwitcherWidget(
 
                                 val iconVector: ImageVector = when (itemId.lowercase()) {
                                     "chat" -> Icons.Outlined.ChatBubbleOutline
+                                    "fusion" -> Icons.Outlined.Bolt
+                                    "harness" -> Icons.Outlined.SmartToy
                                     "ide" -> Icons.Outlined.Code
                                     "terminal" -> Icons.Outlined.Terminal
                                     "browser" -> Icons.Outlined.Language
@@ -298,6 +313,8 @@ fun FloatingSwitcherWidget(
 
                                 val contentDesc = when (itemId.lowercase()) {
                                     "chat" -> "Chat"
+                                    "fusion" -> "Fusion"
+                                    "harness" -> "Harness"
                                     "ide" -> "IDE"
                                     "terminal" -> "Terminal"
                                     "browser" -> "Browser"
@@ -314,6 +331,8 @@ fun FloatingSwitcherWidget(
                                         lastInteractionTimestamp = System.currentTimeMillis()
                                         when (itemId.lowercase()) {
                                             "chat" -> onNavigateToChat()
+                                            "fusion" -> onNavigateToFusion()
+                                            "harness" -> onNavigateToHarness()
                                             "ide" -> onNavigateToIde()
                                             "browser" -> onNavigateToBrowser()
                                             "terminal" -> onNavigateToTerminal()
@@ -323,6 +342,7 @@ fun FloatingSwitcherWidget(
                                     }
                                 )
                             }
+
 
                             VerticalDivider(
                                 modifier = Modifier

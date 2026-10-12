@@ -28,10 +28,11 @@ import com.example.gemini.ui.ide.IdeScreen
 
 enum class AppViewMode {
     CHAT,
+    FUSION,
+    HARNESS,
     IDE,
     TERMINAL,
-    BROWSER,
-    HARNESS
+    BROWSER
 }
 
 class MainActivity : ComponentActivity() {
@@ -92,6 +93,7 @@ class MainActivity : ComponentActivity() {
                     "TERMINAL" -> AppViewMode.TERMINAL
                     "BROWSER" -> AppViewMode.BROWSER
                     "HARNESS" -> AppViewMode.HARNESS
+                    "FUSION" -> AppViewMode.FUSION
                     else -> AppViewMode.CHAT
                 }
             }
@@ -124,6 +126,11 @@ class MainActivity : ComponentActivity() {
                         "HARNESS" -> {
                             previousViewMode = currentViewMode
                             currentViewMode = AppViewMode.HARNESS
+                        }
+
+                        "FUSION" -> {
+                            previousViewMode = currentViewMode
+                            currentViewMode = AppViewMode.FUSION
                         }
                     }
                     chatViewModel.consumeRequestedViewMode()
@@ -307,8 +314,13 @@ class MainActivity : ComponentActivity() {
                                         onNavigateToHarness = {
                                             previousViewMode = currentViewMode
                                             currentViewMode = AppViewMode.HARNESS
+                                        },
+                                        onNavigateToFusion = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.FUSION
                                         }
                                     )
+
                                 }
 
                                 // Persistent IDE Screen (Retains open tabs, daemon connection & state)
@@ -410,10 +422,46 @@ class MainActivity : ComponentActivity() {
                                         },
                                         onSwitchToFusion = {
                                             previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.CHAT
+                                            currentViewMode = AppViewMode.FUSION
                                         }
                                     )
                                 }
+
+                                // Persistent JIN Fusion Screen (Dedicated Hybrid AI Assistant & Autonomous Coding Engine)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            val isVisible = currentViewMode == AppViewMode.FUSION
+                                            alpha = if (isVisible) 1f else 0f
+                                            translationX = if (isVisible) 0f else 20000f
+                                        }
+                                ) {
+                                    com.example.gemini.ui.harness.JinFusionScreen(
+                                        chatViewModel = chatViewModel,
+                                        onClose = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.CHAT
+                                        },
+                                        onNavigateToClassic = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.CHAT
+                                        },
+                                        onNavigateToHarness = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.HARNESS
+                                        },
+                                        onNavigateToIde = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.IDE
+                                        },
+                                        onNavigateToTerminal = {
+                                            previousViewMode = currentViewMode
+                                            currentViewMode = AppViewMode.TERMINAL
+                                        }
+                                    )
+                                }
+
 
                                 // Floating App Switcher Across Whole App (Renders on top of Chat, IDE, Terminal, Browser)
                                 if (isFloatingSwitcherEnabled) {

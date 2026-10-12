@@ -51,8 +51,8 @@ class HarnessRuntimeInstaller(private val context: Context) {
         const val ANDROID_VERSION = "2026.09.1"
         const val AGY_VERSION = "2026.09.1"
 
-        const val PRIMARY_RELEASE_BASE_URL = "https://github.com/samir-ahmmed-tech/jin/releases/download/runtime-2026.09.4"
-        const val FALLBACK_RELEASE_BASE_URL = "https://github.com/samir-ahmmed-tech/jin/releases/download/runtime-v1"
+        const val PRIMARY_RELEASE_BASE_URL = "https://github.com/techjarves/Mobile-Harness/releases/download/runtime-2026.09.4"
+        const val FALLBACK_RELEASE_BASE_URL = "https://github.com/samir-ahmmed-tech/jin/releases/download/runtime-2026.09.4"
 
         val BUNDLES = mapOf(
             "core" to HarnessRuntimeBundle(

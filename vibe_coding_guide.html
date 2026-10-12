@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ভাইব কোডিং (Vibe Coding) কমপ্লিট মাস্টারক্লাস গাইড</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #0f172a;
+            --accent: #8b5cf6;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #0f172a;
+            --code-text: #f1f5f9;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b0f19;
+                --card-bg: #111827;
+                --text: #f3f4f6;
+                --text-muted: #9ca3af;
+                --border: #1f2937;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Hind Siliguri', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .header h1 {
+            font-size: 2.4rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.15rem;
+        }
+
+        .actions {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 0.75rem 1.75rem;
+            font-size: 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .quote-box {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(139, 92, 246, 0.08));
+            border-left: 5px solid var(--primary);
+            padding: 1.5rem;
+            border-radius: 0 12px 12px 0;
+            margin: 2rem 0;
+            font-style: italic;
+        }
+
+        .quote-author {
+            margin-top: 0.5rem;
+            font-weight: 600;
+            font-style: normal;
+            color: var(--primary);
+            display: block;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--secondary);
+            margin-top: 2.5rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            h2 { color: #60a5fa; }
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            color: var(--primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        p, ul, ol {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 0.85rem 1rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: rgba(37, 99, 235, 0.07);
+            font-weight: 600;
+        }
+
+        pre, code {
+            font-family: 'Fira Code', Consolas, Monaco, monospace;
+        }
+
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1.25rem;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-size: 0.92rem;
+            border: 1px solid #334155;
+            line-height: 1.6;
+        }
+
+        p code, li code {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-basic { background: #dcfce7; color: #15803d; }
+        .badge-inter { background: #fef3c7; color: #b45309; }
+        .badge-adv { background: #fee2e2; color: #b91c1c; }
+
+        .callout {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .callout { background: #1e293b; border-color: #334155; }
+        }
+
+        .callout-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Print styles for clean PDF export */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+            }
+            .container {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+            .actions {
+                display: none !important;
+            }
+            h2 {
+                page-break-before: auto;
+                border-bottom: 1px solid #ccc !important;
+            }
+            pre, blockquote, table {
+                page-break-inside: avoid;
+            }
+            pre {
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            .quote-box {
+                background: #f8fafc !important;
+                border-left: 4px solid #2563eb !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>ভাইব কোডিং (Vibe Coding) কমপ্লিট মাস্টারক্লাস</h1>
+        <p>বিগিনার থেকে প্রফেশনাল লেভেল পর্যন্ত সম্পূর্ণ বাংলা হ্যান্ডবুক ও গাইড</p>
+        <div class="actions">
+            <button class="btn" onclick="window.print()">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                PDF হিসেবে সেভ বা প্রিন্ট করুন
+            </button>
+        </div>
+    </div>
+
+    <div class="quote-box">
+        "There is a new kind of coding I call 'vibe coding', where you entirely give in to the vibes, embrace full exponential, and forget that the code even exists. You just talk to AI, copy-paste error messages, ask for changes, and watch the app build itself."
+        <span class="quote-author">— Andrej Karpathy (OpenAI এর কো-ফাউন্ডার এবং টেসলার সাবেক AI ডিরেক্টর)</span>
+    </div>
+
+    <h2>পর্ব ১: ভাইব কোডিং কী এবং কেন এটি এক বিপ্লব?</h2>
+    <p>সহজ কথায়, <strong>ভাইব কোডিং (Vibe Coding)</strong> হলো সফটওয়্যার তৈরির এমন এক নতুন মাধ্যম, যেখানে মানুষ সিনট্যাক্স, ব্র্যাকেট বা সেমিকোলন টাইপ করে সময় নষ্ট করে না। মানুষ এখানে থাকে <strong>ডিরেক্টর বা আর্কিটেক্ট</strong> হিসেবে, আর <strong>AI (Artificial Intelligence)</strong> থাকে প্রধান সফটওয়্যার ইঞ্জিনিয়ার হিসেবে।</p>
+    <p>আপনি স্বাভাবিক ভাষায় (বাংলা বা ইংরেজি) বলবেন অ্যাপটি কী কাজ করবে, কেমন দেখতে হবে, আর কোন কোন ফিচার থাকবে। AI সরাসরি কোডবেস লিখবে, টেস্ট চালাবে এবং চোখের সামনে পুরো অ্যাপ্লিকেশনটি তৈরি করবে।</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>বৈশিষ্ট্য</th>
+                <th>প্রচলিত কোডিং (Traditional)</th>
+                <th>ভাইব কোডিং (Vibe Coding)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>মূল দক্ষতা</strong></td>
+                <td>সিনট্যাক্স মুখস্থ করা, অ্যালগরিদম টাইপ করা</td>
+                <td>সিস্টেম আর্কিটেকচার, ক্লিয়ার প্রম্পটিং ও লজিক</td>
+            </tr>
+            <tr>
+                <td><strong>সময় বণ্টন</strong></td>
+                <td>৮০% কোড টাইপিং ও সিনট্যাক্স ফিক্সিং</td>
+                <td>৮০% সিস্টেম ডিজাইন, প্রোডাক্ট ভিশন ও টেস্টিং</td>
+            </tr>
+            <tr>
+                <td><strong>গতি (Speed)</strong></td>
+                <td>একটি MVP বানাতে সপ্তাহ বা মাস</td>
+                <td>একটি MVP বানাতে ১৫ মিনিট থেকে কয়েক ঘণ্টা</td>
+            </tr>
+            <tr>
+                <td><strong>মানুষের ভূমিকা</strong></td>
+                <td>শ্রমিক বা ব্রিক-লেয়ার (Bricklayer)</td>
+                <td>চিফ আর্কিটেক্ট / মুভি ডিরেক্টর</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>পর্ব ২: প্রয়োজনীয় টুলবক্স ও সেটআপ</h2>
+    <h3>১. সেরা AI কোড এডিটরসমূহ (AI-First IDEs)</h3>
+    <ul>
+        <li><strong>Cursor (cursor.com):</strong> ভাইব কোডিংয়ের এক নম্বর হাতিয়ার। এর <code>Composer</code> ফিচার একসাথে পুরো প্রজেক্টের একাধিক ফাইল এডিট করতে পারে।</li>
+        <li><strong>Windsurf (codeium.com):</strong> ক্যাসকেড এজেন্টের মাধ্যমে নিজে নিজেই টার্মিনাল কমান্ড চালায় এবং এরর সমাধান করে।</li>
+        <li><strong>Google Antigravity / Gemini CLI:</strong> ব্যাকগ্রাউন্ড সাব-এজেন্ট ভিত্তিক অটোমেটেড কোডিং সহকারী।</li>
+    </ul>
+
+    <h3>২. ইনস্ট্যান্ট ফুলস্ট্যাক অ্যাপ বিল্ডার (Web-based)</h3>
+    <ul>
+        <li><strong>v0.dev (by Vercel):</strong> আধুনিক এবং দৃষ্টিনন্দন React + Tailwind CSS ইউজার ইন্টারফেস সেকেন্ডের মধ্যে তৈরি করে।</li>
+        <li><strong>Bolt.new:</strong> সরাসরি ব্রাউজারে ফুলস্ট্যাক Node.js/Next.js/Python প্রজেক্ট রান ও লাইভ হোস্ট করে।</li>
+    </ul>
+
+    <h2>পর্ব ৩: <span class="badge badge-basic">বেসিক লেভেল</span> — প্রথম প্রজেক্ট শুরু করা</h2>
+    <p>যে জীবনে কখনো কোড শেখেনি, সে কীভাবে প্রথম প্রজেক্ট শুরু করবে?</p>
+    
+    <div class="callout">
+        <div class="callout-title">💡 সোনালী নিয়ম: কখনো এক লাইনের ভ্যাগ (অস্পষ্ট) প্রম্পট দেবেন না</div>
+        <p>কখনোই শুধু বলবেন না: <em>"একটা ক্যালকুলেটর বা খরচ ট্র্যাকার অ্যাপ বানিয়ে দাও।"</em><br>
+        এর বদলে স্পষ্ট স্পেসিফিকেশন (PRD) দিন।</p>
+    </div>
+
+    <h3>প্র্যাকটিক্যাল উদাহরণ: পার্সোনাল এক্সপেন্স ট্র্যাকার</h3>
+    <pre><code>Role: তুমি একজন সিনিয়র ফুলস্ট্যাক ওয়েব ডেভেলপার।
+Goal: আমি একটি ব্যক্তিগত খরচ হিসাব রাখার ওয়েব অ্যাপ (Expense Tracker) বানাতে চাই।
+
+Tech Stack:
+- Single HTML file (Tailwind CSS CDN + Vanilla JavaScript)
+- Data Storage: LocalStorage
+
+Core Features:
+১. ইউজার খরচের নাম, টাকার অংক এবং ক্যাটাগরি (খাবার, ট্রাভেল, বিল, অন্যান্য) ইনপুট দিতে পারবে।
+২. "Add" বাটনে ক্লিক করলে তা তালিকায় যোগ হবে এবং মোট খরচ স্বয়ংক্রিয়ভাবে আপডেট হবে।
+৩. প্রতিটি খরচের পাশে একটি "Delete" বাটন থাকবে।
+৪. ডিজাইন হবে পরিচ্ছন্ন, আধুনিক এবং ডার্ক মোড লুক।
+
+এখন পুরো ফাংশনাল কোডটি একটি ফাইলে লিখে দাও।</code></pre>
+
+    <h2>পর্ব ৪: <span class="badge badge-inter">ইন্টারমিডিয়েট লেভেল</span> — কনটেক্সট ও বাগ ফিক্সিং</h2>
+    <h3>১. কনটেক্সট রুলস ফাইল (Rules File)</h3>
+    <p>প্রজেক্ট বড় হলে AI যাতে ভুলে না যায় বা কোড নষ্ট না করে, তার জন্য প্রজেক্ট রুটে <code>.cursorrules</code>, <code>CLAUDE.md</code>, বা <code>AGENTS.md</code> ফাইল রাখুন। এতে লেখা থাকবে:</p>
+    <pre><code># Project Guidelines
+- Language: TypeScript / Next.js
+- Styling: Tailwind CSS
+- Rule: বিদ্যমান ফিচার কখনো ডিলিট করবে না।
+- Rule: কোনো পরিবর্তন করার আগে সংক্ষেপে জানাও কী পরিবর্তন করতে যাচ্ছ।</code></pre>
+
+    <h3>২. বাগ ফিক্সিংয়ের নিয়ম (The Debugging Vibe)</h3>
+    <ol>
+        <li>টার্মিনাল বা ব্রাউজার কনসোলের লাল এররটি পুরোটা কপি করুন।</li>
+        <li>AI-কে বলুন: <em>"এই কাজটি করার সময় এই এরর এসেছে: [Error Paste]। সমস্যাটা কোথায় ছিল এবং কীভাবে ন্যূনতম পরিবর্তনে সমাধান হবে?"</em></li>
+        <li>কখনোই অনুমান করে আন্দাজে কোড বদলাবেন না।</li>
+    </ol>
+
+    <h3>৩. Git: ভাইব কোডারের জীবনবীমা</h3>
+    <p>ভাইব কোডিংয়ের সবচেয়ে বড় ঝুঁকি হলো: AI অনেক সময় নতুন ফিচার বানাতে গিয়ে আগের ফিচার নষ্ট করে। তাই প্রতি ছোট ছোট অর্জনের পরই <strong>Git Commit</strong> করুন:</p>
+    <pre><code>git add .
+git commit -m "Expense list add/delete working perfectly"</code></pre>
+
+    <h2>পর্ব ৫: <span class="badge badge-adv">অ্যাডভান্সড লেভেল</span> — মাল্টি-এজেন্ট ও স্কেলিং</h2>
+    <h3>১. মাল্টি-এজেন্ট কোডিং আর্কিটেকচার</h3>
+    <p>জটিল প্রজেক্টে একটি AI চ্যাটে সবকিছু না করে একাধিক রোল বা এজেন্টে ভাগ করুন:</p>
+    <ul>
+        <li><strong>Planner Agent:</strong> প্রজেক্ট আর্কিটেকচার ও স্টেপ-বাই-স্টেপ প্ল্যান তৈরি করে।</li>
+        <li><strong>Coder Agent:</strong> নির্দিষ্ট মডিউলের কোড লেখে।</li>
+        <li><strong>Reviewer Agent:</strong> সিকিউরিটি ত্রুটি, মেমরি লিক এবং ক্লিন কোড যাচাই করে।</li>
+        <li><strong>Tester Agent:</strong> অটোমেটেড টেস্ট রান করে এবং রিপোর্ট দেয়।</li>
+    </ul>
+
+    <h3>২. Model Context Protocol (MCP)</h3>
+    <p>MCP ব্যবহারের মাধ্যমে AI সরাসরি আপনার লোকাল ডাটাবেজে কুয়েরি করতে পারে, টার্মিনালে টেস্ট রান করতে পারে, এমনকি ব্রাউজারে ক্লিক করে বাগ ধরতে পারে।</p>
+
+    <h2>পর্ব ৬: ভাইব কোডিংয়ের ১০টি সুবর্ণ নিয়ম</h2>
+    <ol>
+        <li><strong>গিট ছাড়া কোনো ভাইব নয়:</strong> প্রতিটি পরিবর্তনের আগে ও পরে কমিট করুন।</li>
+        <li><strong>একবারে একটি ধাপ (Chunking):</strong> পুরো অ্যাপ একসাথে চাইবেন না; ছোট ছোট ধাপে এগোন।</li>
+        <li><strong>লগ মেসেজ গোপন করবেন না:</strong> এরর হলে সম্পূর্ণ স্ট্যাকট্রেস AI-কে দিন।</li>
+        <li><strong>অন্ধবিশ্বাস নিষিদ্ধ:</strong> AI যা লিখেছে, নিজে চালিয়ে ব্রাউজারে টেস্ট করুন।</li>
+        <li><strong>সহজ টেক স্ট্যাক বেছে নিন:</strong> Next.js, Tailwind, SQLite, FastAPI ইত্যাদিতে AI সবচেয়ে পারদর্শী।</li>
+        <li><strong>ফ্রেশ চ্যাট সেশন:</strong> একটি বড় ফিচার শেষ হলে নতুন ফিচারের জন্য নতুন চ্যাট শুরু করুন।</li>
+        <li><strong>সিক্রেট কি সুরক্ষিত রাখুন:</strong> কখনোই API Key বা পাসওয়ার্ড প্রম্পটে দেবেন না।</li>
+        <li><strong>AI-কে চিন্তা করার সময় দিন:</strong> জটিল লজিকের জন্য বলুন <em>"Think step by step"</em>।</li>
+        <li><strong>ইউআই লাইব্রেরি ব্যবহার করুন:</strong> <code>shadcn/ui</code> বা <code>Tailwind</code> ব্যবহার করলে আউটপুট আকর্ষণীয় হয়।</li>
+        <li><strong>ডিরেক্টর মাইন্ডসেট ধরে রাখুন:</strong> আপনি নেতা, AI আপনার কর্মী—সবসময় চূড়ান্ত সিদ্ধান্তের মালিক আপনি।</li>
+    </ol>
+
+    <div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.9rem;">
+        প্রস্তুত করেছে: Antigravity AI Engine • শুভ ভাইব কোডিং! 🚀
+    </div>
+</div>
+
+</body>
+</html>

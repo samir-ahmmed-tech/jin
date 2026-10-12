@@ -340,46 +340,50 @@ fun HarnessStudioScreen(
 
                             coroutineScope.launch(Dispatchers.IO) {
                                 try {
-                                    val authPrefs = AuthPreferences(context)
-                                    val bridge = DshRuntimeBridge(context) { profile ->
-                                        when (profile.kind) {
-                                            ProviderKind.OPENCODE_ZEN -> "free-opencode-zen"
-                                            ProviderKind.DEEPSEEK -> authPrefs.getDeepSeekApiKeySync().ifBlank { "deepseek-default" }
-                                            ProviderKind.LLM_ROUTER -> authPrefs.getOpenRouterApiKeySync().ifBlank { "openrouter-default" }
-                                            ProviderKind.ANTHROPIC, ProviderKind.CLAUDE -> authPrefs.getAnthropicApiKeySync().ifBlank { "anthropic-default" }
-                                            ProviderKind.CUSTOM -> authPrefs.getCustomApiKeySync().ifBlank { "custom-default" }
-                                            else -> authPrefs.getCustomApiKeySync().ifBlank { "default-key" }
-                                        }
-                                    }
-
-                                    // Create baseline checkpoint before running
-                                    checkpoints.createCheckpoint(activeProjectId, File(activeWorkspacePath))
-
                                     val profile = ProviderProfile(
                                         kind = selectedProvider,
                                         model = customModelName
                                     )
-
-                                    bridge.executeTask(activeProjectId, runnerPrompt, profile)
-                                    // Collect events
-                                    bridge.events.collectLatest { event ->
+                                    val engine = JinAutonomousEngine(context)
+                                    engine.executeTask(
+                                        projectId = activeProjectId,
+                                        prompt = runnerPrompt,
+                                        agent = selectedAgent,
+                                        provider = profile,
+                                        customModel = customModelName
+                                    ) { event ->
                                         when (event) {
-                                            is DshEvent.ReasoningDelta -> {
+                                            is RuntimeEvent.ReasoningDelta -> {
                                                 withContext(Dispatchers.Main) {
                                                     reasoningText += event.text
                                                 }
                                             }
-                                            is DshEvent.AssistantDelta -> {
+                                            is RuntimeEvent.AssistantDelta -> {
                                                 withContext(Dispatchers.Main) {
                                                     finalResult += event.text
                                                 }
                                             }
-                                            is DshEvent.StatusLog -> {
+                                            is RuntimeEvent.ToolStarted -> {
                                                 withContext(Dispatchers.Main) {
-                                                    agentLogs = agentLogs + event.message
+                                                    agentLogs = agentLogs + "⚡ [Tool] ${event.toolName}: ${event.detail}"
                                                 }
                                             }
-                                            is DshEvent.SessionCompleted -> {
+                                            is RuntimeEvent.ToolCompleted -> {
+                                                withContext(Dispatchers.Main) {
+                                                    agentLogs = agentLogs + "✅ [Tool] ${event.toolName}: ${event.summary}"
+                                                }
+                                            }
+                                            is RuntimeEvent.RuntimeLog -> {
+                                                withContext(Dispatchers.Main) {
+                                                    agentLogs = agentLogs + "ℹ️ ${event.title}: ${event.detail}"
+                                                }
+                                            }
+                                            is RuntimeEvent.FilesChanged -> {
+                                                withContext(Dispatchers.Main) {
+                                                    changeItems = event.changes
+                                                }
+                                            }
+                                            is RuntimeEvent.SessionCompleted -> {
                                                 withContext(Dispatchers.Main) {
                                                     isRunning = false
                                                     finalResult = event.finalAnswer.ifBlank { finalResult }
@@ -388,11 +392,11 @@ fun HarnessStudioScreen(
                                                     AppToastHelper.showToast("Agent completed the coding task!", ChatToastType.SUCCESS)
                                                 }
                                             }
-                                            is DshEvent.SessionFailed -> {
+                                            is RuntimeEvent.SessionFailed -> {
                                                 withContext(Dispatchers.Main) {
                                                     isRunning = false
-                                                    agentLogs = agentLogs + "❌ Failed: ${event.error}"
-                                                    AppToastHelper.showToast(event.error, ChatToastType.ERROR)
+                                                    agentLogs = agentLogs + "❌ Failed: ${event.reason}"
+                                                    AppToastHelper.showToast(event.reason, ChatToastType.ERROR)
                                                 }
                                             }
                                             else -> {}
@@ -405,6 +409,7 @@ fun HarnessStudioScreen(
                                     }
                                 }
                             }
+
                         }
                     )
                 }
@@ -488,19 +493,13 @@ fun HarnessStudioScreen(
                                     withContext(Dispatchers.Main) {
                                         buildLogs += "$ $cmd\n"
                                     }
-                                    val proc = ProcessBuilder("/system/bin/sh", "-c", cmd)
-                                        .directory(workspace)
-                                        .redirectErrorStream(true)
-                                        .start()
-
-                                    proc.inputStream.bufferedReader().useLines { lines ->
-                                        lines.forEach { line ->
-                                            withContext(Dispatchers.Main) {
-                                                buildLogs += "$line\n"
-                                            }
+                                    val res = LocalEnvironmentManager.executeCommand(cmd, context, workspace.absolutePath)
+                                    withContext(Dispatchers.Main) {
+                                        buildLogs += res.stdout
+                                        if (res.stderr.isNotBlank()) {
+                                            buildLogs += "\n" + res.stderr
                                         }
                                     }
-                                    proc.waitFor()
                                     val apk = AndroidBuildSupport.findDebugApk(workspace)
                                     withContext(Dispatchers.Main) {
                                         detectedApk = apk
@@ -509,9 +508,10 @@ fun HarnessStudioScreen(
                                             buildLogs += "\n✅ Build succeeded! APK generated at: ${apk.name} (${apk.length() / 1024 / 1024} MB)\n"
                                             AppToastHelper.showToast("Build Succeeded! APK Ready to install.", ChatToastType.SUCCESS)
                                         } else {
-                                            buildLogs += "\n⚠️ Build finished but no output APK was found.\n"
+                                            buildLogs += "\n⚠️ Build finished with exit code ${res.exitCode}\n"
                                         }
                                     }
+
                                 } catch (e: Exception) {
                                     withContext(Dispatchers.Main) {
                                         isBuilding = false
@@ -1285,7 +1285,7 @@ private fun ProjectsManagerTab(
 
                 Button(
                     onClick = {
-                        val destination = File(projectsDir, AndroidProjectTemplateGenerator.projectSlug(newAppName))
+                        val destination = File(projectsDir, projectSlug(newAppName))
                         try {
                             AndroidProjectTemplateGenerator.generate(destination, newAppName, selectedTemplate)
                             onSelectWorkspace(destination.absolutePath)

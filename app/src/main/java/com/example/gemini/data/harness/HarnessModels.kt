@@ -196,3 +196,102 @@ data class HarnessRuntimeBundle(
     val uncompressedBytes: Long,
     val description: String,
 )
+
+enum class ProjectKind(val label: String) {
+    GENERAL("General Workspace"),
+    ANDROID("Android App"),
+    NODE("Node.js / Web"),
+    PYTHON("Python Script")
+}
+
+enum class RiskLevel { SAFE, REVIEW, HIGH }
+
+data class ToolRequest(
+    val approvalId: String = UUID.randomUUID().toString(),
+    val sessionId: String,
+    val toolName: String,
+    val explanation: String,
+    val affectedPaths: List<String> = emptyList(),
+    val commandPreview: String? = null,
+    val risk: RiskLevel = RiskLevel.SAFE,
+)
+
+sealed interface RuntimeEvent {
+    val sessionId: String
+
+    data class SessionStarted(override val sessionId: String) : RuntimeEvent
+    data class AssistantDelta(override val sessionId: String, val text: String) : RuntimeEvent
+    data class ReasoningDelta(override val sessionId: String, val text: String) : RuntimeEvent
+    data class ReasoningProgress(override val sessionId: String, val estimatedTokens: Int) : RuntimeEvent
+    data class ReasoningSummary(
+        override val sessionId: String,
+        val summary: String,
+        val blockId: Long = 0L,
+        val startsNewBlock: Boolean = false,
+        val isFinal: Boolean = false,
+    ) : RuntimeEvent
+    data class ToolStarted(
+        override val sessionId: String,
+        val toolName: String,
+        val detail: String,
+    ) : RuntimeEvent
+    data class ToolProgress(
+        override val sessionId: String,
+        val toolName: String,
+        val detail: String,
+    ) : RuntimeEvent
+    data class ToolCompleted(override val sessionId: String, val toolName: String, val summary: String) : RuntimeEvent
+    data class ToolRequested(override val sessionId: String, val request: ToolRequest) : RuntimeEvent
+    data class ToolApproved(override val sessionId: String, val approvalId: String) : RuntimeEvent
+    data class ToolRejected(override val sessionId: String, val approvalId: String) : RuntimeEvent
+    data class RuntimeLog(
+        override val sessionId: String,
+        val title: String,
+        val detail: String,
+    ) : RuntimeEvent
+    data class FilesChanged(override val sessionId: String, val changes: List<ChangeItem>) : RuntimeEvent {
+        val paths: List<String> get() = changes.map { it.path }
+    }
+    data class PreviewStarted(override val sessionId: String, val url: String) : RuntimeEvent
+    data class SessionCompleted(override val sessionId: String, val finalAnswer: String = "") : RuntimeEvent
+    data class SessionFailed(override val sessionId: String, val reason: String) : RuntimeEvent
+}
+
+fun projectSlug(name: String): String {
+    val ascii = java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFKD)
+        .replace(Regex("\\p{M}+"), "")
+        .lowercase(Locale.US)
+        .replace(Regex("[^a-z0-9]+"), "-")
+        .trim('-')
+        .take(48)
+        .trimEnd('-')
+    return ascii.ifBlank { "project" }
+}
+
+enum class DevStack(
+    val label: String,
+    val description: String,
+    val installsSummary: String,
+) {
+    WEB(
+        "Web (JavaScript / TypeScript)",
+        "Websites and web apps with HTML, CSS, and JS frameworks.",
+        "Node.js and npm (already included)",
+    ),
+    PYTHON(
+        "Python",
+        "Scripts, automation, data work, and Python backends.",
+        "python3, pip, venv, and build tools",
+    ),
+    ANDROID(
+        "Android (Java / Kotlin)",
+        "Build Android app projects and install them directly on this phone.",
+        "JDK 17, ARM64 Android SDK 36, Build Tools 35, Gradle 8.14.3, and an offline Maven cache",
+    ),
+    CPP(
+        "C / C++",
+        "Fast compiled programs, algorithms, and systems code.",
+        "gcc, g++, make, cmake, gdb",
+    ),
+}
+
