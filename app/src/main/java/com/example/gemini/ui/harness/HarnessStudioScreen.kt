@@ -1773,11 +1773,11 @@ private fun RuntimesAndEnginesTab(context: Context) {
                         AppToastHelper.showToast("Failed to install $key", ChatToastType.ERROR)
                     }
                 }
-            } catch (e: Exception) {
+            } catch (t: Throwable) {
                 withContext(Dispatchers.Main) {
                     installingKey = null
                     refreshTrigger++
-                    AppToastHelper.showToast("$key error: ${e.message}", ChatToastType.ERROR)
+                    AppToastHelper.showToast("$key error: ${t.localizedMessage ?: t.message}", ChatToastType.ERROR)
                 }
             }
         }

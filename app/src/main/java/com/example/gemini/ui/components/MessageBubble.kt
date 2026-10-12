@@ -418,12 +418,25 @@ fun UserMessageBubble(
                     ChatAudioPlayer(attachment = att)
                 }
 
-                // 2. Image attachments preview
+                // 2. Video attachments preview
+                val videoAtts = remember(message.attachments) {
+                    message.attachments.filter {
+                        it.isVideo || it.mimeType?.startsWith("video/") == true ||
+                                it.name.endsWith(".mp4", true) || it.name.endsWith(".mkv", true) ||
+                                it.name.endsWith(".webm", true) || it.name.endsWith(".mov", true)
+                    }
+                }
+                for (vid in videoAtts) {
+                    UserMessageVideoItem(attachment = vid)
+                }
+
+                // 3. Image attachments preview
                 val imageAtts = remember(message.attachments) {
                     message.attachments.filter {
-                        it.isImage || it.name.endsWith(".jpg", true) || it.name.endsWith(".png", true) ||
+                        !it.isVideo && !it.mimeType?.startsWith("video/") == true &&
+                                (it.isImage || it.name.endsWith(".jpg", true) || it.name.endsWith(".png", true) ||
                                 it.name.endsWith(".jpeg", true) || it.name.endsWith(".webp", true) ||
-                                it.name.endsWith(".gif", true) || it.mimeType?.startsWith("image/") == true
+                                it.name.endsWith(".gif", true) || it.mimeType?.startsWith("image/") == true)
                     }
                 }
                 if (imageAtts.isNotEmpty()) {
@@ -433,9 +446,9 @@ fun UserMessageBubble(
                     )
                 }
 
-                // 3. Document / other attachments
-                val docAtts = remember(message.attachments, imageAtts) {
-                    message.attachments.filter { !it.isAudio && !imageAtts.contains(it) }
+                // 4. Document / other attachments
+                val docAtts = remember(message.attachments, imageAtts, videoAtts) {
+                    message.attachments.filter { !it.isAudio && !imageAtts.contains(it) && !videoAtts.contains(it) }
                 }
                 if (docAtts.isNotEmpty()) {
                     for (doc in docAtts) {
@@ -1182,4 +1195,90 @@ private fun UserMessageDocumentItem(
         }
     }
 }
+
+@Composable
+private fun UserMessageVideoItem(
+    attachment: com.example.gemini.domain.model.ChatAttachment
+) {
+    val context = LocalContext.current
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
+        border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.25f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable {
+                try {
+                    val uri = when {
+                        !attachment.localUri.isNullOrBlank() -> Uri.parse(attachment.localUri)
+                        attachment.path.isNotBlank() && File(attachment.path).exists() -> {
+                            androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                File(attachment.path)
+                            )
+                        }
+                        !attachment.url.isNullOrBlank() -> Uri.parse(attachment.url)
+                        else -> null
+                    }
+                    if (uri != null) {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, attachment.mimeType ?: "video/*")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Play Video"))
+                    } else {
+                        Toast.makeText(context, "Video: ${attachment.name}", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Cannot play video: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+    ) {
+        Row(
+            modifier = Modifier.padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFF8B5CF6).copy(alpha = 0.15f),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.PlayArrow,
+                        contentDescription = "Play Video",
+                        tint = Color(0xFF8B5CF6),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = attachment.name,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val sizeStr = if (attachment.size > 0) " · " + com.example.gemini.data.local.LocalEnvironmentManager.formatFileSize(attachment.size) else ""
+                Text(
+                    text = "Video Attachment$sizeStr",
+                    fontSize = 10.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.Rounded.Videocam,
+                contentDescription = null,
+                tint = Color(0xFF8B5CF6).copy(alpha = 0.6f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
 

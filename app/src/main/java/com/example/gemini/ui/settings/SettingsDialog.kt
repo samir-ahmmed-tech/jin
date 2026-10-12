@@ -102,6 +102,8 @@ enum class SettingsSection(val title: String, val subtitle: String) {
     COMMANDS("Commands & Permissions", "Auto-run policy, sandbox mode, and tool approvals"),
     CLAUDE("Claude Code", "Account, models, permissions, MCP, plugins & memory"),
     AGENTS("Agents", "Run Antigravity, Claude Code or both"),
+    MULTI_AGENT_STUDIO("Multi-Agent Studio (Devin & Manus)", "Create custom agents & orchestrate multi-agent swarms"),
+    SYSTEM_OPTIMIZATION("System & Performance Optimization", "1-Tap Auto-Optimize RAM, compact SQLite, flush cache & boost FPS"),
     DIAGNOSTICS("Diagnostics & Performance", "Live network connections, active streams & thread HUD"),
     ABOUT("About & Info", "App version, package details, and bridge export")
 }
@@ -572,6 +574,16 @@ fun SettingsDialog(
                     SettingsSection.CLAUDE -> if (claude != null) {
                         com.example.gemini.ui.claude.ClaudeSettingsScreen(claude, claudePage) { currentSection = SettingsSection.MAIN }
                     }
+                    SettingsSection.MULTI_AGENT_STUDIO -> MultiAgentStudioSubScreen(
+                        cardBg = cardBg,
+                        cardBorder = cardBorder,
+                        onNavigateBack = { currentSection = SettingsSection.MAIN }
+                    )
+                    SettingsSection.SYSTEM_OPTIMIZATION -> SystemOptimizationSubScreen(
+                        cardBg = cardBg,
+                        cardBorder = cardBorder,
+                        onNavigateBack = { currentSection = SettingsSection.MAIN }
+                    )
                     SettingsSection.ABOUT -> AboutSubScreen(
                         cardBg = cardBg,
                         cardBorder = cardBorder
@@ -656,6 +668,18 @@ private fun MainSettingsMenu(
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.AGENTS) }
+        )
+
+        SettingsCategoryCard(
+            icon = Icons.Outlined.Psychology,
+            iconTint = Color(0xFF8B5CF6),
+            title = "🤖 Multi-Agent Studio (Devin & Manus)",
+            subtitle = "Custom roles, specialized subagents & autonomous swarm task orchestration",
+            badgeText = "SWARM",
+            badgeColor = Color(0xFF8B5CF6),
+            cardBg = cardBg,
+            cardBorder = cardBorder,
+            onClick = { onNavigate(SettingsSection.MULTI_AGENT_STUDIO) }
         )
         // Section 2: Servers & Network
         val (serverBadge, serverColor) = when {
@@ -839,6 +863,18 @@ private fun MainSettingsMenu(
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.DIAGNOSTICS) }
+        )
+
+        SettingsCategoryCard(
+            icon = Icons.Outlined.RocketLaunch,
+            iconTint = Color(0xFF10B981),
+            title = "⚡ System & App Optimization Hub",
+            subtitle = "1-Tap Auto-Optimize: RAM flush, SQLite compaction, FPS boost & temp cleaner",
+            badgeText = "BOOST",
+            badgeColor = Color(0xFF10B981),
+            cardBg = cardBg,
+            cardBorder = cardBorder,
+            onClick = { onNavigate(SettingsSection.SYSTEM_OPTIMIZATION) }
         )
 
         // Section 7: About & Info
@@ -11030,3 +11066,277 @@ private fun PcFeaturesSubScreen(
         }
     }
 }
+
+@Composable
+fun MultiAgentStudioSubScreen(
+    cardBg: Color,
+    cardBorder: BorderStroke,
+    onNavigateBack: () -> Unit
+) {
+    var showFullStudioDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val agentManager = remember { com.example.gemini.data.agent.custom.CustomAgentManager.getInstance(context) }
+    val agents by agentManager.agents.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = cardBg,
+            border = cardBorder,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF8B5CF6).copy(alpha = 0.15f),
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("🤖", fontSize = 22.sp)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Autonomous Multi-Agent Studio", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Inspired by Manus, Devin, and Grok", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                }
+
+                Text(
+                    text = "Configure specialized AI coding subagents (Architects, Engineers, Bug Hunters, UI Designers) and orchestrate concurrent swarm workflows to solve complex user tasks.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                )
+
+                Button(
+                    onClick = { showFullStudioDialog = true },
+                    modifier = Modifier.fillMaxWidth().height(42.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6))
+                ) {
+                    Icon(Icons.Outlined.RocketLaunch, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Open Multi-Agent Studio (${agents.size} Active)", fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                }
+            }
+        }
+
+        Text("ACTIVE AGENT PRESETS & ROLES", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+
+        agents.forEach { agent ->
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = cardBg,
+                border = cardBorder,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(agent.avatarEmoji, fontSize = 24.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(agent.name, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            if (agent.isBuiltInTemplate) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981).copy(alpha = 0.15f)) {
+                                    Text("BUILT-IN", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981), modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                }
+                            }
+                        }
+                        Text(agent.role.title, fontSize = 11.sp, color = Color(0xFF8B5CF6))
+                    }
+                }
+            }
+        }
+    }
+
+    if (showFullStudioDialog) {
+        com.example.gemini.ui.agents.MultiAgentStudioDialog(
+            onDismiss = { showFullStudioDialog = false },
+            onDispatchToChat = { _ ->
+                showFullStudioDialog = false
+                onNavigateBack()
+            }
+        )
+    }
+}
+
+@Composable
+fun SystemOptimizationSubScreen(
+    cardBg: Color,
+    cardBorder: BorderStroke,
+    onNavigateBack: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var isOptimizing by remember { mutableStateOf(false) }
+    var currentProgress by remember { mutableFloatStateOf(0f) }
+    var currentStepMsg by remember { mutableStateOf("") }
+    var resultMsg by remember { mutableStateOf<String?>(null) }
+
+    var autoRam by remember { mutableStateOf(com.example.gemini.data.optimization.SystemOptimizer.isAutoRamFlushEnabled(context)) }
+    var highFps by remember { mutableStateOf(com.example.gemini.data.optimization.SystemOptimizer.isHighFpsBoostEnabled(context)) }
+    var autoVacuum by remember { mutableStateOf(com.example.gemini.data.optimization.SystemOptimizer.isSqliteAutoVacuumEnabled(context)) }
+    var bgTrim by remember { mutableStateOf(com.example.gemini.data.optimization.SystemOptimizer.isBgSessionTrimEnabled(context)) }
+    var streamBuf by remember { mutableStateOf(com.example.gemini.data.optimization.SystemOptimizer.isUltraStreamBufferEnabled(context)) }
+
+    val runtime = Runtime.getRuntime()
+    val usedMb = (runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024
+    val maxMb = runtime.maxMemory() / 1024 / 1024
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // Hero Card
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = cardBg,
+            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF10B981).copy(alpha = 0.15f),
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Outlined.RocketLaunch, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(24.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("1-Tap System Optimization Hub", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("JVM Memory: ${usedMb}MB / ${maxMb}MB Heap", fontSize = 11.5.sp, color = Color(0xFF10B981))
+                    }
+                }
+
+                Text(
+                    text = "Performs deep compaction across SQLite databases, clears bitmap RAM caches, purges stale streaming buffers, and trims background session latency.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                )
+
+                if (isOptimizing) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LinearProgressIndicator(
+                            progress = { currentProgress },
+                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                            color = Color(0xFF10B981)
+                        )
+                        Text(currentStepMsg, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            isOptimizing = true
+                            currentProgress = 0.1f
+                            scope.launch {
+                                val res = com.example.gemini.data.optimization.SystemOptimizer.runAutoOptimize(context) { step, frac ->
+                                    currentStepMsg = step
+                                    currentProgress = frac
+                                }
+                                isOptimizing = false
+                                resultMsg = res.summary
+                                AppToastHelper.showToast(res.summary, ChatToastType.SUCCESS)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(44.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                    ) {
+                        Icon(Icons.Outlined.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("⚡ Auto-Optimize App Now", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+
+                resultMsg?.let { msg ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF10B981).copy(alpha = 0.15f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "✅ $msg",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF10B981),
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Text("AUTOMATIC PERFORMANCE TUNING", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+
+        Surface(shape = RoundedCornerShape(12.dp), color = cardBg, border = cardBorder, modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("RAM Cache Auto-Flush", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Clears in-memory bitmaps when switching workspaces", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = autoRam, onCheckedChange = { autoRam = it; com.example.gemini.data.optimization.SystemOptimizer.setAutoRamFlushEnabled(context, it) })
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("High-FPS Hardware Accelerated Boost", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Locks Compose pipeline to 90Hz/120Hz high refresh rate", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = highFps, onCheckedChange = { highFps = it; com.example.gemini.data.optimization.SystemOptimizer.setHighFpsBoostEnabled(context, it) })
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("SQLite Auto-Vacuum & Index Rebuild", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Eliminates database fragmentation on every app close", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = autoVacuum, onCheckedChange = { autoVacuum = it; com.example.gemini.data.optimization.SystemOptimizer.setSqliteAutoVacuumEnabled(context, it) })
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Idle Background Agent Trimmer", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Suspends inactive sandboxes after 15 minutes of idle time", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = bgTrim, onCheckedChange = { bgTrim = it; com.example.gemini.data.optimization.SystemOptimizer.setBgSessionTrimEnabled(context, it) })
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("4MB Ultra Low-Latency Stream Buffer", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Optimizes network I/O for 20-30+ MB/s downloads", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = streamBuf, onCheckedChange = { streamBuf = it; com.example.gemini.data.optimization.SystemOptimizer.setUltraStreamBufferEnabled(context, it) })
+                }
+            }
+        }
+    }
+}
+

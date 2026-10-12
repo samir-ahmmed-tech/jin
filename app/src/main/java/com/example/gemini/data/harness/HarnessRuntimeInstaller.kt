@@ -8,11 +8,12 @@ import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
-import java.net.HttpURLConnection
-import java.net.URL
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.zstandard.ZstdCompressorInputStream
@@ -158,6 +159,15 @@ class HarnessRuntimeInstaller(private val context: Context) {
         onProgress: (message: String, fraction: Float) -> Unit = { _, _ -> }
     ): Boolean = installBundle("core", onProgress)
 
+    private val httpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .connectTimeout(45, TimeUnit.SECONDS)
+            .readTimeout(180, TimeUnit.SECONDS)
+            .build()
+    }
+
     suspend fun installDevStack(
         stack: DevStack,
         onProgress: (message: String, fraction: Float) -> Unit = { _, _ -> }
@@ -169,6 +179,14 @@ class HarnessRuntimeInstaller(private val context: Context) {
             DevStack.PYTHON -> installBundle("python", onProgress)
             DevStack.ANDROID -> installBundle("android", onProgress)
             DevStack.CPP -> {
+                if (!isCoreInstalled()) {
+                    onProgress("Core Ubuntu container required. Installing core...", 0.1f)
+                    val coreOk = installCore(onProgress)
+                    if (!coreOk) {
+                        onProgress("Cannot install C/C++: Core Ubuntu setup failed", 0f)
+                        return@withContext false
+                    }
+                }
                 onProgress("Installing C / C++ toolchain (gcc, g++, make, cmake)...", 0.3f)
                 val cmd = "DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y gcc g++ make cmake gdb"
                 val res = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand(cmd, context)
@@ -177,6 +195,14 @@ class HarnessRuntimeInstaller(private val context: Context) {
                 ok
             }
             DevStack.PHP -> {
+                if (!isCoreInstalled()) {
+                    onProgress("Core Ubuntu container required. Installing core...", 0.1f)
+                    val coreOk = installCore(onProgress)
+                    if (!coreOk) {
+                        onProgress("Cannot install PHP: Core Ubuntu setup failed", 0f)
+                        return@withContext false
+                    }
+                }
                 onProgress("Installing PHP and Composer...", 0.3f)
                 val cmd = "DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y php-cli composer"
                 val res = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand(cmd, context)
@@ -191,7 +217,10 @@ class HarnessRuntimeInstaller(private val context: Context) {
         bundleName: String,
         onProgress: (message: String, fraction: Float) -> Unit = { _, _ -> },
     ): Boolean = withContext(Dispatchers.IO) {
-        val bundle = BUNDLES[bundleName] ?: throw IllegalArgumentException("Unknown bundle: $bundleName")
+        val bundle = BUNDLES[bundleName] ?: run {
+            Log.e(TAG, "Unknown bundle: $bundleName")
+            return@withContext false
+        }
         rootfs.mkdirs()
         downloads.mkdirs()
 
@@ -243,13 +272,18 @@ class HarnessRuntimeInstaller(private val context: Context) {
             }
 
             if (sourceStream == null) {
-                check(!BuildConfig.IS_OFFLINE_MODE) {
-                    "Offline mode is active and runtime bundle '${bundle.fileName}' is not pre-packaged or cached."
+                if (BuildConfig.IS_OFFLINE_MODE) {
+                    Log.w(TAG, "Offline mode is active and runtime bundle '${bundle.fileName}' is not pre-packaged or cached.")
+                    onProgress("Offline mode: package not pre-cached", 0f)
+                    return@withContext false
                 }
                 onProgress("Downloading ${bundle.name} bundle...", 0.1f)
                 val downloaded = downloadWithFallback(bundle, targetFile, onProgress)
-                check(downloaded && verifySha256(targetFile, bundle.sha256)) {
-                    "Failed to download and verify bundle '${bundle.fileName}'"
+                if (!downloaded || !verifySha256(targetFile, bundle.sha256)) {
+                    targetFile.delete()
+                    Log.e(TAG, "Download or SHA256 verification failed for ${bundle.fileName}")
+                    onProgress("Download or verification failed for ${bundle.name}", 0f)
+                    return@withContext false
                 }
                 sourceStream = targetFile.inputStream()
             }
@@ -270,6 +304,7 @@ class HarnessRuntimeInstaller(private val context: Context) {
             true
         } catch (e: Exception) {
             Log.e(TAG, "Extraction failed for $bundleName: ${e.message}", e)
+            onProgress("Extraction failed: ${e.localizedMessage ?: e.message}", 0f)
             false
         }
     }
@@ -295,34 +330,59 @@ class HarnessRuntimeInstaller(private val context: Context) {
             "$FALLBACK_RELEASE_BASE_URL/${bundle.fileName}",
         )
         for (urlString in urls) {
+            val tempDest = File(destination.parentFile ?: downloads, "${destination.name}.downloading")
             try {
-                Log.i(TAG, "Attempting bundle download from: $urlString")
-                val url = URL(urlString)
-                val conn = (url.openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 30_000
-                    readTimeout = 180_000
-                    instanceFollowRedirects = true
-                }
-                conn.connect()
-                if (conn.responseCode in 200..299) {
-                    val total = conn.contentLengthLong.takeIf { it > 0 } ?: bundle.compressedBytes
+                Log.i(TAG, "Attempting bundle download via OkHttp from: $urlString")
+                val request = Request.Builder()
+                    .url(urlString)
+                    .header("User-Agent", "JIN-MobileHarness/2.2.2 (Android ARM64)")
+                    .build()
+
+                val call = httpClient.newCall(request)
+                call.execute().use { response ->
+                    if (!response.isSuccessful) {
+                        Log.w(TAG, "HTTP ${response.code} from $urlString")
+                        return@use
+                    }
+                    val body = response.body ?: return@use
+                    val total = if (body.contentLength() > 0) body.contentLength() else bundle.compressedBytes
                     var downloaded = 0L
-                    conn.inputStream.use { inStream ->
-                        FileOutputStream(destination).use { outStream ->
-                            val buf = ByteArray(64 * 1024)
+                    var lastUpdate = 0L
+
+                    if (tempDest.exists()) tempDest.delete()
+
+                    body.byteStream().use { inStream ->
+                        FileOutputStream(tempDest).use { outStream ->
+                            val buf = ByteArray(128 * 1024)
                             var read: Int
                             while (inStream.read(buf).also { read = it } != -1) {
                                 outStream.write(buf, 0, read)
                                 downloaded += read
-                                val frac = (downloaded.toFloat() / total.toFloat()).coerceIn(0.1f, 0.5f)
-                                onProgress("Downloading ${bundle.name} (${downloaded / 1024 / 1024}MB / ${total / 1024 / 1024}MB)...", frac)
+                                val now = System.currentTimeMillis()
+                                if (now - lastUpdate > 250 || downloaded == total) {
+                                    val frac = (downloaded.toFloat() / total.toFloat()).coerceIn(0.1f, 0.5f)
+                                    onProgress(
+                                        "Downloading ${bundle.name} (${downloaded / 1024 / 1024}MB / ${total / 1024 / 1024}MB)...",
+                                        frac
+                                    )
+                                    lastUpdate = now
+                                }
                             }
                         }
                     }
-                    return true
+
+                    if (tempDest.exists() && tempDest.length() > 0) {
+                        if (destination.exists()) destination.delete()
+                        if (tempDest.renameTo(destination)) {
+                            Log.i(TAG, "Downloaded ${bundle.fileName} successfully (${destination.length()} bytes)")
+                            return true
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Download attempt failed from $urlString: ${e.message}")
+            } finally {
+                if (tempDest.exists()) tempDest.delete()
             }
         }
         return false

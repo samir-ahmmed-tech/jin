@@ -26,6 +26,7 @@ import com.example.gemini.theme.GeminiBlue
 fun AttachmentSelectorBottomSheet(
     onPickImage: () -> Unit,
     onPickFile: () -> Unit,
+    onPickVideo: () -> Unit = {},
     onCameraCapture: () -> Unit = {},
     onOpenGoogleDrive: () -> Unit = {},
     onOpenNotebookLm: () -> Unit = {},
@@ -120,6 +121,14 @@ fun AttachmentSelectorBottomSheet(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(modifier = Modifier.weight(1f)) {
                     CompactFeatureTile(
+                        icon = Icons.Outlined.VideoLibrary,
+                        iconColor = Color(0xFF8B5CF6),
+                        title = "Videos",
+                        onClick = { onDismiss(); onPickVideo() }
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    CompactFeatureTile(
                         icon = Icons.Outlined.CloudUpload,
                         iconColor = Color(0xFF10B981),
                         title = "Google Drive",
@@ -129,7 +138,7 @@ fun AttachmentSelectorBottomSheet(
                 Box(modifier = Modifier.weight(1f)) {
                     CompactFeatureTile(
                         icon = Icons.Outlined.AutoStories,
-                        iconColor = Color(0xFF8B5CF6),
+                        iconColor = Color(0xFFF59E0B),
                         title = "Notebooks",
                         onClick = { onDismiss(); onOpenNotebookLm() }
                     )

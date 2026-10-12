@@ -1384,6 +1384,13 @@ fun ChatInputBar(
                                                     tint = ClaudeTerracotta,
                                                     modifier = Modifier.size(20.dp).padding(start = 4.dp)
                                                 )
+                                            } else if (att.isVideo || att.mimeType?.startsWith("video/") == true) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Videocam,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF8B5CF6),
+                                                    modifier = Modifier.size(20.dp).padding(start = 4.dp)
+                                                )
                                             } else {
                                                 Icon(
                                                     imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,

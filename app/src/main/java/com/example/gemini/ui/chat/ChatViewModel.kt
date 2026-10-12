@@ -739,6 +739,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 ?: "application/octet-stream"
             val isImg = mimeType.startsWith("image/")
             val isAud = mimeType.startsWith("audio/")
+            val isVid = mimeType.startsWith("video/") || ext in listOf("mp4", "mkv", "webm", "avi", "mov", "3gp", "flv")
 
             val safeDir = java.io.File(context.cacheDir, "attachments").apply { mkdirs() }
             val cleanName = fileName.replace("[^a-zA-Z0-9._-]".toRegex(), "_")
@@ -761,6 +762,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         } catch (e: Throwable) {
                             null
                         }
+                    } else if (isVid) {
+                        try {
+                            val retriever = android.media.MediaMetadataRetriever()
+                            retriever.setDataSource(context, uri)
+                            val bmp = retriever.getFrameAtTime(1_000_000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                                ?: retriever.frameAtTime
+                            retriever.release()
+                            bmp?.let {
+                                val out = java.io.ByteArrayOutputStream()
+                                it.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, out)
+                                android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
+                            }
+                        } catch (_: Throwable) {
+                            null
+                        }
                     } else {
                         null
                     }
@@ -772,7 +788,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             mimeType = mimeType,
                             base64Data = previewBase64,
                             description = fileName,
-                            thumbnailBase64 = if (isImg) previewBase64 else "",
+                            thumbnailBase64 = if (isImg || isVid) previewBase64 else "",
                             hubUrl = AuthPreferences.currentHubUrl
                         ).getOrNull() ?: destFile.absolutePath
                     } else {
@@ -786,6 +802,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     path = savedHostUri,
                     isImage = isImg,
                     isAudio = isAud,
+                    isVideo = isVid,
                     localUri = uri.toString(),
                     size = effectiveSize,
                     mimeType = mimeType,

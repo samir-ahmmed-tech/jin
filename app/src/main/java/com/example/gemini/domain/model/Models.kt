@@ -96,6 +96,7 @@ data class ChatAttachment(
     val path: String,
     val isImage: Boolean = false,
     val isAudio: Boolean = false,
+    val isVideo: Boolean = false,
     val localUri: String? = null,
     val size: Long = 0L,
     val url: String? = null,

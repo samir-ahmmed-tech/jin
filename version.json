@@ -1,18 +1,15 @@
 {
-  "version_code": 221,
-  "version_name": "2.2.1",
+  "version_code": 222,
+  "version_name": "2.2.2",
   "min_supported_version_code": 1,
   "changelog": [
-    "🚀 JIN v2.2.1: 100% Complete Mobile-Harness Autonomous Integration, Dedicated JIN Fusion Screen, Responsive TopBar & Multi-Agent Swarm.",
-    "📱 Responsive TopBar Fix: Solved title and 'Select Project' picker vertical text squeezing on all mobile screen sizes with a dedicated horizontal utility sub-bar.",
-    "⚡ Brand New JIN Fusion Interface: Dedicated Cyberpunk Obsidian & Electric Amber layout uniting conversational AI with a live autonomous coding console, real-time reasoning stream, and instant Android project actions.",
-    "🤖 Full 100% Mobile-Harness Engine: Powered by JinAutonomousEngine driving Antigravity CLI, DeepSeek Harness, Claude Code, and built-in resilient autonomous loop with real file reads/writes, bash execution, and tests.",
-    "📦 Real Toolchain & Coding Agent Downloader: Full on-device installation for Core Ubuntu 20.04 (Node.js/npm/Git), Claude Code, DeepSeek Harness, Antigravity CLI, Python, Android SDK 36/Gradle, C/C++ (gcc/g++/cmake), and PHP/Composer with live byte progress and offline APK auto-detection.",
-    "⚡ Multi-Agent Swarm Orchestrator: New prompt box toggle (⚡ Swarm: ON) dispatching tasks across all active agent networks concurrently.",
-    "🔄 Unlimited Concurrent Background Chat Sessions: Multi-chat streaming remains fully active in the background without getting aborted or dropped when switching chats.",
-    "📝 Real Checkpoints & Syntax-Colored Diffs: Full line-by-line diff inspector with additions (+), deletions (-), per-file Revert/Accept, and 1-tap Accept All / Revert All baseline controls.",
-    "🔨 Working Android Build & 1-Click Installer: Compiles Android projects inside Termux/PRoot using AAPT2/Gradle wrapper, diagnoses compiler issues, and installs generated debug APK directly to phone via AndroidAppInstaller.",
-    "🔄 3 Distinct Dedicated UI Modes: Seamless 1-tap switcher between JIN Classic (Gemini Deep Blue), JIN Fusion (Cyberpunk Amber), and Harness Studio (Claude Terracotta) in headers and Floating Switcher.",
+    "🚀 JIN v2.2.2: Zero-Crash Architecture, Harness Multi-Mirror Downloader, Autonomous Multi-Agent Studio, 1-Tap Optimization Hub, Video Uploads & BottomSheet UI Fix.",
+    "📐 Workspace Bottom Sheet Truncation Solved: Fixed + New Folder and Browse Storage buttons getting wrapped and clipped at bottom on mobile screen scaling with single-line guarantee and responsive horizontal padding.",
+    "🛡️ Harness Downloader Crash-Proof Engine: Upgraded HttpURLConnection to OkHttpClient with cross-domain 302 redirect following, throttled 250ms progress updates (eliminating main looper OOM), and multi-mirror release fallbacks.",
+    "🤖 Autonomous Multi-Agent Studio (Manus, Devin & Grok): Built-in specialized presets (Manus Solver, Devin Engineer, Grok DeepSearcher, Hermes Bug Hunter, Nova Designer) plus custom agent creator and Swarm task pipeline decomposition.",
+    "⚡ 1-Tap System & App Optimization Hub: Deep SQLite VACUUM compaction, in-memory bitmap RAM cache flush, temp buffer purging, 120Hz high-FPS boost, and idle background worker trimming.",
+    "🎥 Native Video Upload & Playback: Support for video attachments (MP4, MKV, WebM, MOV) with MediaMetadataRetriever video thumbnail extraction, chat chips, and interactive playback.",
+    "🛡️ Global Crash Protector: Intercepts unhandled coroutine and thread exceptions to prevent force closes, logging detailed diagnostics to Download/JIN_crash_log.txt.",
     "🛡️ 100% Attribution: Fully developed and authored by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)."
   ],
   "is_critical": false

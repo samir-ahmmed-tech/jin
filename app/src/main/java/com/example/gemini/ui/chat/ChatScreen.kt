@@ -482,6 +482,14 @@ fun ChatScreen(
             viewModel.addAttachmentsFromUris(uris, context)
         }
     }
+
+    val videoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            viewModel.addAttachmentsFromUris(uris, context)
+        }
+    }
     var activeConversationKey by remember { mutableStateOf(currentConv?.id ?: "new") }
     var textFieldValue by remember {
         mutableStateOf(viewModel.getDraft(currentConv?.id ?: "new"))
@@ -2910,6 +2918,7 @@ fun ChatScreen(
         AttachmentSelectorBottomSheet(
             onPickImage = { photoPickerLauncher.launch("image/*") },
             onPickFile = { filePickerLauncher.launch("*/*") },
+            onPickVideo = { videoPickerLauncher.launch("video/*") },
             onCameraCapture = {
                 try {
                     val cameraIntent = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
