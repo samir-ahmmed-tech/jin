@@ -18,13 +18,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DataObject
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -433,7 +435,7 @@ fun UserMessageBubble(
                 // 3. Image attachments preview
                 val imageAtts = remember(message.attachments) {
                     message.attachments.filter {
-                        !it.isVideo && !it.mimeType?.startsWith("video/") == true &&
+                        !it.isVideo && (it.mimeType?.startsWith("video/") != true) &&
                                 (it.isImage || it.name.endsWith(".jpg", true) || it.name.endsWith(".png", true) ||
                                 it.name.endsWith(".jpeg", true) || it.name.endsWith(".webp", true) ||
                                 it.name.endsWith(".gif", true) || it.mimeType?.startsWith("image/") == true)
@@ -1247,7 +1249,7 @@ private fun UserMessageVideoItem(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Rounded.PlayArrow,
+                        imageVector = Icons.Filled.PlayArrow,
                         contentDescription = "Play Video",
                         tint = Color(0xFF8B5CF6),
                         modifier = Modifier.size(20.dp)
@@ -1272,7 +1274,7 @@ private fun UserMessageVideoItem(
                 )
             }
             Icon(
-                imageVector = Icons.Rounded.Videocam,
+                imageVector = Icons.Outlined.Videocam,
                 contentDescription = null,
                 tint = Color(0xFF8B5CF6).copy(alpha = 0.6f),
                 modifier = Modifier.size(18.dp)

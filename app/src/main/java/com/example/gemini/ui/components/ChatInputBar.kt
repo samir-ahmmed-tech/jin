@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material3.*
@@ -1386,7 +1387,7 @@ fun ChatInputBar(
                                                 )
                                             } else if (att.isVideo || att.mimeType?.startsWith("video/") == true) {
                                                 Icon(
-                                                    imageVector = Icons.Rounded.Videocam,
+                                                    imageVector = Icons.Outlined.Videocam,
                                                     contentDescription = null,
                                                     tint = Color(0xFF8B5CF6),
                                                     modifier = Modifier.size(20.dp).padding(start = 4.dp)

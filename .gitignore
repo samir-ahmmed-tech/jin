@@ -58,3 +58,4 @@ termux-app/
 /backup_bootstrap
 output/
 .agents/
+.gh_token
