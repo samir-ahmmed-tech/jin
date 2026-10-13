@@ -448,7 +448,7 @@ class NativeSpeechTranscriber(
         }
     }
 
-    override fun stopTranscriptionSession(onDone: (String) -> Unit) {
+    override fun stopTranscriptionSession(onDone: ((String) -> Unit)?) {
         onDoneCallback = onDone
         isListening.set(false)
         isPaused.set(false)
@@ -466,8 +466,8 @@ class NativeSpeechTranscriber(
                 lastDeliveredFinalText = lastRecognizedText
                 onFinalCallback?.invoke(lastRecognizedText)
             }
-            onDone(pendingText)
-        } ?: onDone(pendingText)
+            onDone?.invoke(pendingText)
+        } ?: onDone?.invoke(pendingText)
     }
 
     override fun cancelTranscriptionSession() {

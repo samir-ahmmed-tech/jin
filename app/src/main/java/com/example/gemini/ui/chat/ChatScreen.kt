@@ -357,8 +357,8 @@ fun ChatScreen(
     }
 
     // Automatic Single-File Google Drive Backup on chat completion or Google sign-in
-    LaunchedEffect(isStreaming, messages.size, userEmail) {
-        if (!isStreaming && messages.isNotEmpty()) {
+    LaunchedEffect(isActivelyRunning, messages.size, userEmail) {
+        if (!isActivelyRunning && messages.isNotEmpty()) {
             com.example.gemini.data.remote.GoogleDriveSyncManager
                 .getInstance(context)
                 .triggerAutoBackupIfEnabled(delayMs = 8_000L)
