@@ -1,13 +1,12 @@
 {
-  "version_code": 225,
-  "version_name": "2.2.5",
+  "version_code": 226,
+  "version_name": "2.2.6",
   "min_supported_version_code": 1,
   "changelog": [
-    "🎨 UI Proportions & Layout Polish: Completely redesigned Antigravity 2.0 PC Suite Sheet, Skills & Plugins Studio, Multi-Agent Studio, and Security Settings so all buttons, tabs, and filter chips render cleanly on a single line without vertical character wrapping.",
-    "☁️ Single-File Google Drive Master Backup (JIN_Master_Vault_Backup.zip): Updates a single master archive in-place via PATCH, automatically cleans up old duplicate backup files, enables Auto-Sync by default after chat turns, and adds Restore Local .zip & Save to Downloads for large backups.",
-    "🎙️ Maya & Jarvis Real-Time Conversational Voice AI: Speaks back out loud immediately in natural Bangla & English via Neural MP3 TTS (with native Android TTS fallback) while simultaneously executing workspace actions, plus fixes 'শুনছি...' placeholder injection and 'Hello.Hello.' duplicate dictation.",
-    "💎 Pure Antigravity 2.0 APK (jin-antigravity-only-v2.2.5-release.apk): 100% isolated to Antigravity (AGY) with all other 5 agents (Claude, DeepSeek, Codex, OpenRouter, OpenCode), Multi-Agent Studio, and API Key dialogs removed.",
-    "⚡ Full Multi-Agent Suite APK (jin-termux-v2.2.5-release.apk): Includes all 6 CLI agents, Harness Studio, Jin Fusion, 1-File Google Drive Cloud Vault, and Maya/Jarvis Live Voice AI."
+    "🛡️ Production Security Audit & Hardening: Untracked release keystore from git, removed hardcoded signing passwords, and restricted cleartext HTTP traffic strictly to local loopback (localhost/127.0.0.1) via Network Security Config.",
+    "🔒 Manifest & Component Hardening: Unexported AndroidAppInstallReceiver, protected standalone TermuxActivity with RUN_COMMAND signature permission, and pruned unneeded CAMERA permission.",
+    "⚡ Android 14+ TargetSdk 34: Elevated targetSdk to 34 and added FOREGROUND_SERVICE_TYPE_SPECIAL_USE to eliminate FGS runtime exceptions on Android 14+.",
+    "🧹 Resource & Socket Leak Elimination: Wrapped all OkHttp response calls in .use { } across API services and updater, secured BroadcastReceiver coroutines with goAsync(), and added SSH session cleanup on TermuxService destruction."
   ],
   "is_critical": false
 }
