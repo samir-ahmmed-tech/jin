@@ -35,6 +35,37 @@ class DirectApiClient(
         private const val TAG = "DirectApiClient"
         const val ZERO_KEY_GATEWAY_URL = "https://text.pollinations.ai/openai"
         const val ZERO_KEY_DEFAULT_MODEL = "openai"
+        val shared by lazy { DirectApiClient() }
+
+        suspend fun transcribeAudioWav(context: Context, wavBytes: ByteArray): String? {
+            return shared.transcribeAudioWav(context, wavBytes).getOrNull()
+        }
+
+        suspend fun streamChatMessages(
+            baseUrl: String,
+            apiKey: String,
+            model: String,
+            messages: List<Pair<String, String>>,
+            systemInstruction: String = "",
+            onChunk: (String) -> Unit,
+            onComplete: suspend () -> Unit = {},
+            onError: suspend (String) -> Unit = {}
+        ) {
+            try {
+                shared.streamChatMessages(
+                    baseUrl = baseUrl,
+                    apiKey = apiKey,
+                    model = model,
+                    messages = messages,
+                    systemPrompt = systemInstruction,
+                    onReasoning = { r -> onChunk("<think>$r</think>") },
+                    onToken = { t -> onChunk(t) }
+                )
+                onComplete()
+            } catch (e: Exception) {
+                onError(e.message ?: "Stream error")
+            }
+        }
     }
 
     data class DirectApiTestResult(

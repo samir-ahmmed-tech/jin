@@ -767,6 +767,14 @@ class TrajectoryEngine {
             return
         }
 
+        if (step.type != CortexStepType.CORTEX_STEP_TYPE_ERROR_MESSAGE && step.error_message == null) {
+            val toolCall = extractToolCallFromStep(step, stepIndex)
+            if (toolCall != null) {
+                blocks.add(TurnBlock.Tool(stepIndex = stepIndex, toolCall = toolCall))
+                return
+            }
+        }
+
         val stepError = step.error_message?.error ?: step.error
         val isErrorType = step.type == CortexStepType.CORTEX_STEP_TYPE_ERROR_MESSAGE ||
                 step.status == CortexStepStatus.CORTEX_STEP_STATUS_ERROR ||
@@ -782,8 +790,16 @@ class TrajectoryEngine {
             val code = stepError?.error_code
             val errId = stepError?.error_id ?: ""
 
+            val isBenignCancel = shortErr.contains("context canceled", ignoreCase = true) ||
+                userMsg.contains("context canceled", ignoreCase = true) ||
+                userMsg.contains("stopped by user", ignoreCase = true) ||
+                ((shortErr.contains("cancel", ignoreCase = true) || userMsg.contains("cancel", ignoreCase = true)) && (code == null || code == 0))
+
+            if (isBenignCancel) {
+                return
+            }
+
             val title = when {
-                shortErr.contains("cancel", ignoreCase = true) || userMsg.contains("cancel", ignoreCase = true) || userMsg.contains("stopped by user", ignoreCase = true) -> "Generation Stopped by User"
                 shortErr.contains("auth", ignoreCase = true) || userMsg.contains("auth", ignoreCase = true) -> "Authentication Required"
                 shortErr.contains("quota", ignoreCase = true) || shortErr.contains("credit", ignoreCase = true) || code == 429 -> "Quota / Usage Limit Exceeded"
                 shortErr.contains("model not found", ignoreCase = true) || shortErr.contains("unknown model", ignoreCase = true) -> "Model Configuration Error"
@@ -804,11 +820,6 @@ class TrajectoryEngine {
                 )
             )
             return
-        }
-
-        val toolCall = extractToolCallFromStep(step, stepIndex)
-        if (toolCall != null) {
-            blocks.add(TurnBlock.Tool(stepIndex = stepIndex, toolCall = toolCall))
         }
     }
 

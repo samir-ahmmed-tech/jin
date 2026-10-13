@@ -1599,18 +1599,13 @@ class AgyChatBackend(
         _isStreaming.value = true
         streamingJob = backendScope.launch(Dispatchers.IO) {
             val systemContext = AntigravityOptimizer.buildAccuracyEnrichedSystemContext(workspaceUri)
-            val localMessages = currentHistory.filter { it.id != assistantMsgId }.mapIndexed { idx, m ->
+            val localMessages: List<Pair<String, String>> = currentHistory.filter { it.id != assistantMsgId }.mapIndexed { idx, m ->
                 val text = if (idx == currentHistory.lastIndex && m.role == MessageRole.USER) {
                     expandedUserPrompt
                 } else {
                     m.content
                 }
-                com.example.gemini.data.local.ChatMessage(
-                    conversationId = conv.id,
-                    role = if (m.role == MessageRole.USER) "user" else "assistant",
-                    content = text,
-                    timestamp = m.timestamp
-                )
+                (if (m.role == MessageRole.USER) "user" else "assistant") to text
             }
 
             val accumulated = StringBuilder()
@@ -1624,7 +1619,7 @@ class AgyChatBackend(
                 model = "openai",
                 messages = localMessages,
                 systemInstruction = systemContext,
-                onChunk = { chunk ->
+                onChunk = { chunk: String ->
                     var rem = chunk
                     while (rem.isNotEmpty()) {
                         if (!isInsideThink) {
@@ -1676,7 +1671,7 @@ class AgyChatBackend(
                         )
                     }
                 },
-                onError = { err ->
+                onError = { err: String ->
                     withContext(Dispatchers.Main) {
                         _isStreaming.value = false
                         isPromptInFlight = false

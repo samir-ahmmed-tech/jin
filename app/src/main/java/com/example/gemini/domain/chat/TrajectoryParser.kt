@@ -832,6 +832,14 @@ object TrajectoryParser {
         val errorCode = if (target.has("errorCode")) target.optInt("errorCode") else if (target.has("code")) target.optInt("code") else null
         val errorId = target.optString("errorId", "")
 
+        val isBenignCancel = shortError.contains("context canceled", ignoreCase = true) ||
+            userError.contains("context canceled", ignoreCase = true) ||
+            userError.contains("stopped by user", ignoreCase = true) ||
+            ((shortError.contains("cancel", ignoreCase = true) || userError.contains("cancel", ignoreCase = true)) && (errorCode == null || errorCode == 0))
+        if (isBenignCancel) {
+            return null
+        }
+
         val title = when {
             shortError.contains("auth", ignoreCase = true) || userError.contains("auth", ignoreCase = true) -> "Authentication Required"
             shortError.contains("quota", ignoreCase = true) || shortError.contains("credit", ignoreCase = true) || errorCode == 429 -> "Quota / Usage Limit Exceeded"

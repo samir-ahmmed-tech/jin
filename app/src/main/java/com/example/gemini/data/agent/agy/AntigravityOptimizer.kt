@@ -540,7 +540,7 @@ object AntigravityOptimizer {
     }
 
     /**
-     * Implements PC 'migrate-workflows' skill: scans legacy .agent/workflows/*.md and global_workflows/*.md
+     * Implements PC 'migrate-workflows' skill: scans legacy .agent/workflows and global_workflows markdown files
      * and converts them into modern .agents/skills/<name>/SKILL.md files.
      */
     fun migrateLegacyWorkflows(workspacePath: String?): Int {

@@ -47,7 +47,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.gemini.data.audio.ChatTtsHelper
 import com.example.gemini.data.audio.NativeSpeechTranscriber
-import com.example.gemini.data.local.ChatMessage
 import com.example.gemini.data.remote.DirectApiClient
 import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.GeminiBlue
@@ -214,16 +213,9 @@ fun RealtimeVoiceAssistantDialog(
                         baseUrl = DirectApiClient.ZERO_KEY_GATEWAY_URL,
                         apiKey = "",
                         model = "openai",
-                        messages = listOf(
-                            ChatMessage(
-                                conversationId = "voice_live",
-                                role = "user",
-                                content = promptSnapshot,
-                                timestamp = System.currentTimeMillis()
-                            )
-                        ),
+                        messages = listOf("user" to promptSnapshot),
                         systemInstruction = voiceSystemPrompt,
-                        onChunk = { chunk ->
+                        onChunk = { chunk: String ->
                             sb.append(chunk)
                             directAiResponseText = sb.toString()
                         },
