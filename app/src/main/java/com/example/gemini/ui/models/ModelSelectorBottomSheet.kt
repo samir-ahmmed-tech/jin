@@ -64,26 +64,27 @@ fun ModelSelectorBottomSheet(
     val context = androidx.compose.ui.platform.LocalContext.current
     val authPrefs = remember { com.example.gemini.data.preferences.AuthPreferences(context) }
     var refreshKey by remember { mutableIntStateOf(0) }
-    val hasOpenAi = remember(refreshKey) { authPrefs.getOpenAiApiKeySync().isNotBlank() }
-    val hasDeepseek = remember(refreshKey) { authPrefs.getDeepSeekApiKeySync().isNotBlank() }
-    val hasClaude = remember(refreshKey) { authPrefs.getAnthropicApiKeySync().isNotBlank() }
+    val isAgyOnly = com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY
+    val hasOpenAi = remember(refreshKey) { !isAgyOnly && authPrefs.getOpenAiApiKeySync().isNotBlank() }
+    val hasDeepseek = remember(refreshKey) { !isAgyOnly && authPrefs.getDeepSeekApiKeySync().isNotBlank() }
+    val hasClaude = remember(refreshKey) { !isAgyOnly && authPrefs.getAnthropicApiKeySync().isNotBlank() }
     val hasGemini = remember(refreshKey) { authPrefs.getGeminiApiKeySync().isNotBlank() }
-    val hasOpenRouter = remember(refreshKey) { authPrefs.getOpenRouterApiKeySync().isNotBlank() }
-    val hasCustom = remember(refreshKey) { authPrefs.getCustomApiKeySync().isNotBlank() }
+    val hasOpenRouter = remember(refreshKey) { !isAgyOnly && authPrefs.getOpenRouterApiKeySync().isNotBlank() }
+    val hasCustom = remember(refreshKey) { !isAgyOnly && authPrefs.getCustomApiKeySync().isNotBlank() }
 
     var addKeyDialogProvider by remember { mutableStateOf<String?>(null) }
     var enteredKeyText by remember { mutableStateOf("") }
 
-    val allModels = remember(availableModels, refreshKey, hasOpenAi, hasDeepseek, hasClaude, hasOpenRouter, hasCustom) {
+    val allModels = remember(availableModels, refreshKey, hasOpenAi, hasDeepseek, hasClaude, hasOpenRouter, hasCustom, isAgyOnly) {
         val list = availableModels.toMutableList()
         for (m in AiModel.DEFAULT_MODELS) {
             val isActive = when (m.family) {
                 ModelFamily.ANTIGRAVITY -> true
                 ModelFamily.GEMINI -> true
-                ModelFamily.OPENAI -> hasOpenAi
-                ModelFamily.DEEPSEEK -> hasDeepseek
-                ModelFamily.CLAUDE -> hasClaude
-                ModelFamily.OTHER -> hasOpenRouter || hasCustom
+                ModelFamily.OPENAI -> !isAgyOnly && hasOpenAi
+                ModelFamily.DEEPSEEK -> !isAgyOnly && hasDeepseek
+                ModelFamily.CLAUDE -> !isAgyOnly && hasClaude
+                ModelFamily.OTHER -> !isAgyOnly && (hasOpenRouter || hasCustom)
             }
             if (isActive && list.none { it.id == m.id || it.key == m.id }) {
                 list.add(m)
@@ -93,11 +94,11 @@ fun ModelSelectorBottomSheet(
     }
 
     val antigravityModels = allModels.filter { it.family == ModelFamily.ANTIGRAVITY || it.id.contains("antigravity", true) }
-    val openAiModels = if (hasOpenAi) allModels.filter { it.family == ModelFamily.OPENAI || it.id.contains("codex", true) || it.id.contains("gpt", true) } else emptyList()
-    val deepseekModels = if (hasDeepseek) allModels.filter { it.family == ModelFamily.DEEPSEEK || it.id.contains("deepseek", true) || it.id.contains("hermes", true) } else emptyList()
-    val claudeModels = if (hasClaude) allModels.filter { it.family == ModelFamily.CLAUDE || (it.id.contains("claude", true) && !it.id.contains("gpt", true)) } else emptyList()
+    val openAiModels = if (!isAgyOnly && hasOpenAi) allModels.filter { it.family == ModelFamily.OPENAI || it.id.contains("codex", true) || it.id.contains("gpt", true) } else emptyList()
+    val deepseekModels = if (!isAgyOnly && hasDeepseek) allModels.filter { it.family == ModelFamily.DEEPSEEK || it.id.contains("deepseek", true) || it.id.contains("hermes", true) } else emptyList()
+    val claudeModels = allModels.filter { it.family == ModelFamily.CLAUDE || (it.id.contains("claude", true) && !it.id.contains("gpt", true)) }
     val geminiModels = allModels.filter { it.family == ModelFamily.GEMINI }
-    val customModels = if (hasOpenRouter || hasCustom) allModels.filter { it.family == ModelFamily.OTHER || it.id.contains("custom", true) || it.id.contains("openrouter", true) } else emptyList()
+    val customModels = if (!isAgyOnly && (hasOpenRouter || hasCustom)) allModels.filter { it.family == ModelFamily.OTHER || it.id.contains("custom", true) || it.id.contains("openrouter", true) } else emptyList()
 
     val activeModel = allModels.find { it.id == selectedModelId } ?: allModels.firstOrNull()
 
@@ -524,7 +525,7 @@ private fun MainCategoryListView(
                 )
             }
 
-            val missingProviders = buildList {
+            val missingProviders = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) emptyList() else buildList {
                 if (!hasDeepseek) add("DeepSeek" to Color(0xFF3B82F6))
                 if (!hasOpenAi) add("OpenAI" to Color(0xFF10A37F))
                 if (!hasClaude) add("Claude" to Color(0xFFD97706))

@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -474,7 +475,9 @@ private fun SwarmDispatcherTab(
 
                 Text("Select Participating Agents:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     agents.forEach { agent ->
@@ -484,7 +487,13 @@ private fun SwarmDispatcherTab(
                             onClick = {
                                 selectedAgentIds = if (isSelected) selectedAgentIds - agent.id else selectedAgentIds + agent.id
                             },
-                            label = { Text("${agent.avatarEmoji} ${agent.name.take(8)}") }
+                            label = {
+                                Text(
+                                    text = "${agent.avatarEmoji} ${agent.name.take(12)}",
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         )
                     }
                 }

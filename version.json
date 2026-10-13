@@ -1,14 +1,13 @@
 {
-  "version_code": 224,
-  "version_name": "2.2.4",
+  "version_code": 225,
+  "version_name": "2.2.5",
   "min_supported_version_code": 1,
   "changelog": [
-    "🚀 JIN v2.2.4 Dual-Edition Release: Full Multi-Agent & Mobile-Harness Suite APK + Pure Antigravity 2.0 PC-Grade Edition APK.",
-    "⚡ Edition #1 (jin-termux-v2.2.4-release.apk): Complete 6-Agent CLI Suite (Antigravity, Claude Code, OpenCode, DeepSeek, Codex, OpenRouter), Zero-Key Free AI Gateway, Harness Studio, Jin Fusion, and 100 PC Power Tools.",
-    "💎 Edition #2 (jin-antigravity-only-v2.2.4-release.apk): 100% Pure Google Antigravity 2.0 PC-Grade Edition — zero third-party agents or bloat, ultra-fast 60fps token streaming, Subagents Manager (self, research, image-generator + custom subagents), GEMINI.md / AGENTS.md Rules & SKILL.md Skills Studio, /schedule Cron Manager, and PC Security Sandbox.",
-    "🎙️ Fixed Live Voice Assistant: Hybrid Android SpeechRecognizer + 16kHz PCM AudioRecord VAD + Cloud Whisper Fallback, async TTS queue pre-warming, Bangla/English auto-detection, and 2.2s Direct Voice AI Fallback.",
-    "🔓 Fixed Chat UI & Auth Loop: Eliminated infinite 'Checking account status...' loop, removed blocking API key walls with automatic Zero-Key Cloud Gateway fallback, and fixed single-line Project Picker buttons.",
-    "🛡️ 100% Attribution: Fully developed and authored by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)."
+    "🎨 UI Proportions & Layout Polish: Completely redesigned Antigravity 2.0 PC Suite Sheet, Skills & Plugins Studio, Multi-Agent Studio, and Security Settings so all buttons, tabs, and filter chips render cleanly on a single line without vertical character wrapping.",
+    "☁️ Single-File Google Drive Master Backup (JIN_Master_Vault_Backup.zip): Updates a single master archive in-place via PATCH, automatically cleans up old duplicate backup files, enables Auto-Sync by default after chat turns, and adds Restore Local .zip & Save to Downloads for large backups.",
+    "🎙️ Maya & Jarvis Real-Time Conversational Voice AI: Speaks back out loud immediately in natural Bangla & English via Neural MP3 TTS (with native Android TTS fallback) while simultaneously executing workspace actions, plus fixes 'শুনছি...' placeholder injection and 'Hello.Hello.' duplicate dictation.",
+    "💎 Pure Antigravity 2.0 APK (jin-antigravity-only-v2.2.5-release.apk): 100% isolated to Antigravity (AGY) with all other 5 agents (Claude, DeepSeek, Codex, OpenRouter, OpenCode), Multi-Agent Studio, and API Key dialogs removed.",
+    "⚡ Full Multi-Agent Suite APK (jin-termux-v2.2.5-release.apk): Includes all 6 CLI agents, Harness Studio, Jin Fusion, 1-File Google Drive Cloud Vault, and Maya/Jarvis Live Voice AI."
   ],
   "is_critical": false
 }

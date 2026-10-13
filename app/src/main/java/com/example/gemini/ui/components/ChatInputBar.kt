@@ -421,15 +421,21 @@ fun ChatInputBar(
             preCursorText = pre,
             postCursorText = post,
             onPartialText = { partial ->
-                val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
-                val combined = baseTextBeforeDictation + sep + partial
-                onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
+                val clean = partial.trim()
+                if (clean.isNotBlank() && !baseTextBeforeDictation.trimEnd().endsWith(clean, ignoreCase = true)) {
+                    val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
+                    val combined = baseTextBeforeDictation + sep + clean
+                    onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
+                }
             },
             onFinalText = { finalText ->
-                val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
-                val combined = baseTextBeforeDictation + sep + finalText
-                onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
-                baseTextBeforeDictation = combined
+                val clean = finalText.trim()
+                if (clean.isNotBlank() && !baseTextBeforeDictation.trimEnd().endsWith(clean, ignoreCase = true)) {
+                    val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
+                    val combined = baseTextBeforeDictation + sep + clean
+                    onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
+                    baseTextBeforeDictation = combined
+                }
             },
             onError = { err ->
                 if (sm != nativeTranscriber) {
@@ -439,15 +445,21 @@ fun ChatInputBar(
                         preCursorText = pre,
                         postCursorText = post,
                         onPartialText = { partial ->
-                            val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
-                            val combined = baseTextBeforeDictation + sep + partial
-                            onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
+                            val clean = partial.trim()
+                            if (clean.isNotBlank() && !baseTextBeforeDictation.trimEnd().endsWith(clean, ignoreCase = true)) {
+                                val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
+                                val combined = baseTextBeforeDictation + sep + clean
+                                onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
+                            }
                         },
                         onFinalText = { finalText ->
-                            val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
-                            val combined = baseTextBeforeDictation + sep + finalText
-                            onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
-                            baseTextBeforeDictation = combined
+                            val clean = finalText.trim()
+                            if (clean.isNotBlank() && !baseTextBeforeDictation.trimEnd().endsWith(clean, ignoreCase = true)) {
+                                val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
+                                val combined = baseTextBeforeDictation + sep + clean
+                                onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
+                                baseTextBeforeDictation = combined
+                            }
                         },
                         onError = { nativeErr ->
                             Toast.makeText(context, "Dictation: $nativeErr", Toast.LENGTH_SHORT).show()
@@ -469,9 +481,11 @@ fun ChatInputBar(
 
     fun stopLiveDictation() {
         activeTranscriber.stopTranscriptionSession { finalText ->
-            if (finalText.isNotBlank()) {
+            val clean = finalText.trim()
+            if (clean.isNotBlank() && !baseTextBeforeDictation.trimEnd().endsWith(clean, ignoreCase = true)) {
                 val sep = if (baseTextBeforeDictation.isNotBlank() && !baseTextBeforeDictation.endsWith(" ")) " " else ""
-                val combined = baseTextBeforeDictation + sep + finalText
+                val combined = baseTextBeforeDictation + sep + clean
+                baseTextBeforeDictation = combined
                 onTextFieldValueChange(TextFieldValue(combined, selection = TextRange(combined.length)))
             }
         }

@@ -855,7 +855,7 @@ fun ChatHistoryDrawer(
                 }
             }
 
-            if (hasBothAgents || agentFilter != null) {
+            if (!com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY && (hasBothAgents || agentFilter != null)) {
                 androidx.compose.foundation.lazy.LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()

@@ -356,6 +356,15 @@ fun ChatScreen(
         }
     }
 
+    // Automatic Single-File Google Drive Backup on chat completion or Google sign-in
+    LaunchedEffect(isStreaming, messages.size, userEmail) {
+        if (!isStreaming && messages.isNotEmpty()) {
+            com.example.gemini.data.remote.GoogleDriveSyncManager
+                .getInstance(context)
+                .triggerAutoBackupIfEnabled(delayMs = 8_000L)
+        }
+    }
+
     val agyAuthInfo by viewModel.agyAuthInfo.collectAsState()
     val isAuthBusy by viewModel.isAuthBusy.collectAsState()
 

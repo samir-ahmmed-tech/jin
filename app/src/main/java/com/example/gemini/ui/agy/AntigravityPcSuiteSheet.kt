@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -25,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,12 +33,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Antigravity 2.0 PC-Grade Suite & Turbo Optimizer BottomSheet.
- * Brings 100% of Antigravity PC IDE & Antigravity 2.0 features to Android:
- * 1. ⚡ Turbo Optimizer (1-Tap Auto-Optimize RAM, SQLite WAL, HTTP/2 Pool, 60fps Streaming, Smart Rule Context)
- * 2. 🤖 Subagents Manager (self, research, image-generator + Custom define_subagent & 1-Tap Invocation)
- * 3. 🧩 Customizations Studio (GEMINI.md / AGENTS.md Rules, SKILL.md Skills, hooks.json, migrate-workflows)
- * 4. ⏰ Scheduled Tasks (/schedule One-Shot Timers & Recurring Cron Jobs)
- * 5. 🛡️ PC Execution Policies & Sandbox (Turbo / Auto / Review Each, Terminal Sandbox, File Access, Permission Grants)
+ * Designed with uniform app-native proportions, single-line non-wrapping pills/buttons,
+ * and responsive horizontal scrolling so no UI element ever clips or squishes on any screen size.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,111 +64,125 @@ fun AntigravityPcSuiteSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF0E1117),
-        contentColor = Color.White,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFF334155)) }
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.90f)
+                .fillMaxHeight(0.88f)
                 .padding(horizontal = 16.dp)
         ) {
-            // Header
+            // App-Native Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(11.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(Color(0xFF2563EB), Color(0xFF7C3AED))
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Bolt,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Antigravity 2.0 PC Suite",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(Color(0xFF2563EB), Color(0xFF7C3AED))
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Color(0xFF10B981).copy(alpha = 0.18f),
-                                border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.5f))
-                            ) {
-                                Text(
-                                    text = "TURBO +${optState.speedBoostPercent}%",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF34D399),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                        Text(
-                            text = "Speed, Accuracy (${optState.accuracyScore}%), Subagents, Skills, Rules & Cron",
-                            fontSize = 11.5.sp,
-                            color = Color(0xFF94A3B8)
-                        )
-                    }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Bolt,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
-
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF94A3B8))
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Antigravity 2.0 PC Suite",
+                            fontSize = 15.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF10B981).copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f))
+                        ) {
+                            Text(
+                                text = "TURBO +${optState.speedBoostPercent}%",
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF10B981),
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Accuracy ${optState.accuracyScore}% • Subagents • Rules & Skills • Cron",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // 5 PC Feature Tabs
+            // 5 PC Feature Tabs (Scrollable, Uniform Height, Never Wraps)
             val tabs = listOf(
                 "⚡ Optimize",
                 "🤖 Subagents",
                 "🧩 Rules & Skills",
                 "⏰ Schedule",
-                "🛡️ PC Sandbox"
+                "🛡️ Sandbox"
             )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 tabs.forEachIndexed { idx, title ->
                     val active = selectedTab == idx
                     Surface(
                         onClick = { selectedTab = idx },
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (active) Color(0xFF2563EB).copy(alpha = 0.24f) else Color(0xFF161B26),
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                         border = BorderStroke(
                             1.dp,
-                            if (active) Color(0xFF3B82F6) else Color(0xFF262F40)
+                            if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
                         )
                     ) {
                         Text(
                             text = title,
-                            fontSize = 12.5.sp,
+                            fontSize = 12.sp,
                             fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                            color = if (active) Color(0xFF60A5FA) else Color(0xFF94A3B8),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             softWrap = false,
                             maxLines = 1
                         )
@@ -180,7 +190,7 @@ fun AntigravityPcSuiteSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             when (selectedTab) {
                 0 -> OptimizeTabContent(
@@ -194,7 +204,7 @@ fun AntigravityPcSuiteSheet(
                                 isOptimizing = false
                                 Toast.makeText(
                                     context,
-                                    "⚡ Antigravity Optimized! Freed ${res.freedMemoryMb}MB RAM, Accuracy ${res.accuracyScore}%",
+                                    "⚡ Optimized! Freed ${res.freedMemoryMb}MB RAM • Accuracy ${res.accuracyScore}%",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -281,55 +291,61 @@ private fun OptimizeTabContent(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         item {
-            // Hero Metrics Card
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF141A29),
-                border = BorderStroke(1.dp, Color(0xFF2563EB).copy(alpha = 0.45f)),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(14.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        MetricBox("SPEED BOOST", "+${optState.speedBoostPercent}%", Color(0xFF38BDF8))
+                        MetricBox("SPEED", "+${optState.speedBoostPercent}%", Color(0xFF38BDF8))
                         MetricBox("ACCURACY", "${optState.accuracyScore}%", Color(0xFF10B981))
                         MetricBox("RAM FREED", "${optState.freedMemoryMb} MB", Color(0xFFA855F7))
-                        MetricBox("STREAM FPS", if (optState.highFrameRateStreaming) "60 FPS" else "30 FPS", Color(0xFFF59E0B))
+                        MetricBox("STREAM", if (optState.highFrameRateStreaming) "60 FPS" else "30 FPS", Color(0xFFF59E0B))
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
                         onClick = onRunFullOptimize,
                         enabled = !isOptimizing,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         if (isOptimizing) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 strokeWidth = 2.dp,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text("Optimizing Antigravity Engine...", fontWeight = FontWeight.Bold)
-                        } else {
-                            Icon(Icons.Rounded.AutoFixHigh, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "1-Tap Optimize Speed, Accuracy & Memory",
+                                text = "Optimizing Antigravity Engine...",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                maxLines = 1
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        } else {
+                            Icon(Icons.Rounded.AutoFixHigh, contentDescription = null, modifier = Modifier.size(17.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "1-Tap Optimize Speed, Accuracy & RAM",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -337,9 +353,11 @@ private fun OptimizeTabContent(
                     if (optState.lastOptimizedAt > 0L) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Last optimized at ${AntigravityOptimizer.formatTimestamp(optState.lastOptimizedAt)} • Cleaned ${optState.cleanedLockFiles} stale locks",
-                            fontSize = 11.sp,
-                            color = Color(0xFF64748B)
+                            text = "Last optimized ${AntigravityOptimizer.formatTimestamp(optState.lastOptimizedAt)} • Cleaned ${optState.cleanedLockFiles} locks",
+                            fontSize = 10.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -349,16 +367,16 @@ private fun OptimizeTabContent(
         item {
             Text(
                 text = "ANTIGRAVITY ENGINE TUNING",
-                fontSize = 11.5.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF94A3B8)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         item {
             OptimizeSwitchRow(
                 title = "Smart Workspace & Rule Context Injection",
-                subtitle = "Automatically injects active GEMINI.md, AGENTS.md, and project structure for 99.8% coding accuracy",
+                subtitle = "Automatically injects active GEMINI.md, AGENTS.md & project structure",
                 checked = optState.smartContextInjection,
                 onCheckedChange = { onToggleChanged(null, it, null, null, null, null) }
             )
@@ -367,7 +385,7 @@ private fun OptimizeTabContent(
         item {
             OptimizeSwitchRow(
                 title = "Deep Reasoning Budget Boost (12,288 Tokens)",
-                subtitle = "Expands thinking token budget by 1.5x for complex multi-file architecture & bug fixing",
+                subtitle = "Expands thinking token budget by 1.5x for multi-file architecture & fixes",
                 checked = optState.deepReasoningBoost,
                 onCheckedChange = { onToggleChanged(null, null, null, null, null, it) }
             )
@@ -376,7 +394,7 @@ private fun OptimizeTabContent(
         item {
             OptimizeSwitchRow(
                 title = "60 FPS Ultra-Low-Latency Stream Coalescing",
-                subtitle = "Renders token chunks every 16ms instead of 30ms with pre-warmed Markdown AST cache",
+                subtitle = "Renders token chunks every 16ms with pre-warmed Markdown AST cache",
                 checked = optState.highFrameRateStreaming,
                 onCheckedChange = { onToggleChanged(null, null, null, null, it, null) }
             )
@@ -385,7 +403,7 @@ private fun OptimizeTabContent(
         item {
             OptimizeSwitchRow(
                 title = "HTTP/2 & gRPC Multiplexing Pool Pre-Warm",
-                subtitle = "Maintains 32 warm HTTP/2 connections with fast 6s connect fail-over",
+                subtitle = "Maintains 32 warm HTTP/2 connections with fast 6s fail-over",
                 checked = optState.prewarmHttp2Pool,
                 onCheckedChange = { onToggleChanged(null, null, it, null, null, null) }
             )
@@ -394,7 +412,7 @@ private fun OptimizeTabContent(
         item {
             OptimizeSwitchRow(
                 title = "Auto-Clean Stale Presence Locks & SQLite WAL",
-                subtitle = "Prevents trajectory lock contention and keeps local conversation DB fast",
+                subtitle = "Prevents trajectory lock contention and keeps local DB fast",
                 checked = optState.autoCompactSqliteWal,
                 onCheckedChange = { onToggleChanged(null, null, null, it, null, null) }
             )
@@ -405,8 +423,22 @@ private fun OptimizeTabContent(
 @Composable
 private fun MetricBox(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = color)
-        Text(text = label, fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF94A3B8))
+        Text(
+            text = value,
+            fontSize = 14.5.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = color,
+            maxLines = 1,
+            softWrap = false
+        )
+        Text(
+            text = label,
+            fontSize = 9.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 
@@ -418,27 +450,35 @@ private fun OptimizeSwitchRow(
     onCheckedChange: (Boolean) -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = Color(0xFF151924),
-        border = BorderStroke(1.dp, Color(0xFF22293A)),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                Text(text = title, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(text = subtitle, fontSize = 11.5.sp, color = Color(0xFF94A3B8))
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             Switch(
                 checked = checked,
-                onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF2563EB))
+                onCheckedChange = onCheckedChange
             )
         }
     }
@@ -472,28 +512,38 @@ private fun SubagentsTabContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "ANTIGRAVITY 2.0 SUBAGENTS (${subagents.size})",
-                    fontSize = 12.sp,
+                    text = "SUBAGENTS (${subagents.size})",
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF94A3B8)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.weight(1f)
                 )
                 Surface(
                     onClick = { showCreateForm = !showCreateForm },
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF2563EB).copy(alpha = 0.2f),
-                    border = BorderStroke(1.dp, Color(0xFF3B82F6))
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF60A5FA), modifier = Modifier.size(15.dp))
+                        Icon(
+                            imageVector = if (showCreateForm) Icons.Default.Close else Icons.Default.Add,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (showCreateForm) "Close Form" else "Define Subagent",
+                            text = if (showCreateForm) "Close" else "New Subagent",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF60A5FA)
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -503,50 +553,69 @@ private fun SubagentsTabContent(
         item {
             AnimatedVisibility(visible = showCreateForm) {
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFF161C2B),
-                    border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Define Custom Subagent (define_subagent)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Define Custom Subagent",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.5.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                         OutlinedTextField(
                             value = newName,
                             onValueChange = { newName = it },
-                            label = { Text("Subagent Name (e.g. security-auditor)") },
+                            label = { Text("Name (e.g. security-auditor)", fontSize = 12.sp) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
                         OutlinedTextField(
                             value = newRole,
                             onValueChange = { newRole = it },
-                            label = { Text("Role Title (e.g. Security & Performance Auditor)") },
+                            label = { Text("Role Title (e.g. Security Auditor)", fontSize = 12.sp) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             listOf("inherit", "flash", "pro").forEach { m ->
                                 FilterChip(
                                     selected = newModel == m,
                                     onClick = { newModel = m },
-                                    label = { Text("Model: $m", fontSize = 11.sp) }
+                                    label = { Text("Model: $m", fontSize = 11.sp, maxLines = 1, softWrap = false) }
                                 )
                             }
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             listOf("inherit", "branch", "share").forEach { wm ->
                                 FilterChip(
                                     selected = newWorkspaceMode == wm,
                                     onClick = { newWorkspaceMode = wm },
-                                    label = { Text("WS: $wm", fontSize = 11.sp) }
+                                    label = { Text("WS: $wm", fontSize = 11.sp, maxLines = 1, softWrap = false) }
                                 )
                             }
                         }
                         OutlinedTextField(
                             value = newPrompt,
                             onValueChange = { newPrompt = it },
-                            label = { Text("System Prompt & Instructions") },
-                            minLines = 3,
+                            label = { Text("System Prompt & Instructions", fontSize = 12.sp) },
+                            minLines = 2,
+                            maxLines = 4,
                             modifier = Modifier.fillMaxWidth()
                         )
                         Button(
@@ -568,9 +637,10 @@ private fun SubagentsTabContent(
                                     showCreateForm = false
                                 }
                             },
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Save Subagent to Antigravity")
+                            Text("Save Subagent", fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -580,51 +650,75 @@ private fun SubagentsTabContent(
         items(subagents, key = { it.id }) { spec ->
             val currentTask = taskPrompts[spec.id].orEmpty()
             Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = Color(0xFF151924),
-                border = BorderStroke(1.dp, Color(0xFF232A3B)),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(12.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Rounded.SmartToy,
-                                contentDescription = null,
-                                tint = Color(0xFF38BDF8),
-                                modifier = Modifier.size(18.dp)
+                        Icon(
+                            imageVector = Icons.Rounded.SmartToy,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = spec.name,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = "${spec.model} • ${spec.workspaceMode}",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = spec.name, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Color(0xFF1E293B)
-                            ) {
-                                Text(
-                                    text = "${spec.model} • ws:${spec.workspaceMode}",
-                                    fontSize = 10.sp,
-                                    color = Color(0xFF94A3B8),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
                         }
+                        Spacer(modifier = Modifier.weight(1f))
                         if (!spec.isBuiltIn) {
                             IconButton(
                                 onClick = { onDeleteSubagent(spec.name) },
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(26.dp)
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFF87171), modifier = Modifier.size(16.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                         }
                     }
-                    Text(text = spec.role, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF60A5FA))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = spec.description, fontSize = 11.5.sp, color = Color(0xFF94A3B8))
+                    Text(
+                        text = spec.role,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = spec.description,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -634,16 +728,17 @@ private fun SubagentsTabContent(
                         OutlinedTextField(
                             value = currentTask,
                             onValueChange = { taskPrompts = taskPrompts + (spec.id to it) },
-                            placeholder = { Text("Task for ${spec.name}...", fontSize = 12.sp) },
+                            placeholder = { Text("Task for ${spec.name}...", fontSize = 11.5.sp, maxLines = 1) },
                             singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
                             modifier = Modifier.weight(1f)
                         )
                         Button(
                             onClick = { onInvokeSubagent(spec, currentTask) },
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
                         ) {
-                            Text("Invoke", fontSize = 12.sp, fontWeight = FontWeight.Bold, softWrap = false)
+                            Text("Invoke", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -675,37 +770,86 @@ private fun CustomizationsTabContent(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("📜 GEMINI.md Rules", "🧩 SKILL.md Skills", "🪝 Lifecycle Hooks").forEachIndexed { idx, label ->
-                FilterChip(
-                    selected = subTab == idx,
-                    onClick = { subTab = idx },
-                    label = { Text(label, fontSize = 11.5.sp) }
-                )
+        // Equal-width 3-segment bar (Never wraps or squishes)
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val subTabs = listOf("📜 Rules", "🧩 Skills", "🪝 Hooks")
+                subTabs.forEachIndexed { idx, label ->
+                    val selected = subTab == idx
+                    Surface(
+                        onClick = { subTab = idx },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = label,
+                            fontSize = 12.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(vertical = 7.dp, horizontal = 4.dp)
+                        )
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         when (subTab) {
             0 -> {
+                // Scope Toggle + Save Button Row (Clean, balanced, single-line)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = !useGlobalRule,
-                            onClick = { useGlobalRule = false },
-                            label = { Text("Workspace GEMINI.md", fontSize = 11.sp) }
-                        )
-                        FilterChip(
-                            selected = useGlobalRule,
-                            onClick = { useGlobalRule = true },
-                            label = { Text("Global ~/.gemini/GEMINI.md", fontSize = 11.sp) }
-                        )
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        listOf(false to "Workspace", true to "Global (~/.gemini)").forEach { (isGlobal, label) ->
+                            val selected = useGlobalRule == isGlobal
+                            Surface(
+                                onClick = { useGlobalRule = isGlobal },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
                     }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
                     Button(
                         onClick = {
                             val ok = AntigravityOptimizer.saveRulesContent(activeWorkspacePath, rulesText, useGlobalRule)
@@ -715,14 +859,32 @@ private fun CustomizationsTabContent(
                                 Toast.LENGTH_SHORT
                             ).show()
                         },
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.height(34.dp)
                     ) {
-                        Text("Save Rules", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Save Rules",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            softWrap = false
+                        )
                     }
                 }
 
-                // Quick Rule Presets
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Quick Rule Presets (Horizontally Scrollable, Single-Line)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -735,37 +897,63 @@ private fun CustomizationsTabContent(
                         "+ High-Speed Code" to "\n- Prefer O(1) lookups, lazy initialization, and zero main-thread blocking."
                     )
                     presets.forEach { (label, snippet) ->
-                        AssistChip(
+                        Surface(
                             onClick = { rulesText = (rulesText.trimEnd() + "\n" + snippet.trim()).trim() },
-                            label = { Text(label, fontSize = 11.sp) }
-                        )
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
                     value = rulesText,
                     onValueChange = { rulesText = it },
-                    placeholder = { Text("# GEMINI.md Project Rules\n- Always write clean, tested code...") },
+                    placeholder = {
+                        Text(
+                            text = "# GEMINI.md Project Rules\n- Always write clean, tested code...",
+                            fontSize = 12.sp
+                        )
+                    },
                     textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontSize = 12.5.sp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .padding(bottom = 12.dp)
                 )
             }
             1 -> {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Button(
                         onClick = { showCreateSkill = !showCreateSkill },
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Text(if (showCreateSkill) "Close Creator" else "+ Create SKILL.md", fontSize = 11.5.sp)
+                        Text(
+                            text = if (showCreateSkill) "Close Creator" else "+ Create SKILL.md",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
                     }
                     OutlinedButton(
                         onClick = {
@@ -773,10 +961,17 @@ private fun CustomizationsTabContent(
                             skillsList = AntigravityOptimizer.listSkills(activeWorkspacePath)
                             Toast.makeText(context, "Migrated $count legacy workflows to SKILL.md!", Toast.LENGTH_SHORT).show()
                         },
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Text("Migrate Workflows", fontSize = 11.5.sp)
+                        Text(
+                            text = "Migrate Workflows",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
                     }
                 }
 
@@ -785,31 +980,36 @@ private fun CustomizationsTabContent(
                 AnimatedVisibility(visible = showCreateSkill) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF161C2B),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 10.dp)
                     ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             OutlinedTextField(
                                 value = newSkillName,
                                 onValueChange = { newSkillName = it },
-                                label = { Text("Skill Name (e.g. api-tester)") },
+                                label = { Text("Skill Name (e.g. api-tester)", fontSize = 12.sp) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             OutlinedTextField(
                                 value = newSkillDesc,
                                 onValueChange = { newSkillDesc = it },
-                                label = { Text("Description (when Antigravity should activate this skill)") },
+                                label = { Text("Description (when to activate)", fontSize = 12.sp) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             OutlinedTextField(
                                 value = newSkillBody,
                                 onValueChange = { newSkillBody = it },
-                                label = { Text("SKILL.md Markdown Instructions") },
-                                minLines = 3,
+                                label = { Text("SKILL.md Markdown Instructions", fontSize = 12.sp) },
+                                minLines = 2,
+                                maxLines = 4,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Button(
@@ -830,9 +1030,10 @@ private fun CustomizationsTabContent(
                                         Toast.makeText(context, "SKILL.md created!", Toast.LENGTH_SHORT).show()
                                     }
                                 },
+                                shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Save SKILL.md")
+                                Text("Save SKILL.md", fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                             }
                         }
                     }
@@ -846,8 +1047,8 @@ private fun CustomizationsTabContent(
                     items(skillsList, key = { it.path }) { skill ->
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFF151924),
-                            border = BorderStroke(1.dp, Color(0xFF232A3B)),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -859,28 +1060,48 @@ private fun CustomizationsTabContent(
                             ) {
                                 Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(skill.name, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = Color.White)
+                                        Text(
+                                            text = skill.name,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1E293B)) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                        ) {
                                             Text(
                                                 text = skill.scopeLabel,
-                                                fontSize = 10.sp,
-                                                color = Color(0xFF38BDF8),
+                                                fontSize = 9.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1,
+                                                softWrap = false,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
-                                    Text(skill.description, fontSize = 11.5.sp, color = Color(0xFF94A3B8), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Text(
+                                        text = skill.description,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                                 Button(
                                     onClick = {
                                         onSendPromptToAntigravity("Use skill `${skill.name}` (${skill.path}) for my current workspace task.")
                                     },
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
-                                    Text("Activate", fontSize = 11.5.sp, softWrap = false)
+                                    Text("Activate", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                                 }
                             }
                         }
@@ -893,25 +1114,37 @@ private fun CustomizationsTabContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("hooks.json (SessionStart, BeforeTool, AfterTool)", fontSize = 12.sp, color = Color(0xFF94A3B8))
+                    Text(
+                        text = "hooks.json (SessionStart, BeforeTool, AfterTool)",
+                        fontSize = 11.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                    )
                     Button(
                         onClick = {
                             val ok = AntigravityOptimizer.saveHooksJson(activeWorkspacePath, hooksJsonText)
                             Toast.makeText(context, if (ok) "Saved hooks.json!" else "Failed to save hooks", Toast.LENGTH_SHORT).show()
                         },
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.height(34.dp)
                     ) {
-                        Text("Save Hooks", fontSize = 12.sp)
+                        Text("Save Hooks", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, softWrap = false)
                     }
                 }
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = hooksJsonText,
                     onValueChange = { hooksJsonText = it },
                     textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontSize = 12.sp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .padding(bottom = 12.dp)
                 )
             }
         }
@@ -939,43 +1172,63 @@ private fun ScheduleTabContent(
     ) {
         item {
             Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = Color(0xFF151924),
-                border = BorderStroke(1.dp, Color(0xFF232A3B)),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("⏰ Schedule Antigravity Task (/schedule)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "⏰ Schedule Antigravity Task (/schedule)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.5.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         FilterChip(
                             selected = mode == "timer",
                             onClick = { mode = "timer" },
-                            label = { Text("One-Shot Timer", fontSize = 11.5.sp) }
+                            label = { Text("One-Shot Timer", fontSize = 11.5.sp, maxLines = 1, softWrap = false) }
                         )
                         FilterChip(
                             selected = mode == "cron",
                             onClick = { mode = "cron" },
-                            label = { Text("Recurring Cron", fontSize = 11.5.sp) }
+                            label = { Text("Recurring Cron", fontSize = 11.5.sp, maxLines = 1, softWrap = false) }
                         )
                     }
 
                     if (mode == "timer") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             listOf(60 to "1m", 300 to "5m", 900 to "15m", 1800 to "30m").forEach { (sec, label) ->
                                 FilterChip(
                                     selected = durationSec == sec,
                                     onClick = { durationSec = sec },
-                                    label = { Text(label, fontSize = 11.5.sp) }
+                                    label = { Text(label, fontSize = 11.5.sp, maxLines = 1, softWrap = false) }
                                 )
                             }
                         }
                     } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             listOf("*/5 * * * *" to "Every 5m", "*/15 * * * *" to "Every 15m", "0 * * * *" to "Hourly").forEach { (expr, label) ->
                                 FilterChip(
                                     selected = cronExpr == expr,
                                     onClick = { cronExpr = expr },
-                                    label = { Text(label, fontSize = 11.sp) }
+                                    label = { Text(label, fontSize = 11.sp, maxLines = 1, softWrap = false) }
                                 )
                             }
                         }
@@ -984,7 +1237,8 @@ private fun ScheduleTabContent(
                     OutlinedTextField(
                         value = prompt,
                         onValueChange = { prompt = it },
-                        placeholder = { Text("Prompt to run when timer/cron fires (e.g. Check build status and fix lint errors)") },
+                        placeholder = { Text("Prompt to run when timer/cron fires...", fontSize = 12.sp) },
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -995,9 +1249,10 @@ private fun ScheduleTabContent(
                                 prompt = ""
                             }
                         },
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Schedule Task", fontWeight = FontWeight.Bold)
+                        Text("Schedule Task", fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                     }
                 }
             }
@@ -1006,8 +1261,8 @@ private fun ScheduleTabContent(
         items(scheduledTasks, key = { it.id }) { item ->
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = Color(0xFF151924),
-                border = BorderStroke(1.dp, Color(0xFF232A3B)),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -1018,20 +1273,34 @@ private fun ScheduleTabContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                        Text(item.prompt, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
                         Text(
-                            text = "${if (item.mode == "cron") "Cron: ${item.cronExpression}" else "Timer: ${item.durationSeconds}s"} • Runs: ${item.runCount} • Next: ${AntigravityOptimizer.formatTimestamp(item.nextRunAt)}",
+                            text = item.prompt,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.5.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${if (item.mode == "cron") "Cron: ${item.cronExpression}" else "Timer: ${item.durationSeconds}s"} • Runs: ${item.runCount}",
                             fontSize = 11.sp,
-                            color = Color(0xFF94A3B8)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TextButton(onClick = { onRunNow(item.prompt) }) {
-                            Text("Run", fontSize = 11.5.sp, color = Color(0xFF38BDF8))
+                            Text("Run", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                         }
                         Switch(checked = item.isActive, onCheckedChange = { onToggleTask(item.id) })
-                        IconButton(onClick = { onRemoveTask(item.id) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFF87171), modifier = Modifier.size(18.dp))
+                        IconButton(onClick = { onRemoveTask(item.id) }, modifier = Modifier.size(28.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                 }
@@ -1062,18 +1331,23 @@ private fun SandboxPoliciesTabContent(
     ) {
         item {
             Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = Color(0xFF151924),
-                border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.45f)),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("🛡️ Antigravity PC Security, Auto-Execution & Sandbox", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                    Text(
+                        text = "🛡️ Antigravity PC Security & Sandbox",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.5.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Configure Terminal Auto-Execution Policy (Turbo / Eager / Review), Non-Workspace File Access, Artifact Review Mode, and Global Permission Grants.",
-                        fontSize = 12.sp,
-                        color = Color(0xFF94A3B8)
+                        text = "Configure Terminal Auto-Execution Policy (Turbo / Eager / Review), Non-Workspace File Access, Artifact Review Mode & Permission Grants.",
+                        fontSize = 11.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     Button(
@@ -1081,9 +1355,16 @@ private fun SandboxPoliciesTabContent(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Icon(Icons.Rounded.Security, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Open Full Antigravity Security & Permission Grants", fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                        Icon(Icons.Rounded.Security, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Open Security & Permission Settings",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -1091,10 +1372,10 @@ private fun SandboxPoliciesTabContent(
 
         item {
             Text(
-                text = "ANTIGRAVITY PC SLASH COMMANDS (1-TAP LAUNCH)",
-                fontSize = 11.5.sp,
+                text = "ANTIGRAVITY PC SLASH COMMANDS",
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF94A3B8)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -1102,8 +1383,8 @@ private fun SandboxPoliciesTabContent(
             Surface(
                 onClick = { onSendSlashCommand("$cmd ") },
                 shape = RoundedCornerShape(12.dp),
-                color = Color(0xFF151924),
-                border = BorderStroke(1.dp, Color(0xFF232A3B)),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -1114,10 +1395,24 @@ private fun SandboxPoliciesTabContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                        Text(cmd, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = Color(0xFF38BDF8), fontFamily = FontFamily.Monospace)
-                        Text(desc, fontSize = 11.5.sp, color = Color(0xFF94A3B8))
+                        Text(
+                            text = cmd,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = desc,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF64748B))
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

@@ -25,16 +25,17 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.log10
 import kotlin.math.sqrt
 
 /**
- * 100% reliable Hybrid Android SpeechTranscriber:
- * 1. Primary: Android [SpeechRecognizer] (online + device hybrid, never forced offline so it never fails when offline packs are missing).
+ * 100% reliable Bilingual (Bangla + English) Hybrid Android SpeechTranscriber:
+ * 1. Primary: Android [SpeechRecognizer] configured with bilingual `bn-BD` + `en-US` support so Bangla,
+ *    English, and code-switched speech are recognized accurately without needing manual language switching.
  * 2. Fallback: Direct 16kHz PCM [AudioRecord] + Voice Activity Detection (VAD) + [DirectApiClient.transcribeAudioWav]
- *    when SpeechRecognizer is unavailable or unsupported on custom ROMs.
+ *    when SpeechRecognizer is unavailable on custom ROMs.
+ * 3. Never injects status strings (like "শুনছি...") into [onPartialCallback] or the user's text field.
  */
 class NativeSpeechTranscriber(
     private val context: Context
@@ -51,7 +52,7 @@ class NativeSpeechTranscriber(
     val statusHint: StateFlow<String> = _statusHint.asStateFlow()
 
     /**
-     * Language code: "auto" (device default), "bn-BD" (Bangla), or "en-US" (English).
+     * Language code: "auto" (Bilingual Bangla + English), "bn-BD" (Bangla), or "en-US" (English).
      */
     var preferredLanguage: String = "auto"
 
@@ -64,8 +65,9 @@ class NativeSpeechTranscriber(
     private val isListening = AtomicBoolean(false)
     private val isPaused = AtomicBoolean(false)
     private var lastRecognizedText = ""
+    private var lastDeliveredFinalText = ""
     private var sessionScope: CoroutineScope? = null
-    private var consecutiveErrors = 0
+    private var consecutiveHardErrors = 0
     private var audioRecordJob: Job? = null
     private var audioRecord: AudioRecord? = null
 
@@ -83,7 +85,8 @@ class NativeSpeechTranscriber(
         onFinalCallback = onFinalText
         onErrorCallback = onError
         lastRecognizedText = ""
-        consecutiveErrors = 0
+        lastDeliveredFinalText = ""
+        consecutiveHardErrors = 0
         isListening.set(true)
         isPaused.set(false)
 
@@ -106,13 +109,12 @@ class NativeSpeechTranscriber(
 
             recognizer.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
-                    Log.d(TAG, "Ready for speech")
-                    _statusHint.value = "Listening..."
+                    _statusHint.value = "Listening (Bangla & English)..."
                 }
 
                 override fun onBeginningOfSpeech() {
-                    Log.d(TAG, "Beginning of speech")
-                    consecutiveErrors = 0
+                    consecutiveHardErrors = 0
+                    _statusHint.value = "Capturing speech..."
                 }
 
                 override fun onRmsChanged(rmsdB: Float) {
@@ -127,7 +129,7 @@ class NativeSpeechTranscriber(
                 override fun onBufferReceived(buffer: ByteArray?) {}
 
                 override fun onEndOfSpeech() {
-                    Log.d(TAG, "End of speech")
+                    _statusHint.value = "Processing speech..."
                 }
 
                 override fun onError(error: Int) {
@@ -153,15 +155,21 @@ class NativeSpeechTranscriber(
                         return
                     }
 
-                    // Do not count normal silence/no-match as hard engine failures
-                    if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                        consecutiveErrors++
+                    // If we captured partial speech before a timeout/no-match/disconnect, flush it as final!
+                    if (lastRecognizedText.isNotBlank() && lastRecognizedText != lastDeliveredFinalText) {
+                        val flushed = lastRecognizedText
+                        lastDeliveredFinalText = flushed
+                        lastRecognizedText = ""
+                        onFinalCallback?.invoke(flushed)
                     }
 
-                    // If SpeechRecognizer fails repeatedly (e.g., Google app disabled or language unsupported),
-                    // seamlessly fall back to Direct AudioRecord + Cloud/Hub AI transcription
-                    if (consecutiveErrors >= 3 || error == 12 || error == 13) {
-                        Log.w(TAG, "Switching to AudioRecord + AI transcription fallback after error $error")
+                    // Only count genuine audio/service failures as hard errors
+                    if (error == SpeechRecognizer.ERROR_AUDIO || error == 12 || error == 13) {
+                        consecutiveHardErrors++
+                    }
+
+                    if (consecutiveHardErrors >= 4) {
+                        Log.w(TAG, "Switching to AudioRecord + AI transcription fallback after hard error $error")
                         try {
                             speechRecognizer?.cancel()
                             speechRecognizer?.destroy()
@@ -174,7 +182,7 @@ class NativeSpeechTranscriber(
                     // Auto-recover from disconnects, server drops, busy recognizer, and speech timeouts
                     if (isListening.get() && !isPaused.get()) {
                         sessionScope?.launch(Dispatchers.Main) {
-                            delay(220)
+                            delay(320)
                             if (isListening.get() && !isPaused.get()) {
                                 if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ||
                                     error == SpeechRecognizer.ERROR_SERVER ||
@@ -191,22 +199,21 @@ class NativeSpeechTranscriber(
                                 }
                             }
                         }
-                    } else if (isListening.get()) {
-                        onErrorCallback?.invoke(errMsg)
                     }
                 }
 
                 override fun onResults(results: Bundle?) {
-                    consecutiveErrors = 0
+                    consecutiveHardErrors = 0
                     val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     val text = matches?.firstOrNull()?.trim().orEmpty()
-                    if (text.isNotBlank()) {
-                        lastRecognizedText = text
+                    if (text.isNotBlank() && text != lastDeliveredFinalText) {
+                        lastRecognizedText = ""
+                        lastDeliveredFinalText = text
                         onFinalCallback?.invoke(text)
                     }
                     if (isListening.get() && !isPaused.get()) {
                         sessionScope?.launch(Dispatchers.Main) {
-                            delay(150)
+                            delay(220)
                             if (isListening.get() && !isPaused.get()) {
                                 startListeningIntent()
                             }
@@ -218,7 +225,7 @@ class NativeSpeechTranscriber(
                     val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     val text = matches?.firstOrNull()?.trim().orEmpty()
                     if (text.isNotBlank()) {
-                        consecutiveErrors = 0
+                        consecutiveHardErrors = 0
                         lastRecognizedText = text
                         onPartialCallback?.invoke(text)
                     }
@@ -237,24 +244,28 @@ class NativeSpeechTranscriber(
     private fun startListeningIntent() {
         val recognizer = speechRecognizer ?: return
         try {
-            val langTag = when (preferredLanguage) {
-                "bn-BD" -> "bn-BD"
+            // Bilingual Bangla + English recognition:
+            // Setting primary language to bn-BD with en-US in EXTRA_ADDITIONAL_LANGUAGES allows
+            // Google's ASR engine on Android to recognize both Bangla and English seamlessly.
+            val primaryLang = when (preferredLanguage) {
                 "en-US" -> "en-US"
-                else -> Locale.getDefault().toLanguageTag().ifBlank { "en-US" }
+                "bn-BD" -> "bn-BD"
+                else -> "bn-BD"
             }
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, langTag)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, langTag)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, primaryLang)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, primaryLang)
+                putStringArrayListExtra(
+                    "android.speech.extra.EXTRA_ADDITIONAL_LANGUAGES",
+                    arrayListOf("bn-BD", "en-US")
+                )
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
                 putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-                // Prevent premature disconnects during speech pauses or long sentences
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2800L)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2200L)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500L)
-                // IMPORTANT: Never set EXTRA_PREFER_OFFLINE = true, as it breaks speech recognition
-                // on devices without pre-downloaded offline language packs.
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2200L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1600L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1200L)
             }
             recognizer.startListening(intent)
         } catch (e: Exception) {
@@ -321,7 +332,6 @@ class NativeSpeechTranscriber(
                         continue
                     }
 
-                    // Compute RMS amplitude
                     var sumSq = 0.0
                     for (i in 0 until readCount) {
                         val s = shortBuf[i].toDouble()
@@ -332,16 +342,12 @@ class NativeSpeechTranscriber(
                     val normalized = (db / 40f).coerceIn(0.08f, 1f)
                     _latestAmplitude.value = normalized
 
-                    val isVoiceFrame = rms > 650.0 // Empirical speech threshold
+                    val isVoiceFrame = rms > 600.0
                     if (isVoiceFrame) {
                         hasDetectedVoice = true
                         silenceFramesAfterVoice = 0
                         totalVoiceFrames++
-                        if (totalVoiceFrames % 4 == 1) {
-                            withContext(Dispatchers.Main) {
-                                onPartialCallback?.invoke("শুনছি... (Recording speech...)")
-                            }
-                        }
+                        _statusHint.value = "Capturing voice..."
                     } else if (hasDetectedVoice) {
                         silenceFramesAfterVoice++
                     }
@@ -354,8 +360,7 @@ class NativeSpeechTranscriber(
                         pcmOut.write(byteBuf.array())
                     }
 
-                    // If 1.3s of silence after at least 0.5s of voice (or max 12s reached)
-                    if (hasDetectedVoice && (silenceFramesAfterVoice >= 13 || totalVoiceFrames >= 120)) {
+                    if (hasDetectedVoice && (silenceFramesAfterVoice >= 12 || totalVoiceFrames >= 110)) {
                         val rawPcm = pcmOut.toByteArray()
                         pcmOut.reset()
                         hasDetectedVoice = false
@@ -364,15 +369,14 @@ class NativeSpeechTranscriber(
                         totalVoiceFrames = 0
 
                         if (capturedFrames >= 4 && rawPcm.size > 3200) {
-                            withContext(Dispatchers.Main) {
-                                onPartialCallback?.invoke("Transcribing voice...")
-                            }
+                            _statusHint.value = "Transcribing voice..."
                             val wavBytes = encodePcmToWav(rawPcm, SAMPLE_RATE, 1, 16)
                             val transcribed = DirectApiClient.transcribeAudioWav(context, wavBytes)
                                 ?.trim()
                                 .orEmpty()
                             if (transcribed.isNotBlank()) {
                                 lastRecognizedText = transcribed
+                                lastDeliveredFinalText = transcribed
                                 withContext(Dispatchers.Main) {
                                     onFinalCallback?.invoke(transcribed)
                                 }
@@ -408,8 +412,8 @@ class NativeSpeechTranscriber(
         header.putInt(totalDataLen)
         header.put("WAVE".toByteArray(Charsets.US_ASCII))
         header.put("fmt ".toByteArray(Charsets.US_ASCII))
-        header.putInt(16) // Subchunk1Size for PCM
-        header.putShort(1.toShort()) // AudioFormat 1 = PCM
+        header.putInt(16)
+        header.putShort(1.toShort())
         header.putShort(channels.toShort())
         header.putInt(sampleRate)
         header.putInt(byteRate)
@@ -418,59 +422,66 @@ class NativeSpeechTranscriber(
         header.put("data".toByteArray(Charsets.US_ASCII))
         header.putInt(pcmData.size)
 
-        val out = ByteArrayOutputStream(44 + pcmData.size)
-        out.write(header.array())
-        out.write(pcmData)
-        return out.toByteArray()
-    }
-
-    override fun stopTranscriptionSession(onDone: ((String) -> Unit)?) {
-        isListening.set(false)
-        onDoneCallback = onDone
-        audioRecordJob?.cancel()
-        audioRecordJob = null
-        val textToDeliver = lastRecognizedText
-        try {
-            speechRecognizer?.stopListening()
-            speechRecognizer?.destroy()
-        } catch (_: Exception) {}
-        speechRecognizer = null
-        _latestAmplitude.value = 0.08f
-        if (textToDeliver.isNotBlank()) {
-            onDone?.invoke(textToDeliver)
-        }
-    }
-
-    override fun cancelTranscriptionSession() {
-        isListening.set(false)
-        audioRecordJob?.cancel()
-        audioRecordJob = null
-        try {
-            speechRecognizer?.cancel()
-            speechRecognizer?.destroy()
-        } catch (_: Exception) {}
-        speechRecognizer = null
-        _latestAmplitude.value = 0.08f
+        val out = ByteArray(44 + pcmData.size)
+        System.arraycopy(header.array(), 0, out, 0, 44)
+        System.arraycopy(pcmData, 0, out, 44, pcmData.size)
+        return out
     }
 
     override fun pauseTranscriptionSession() {
         isPaused.set(true)
-        try {
-            speechRecognizer?.stopListening()
-        } catch (_: Exception) {}
         _latestAmplitude.value = 0.08f
+        sessionScope?.launch(Dispatchers.Main) {
+            try {
+                speechRecognizer?.stopListening()
+            } catch (_: Exception) {}
+        }
     }
 
     override fun resumeTranscriptionSession() {
+        if (!isListening.get()) return
         isPaused.set(false)
-        if (isListening.get()) {
+        if (audioRecord == null) {
             sessionScope?.launch(Dispatchers.Main) {
-                if (speechRecognizer != null) {
-                    startListeningIntent()
-                } else {
-                    initAndStartRecognizer()
-                }
+                startListeningIntent()
             }
+        }
+    }
+
+    override fun stopTranscriptionSession(onDone: (String) -> Unit) {
+        onDoneCallback = onDone
+        isListening.set(false)
+        isPaused.set(false)
+        _latestAmplitude.value = 0.08f
+        audioRecordJob?.cancel()
+        audioRecordJob = null
+        val pendingText = lastRecognizedText.ifBlank { lastDeliveredFinalText }
+        sessionScope?.launch(Dispatchers.Main) {
+            try {
+                speechRecognizer?.stopListening()
+                speechRecognizer?.destroy()
+            } catch (_: Exception) {}
+            speechRecognizer = null
+            if (lastRecognizedText.isNotBlank() && lastRecognizedText != lastDeliveredFinalText) {
+                lastDeliveredFinalText = lastRecognizedText
+                onFinalCallback?.invoke(lastRecognizedText)
+            }
+            onDone(pendingText)
+        } ?: onDone(pendingText)
+    }
+
+    override fun cancelTranscriptionSession() {
+        isListening.set(false)
+        isPaused.set(false)
+        _latestAmplitude.value = 0.08f
+        audioRecordJob?.cancel()
+        audioRecordJob = null
+        sessionScope?.launch(Dispatchers.Main) {
+            try {
+                speechRecognizer?.cancel()
+                speechRecognizer?.destroy()
+            } catch (_: Exception) {}
+            speechRecognizer = null
         }
     }
 }

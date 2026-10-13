@@ -1,37 +1,56 @@
 package com.example.gemini.data.audio
 
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.File
+import java.io.FileOutputStream
+import java.net.URLEncoder
 import java.util.Locale
+import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
 
 /**
- * Text-to-Speech manager for Jin AI Chat & Real-Time Voice Assistant.
- * Converts assistant responses into spoken audio using Android's native TTS engine.
- * Handles asynchronous TTS initialization queuing, automatic Bangla/English locale selection,
- * and fail-safe state transitions so Voice Assistant never hangs.
+ * Dual-Engine Neural Text-to-Speech manager for JIN AI Chat & Jarvis/Maya Live Voice Assistant.
+ * 1. Primary: Streams high-definition Neural TTS MP3 audio (`tl=bn` for Bangla, `tl=en` for English)
+ *    and plays via Android [MediaPlayer] so the AI speaks with a natural, clear human voice on 100% of devices,
+ *    even when offline Bangla TTS packs are not installed on the phone.
+ * 2. Fallback: Automatically falls back to Android's native [TextToSpeech] engine when offline.
  */
 object ChatTtsHelper {
     private const val TAG = "ChatTtsHelper"
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var activeSpeechJob: Job? = null
+    private var activeMediaPlayer: MediaPlayer? = null
+
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(12, TimeUnit.SECONDS)
+        .build()
 
     private var tts: TextToSpeech? = null
     @Volatile
     private var isInitialized = false
     @Volatile
     private var isInitializing = false
-
-    private data class PendingUtterance(
-        val messageId: String,
-        val cleanedText: String
-    )
-
-    @Volatile
-    private var pendingUtterance: PendingUtterance? = null
 
     private val _isSpeaking = MutableStateFlow(false)
     val isSpeaking: StateFlow<Boolean> = _isSpeaking.asStateFlow()
@@ -73,58 +92,176 @@ object ChatTtsHelper {
                         }
 
                         override fun onError(utteranceId: String?, errorCode: Int) {
-                            Log.w(TAG, "TTS utterance error ($errorCode) for $utteranceId")
                             _isSpeaking.value = false
                             _currentMessageId.value = null
                         }
                     })
-
-                    // Play any utterance that was requested while TTS was still initializing
-                    val pending = pendingUtterance
-                    pendingUtterance = null
-                    if (pending != null) {
-                        executeSpeakInternal(pending.messageId, pending.cleanedText)
-                    }
                 } else {
-                    Log.w(TAG, "TextToSpeech init failed with status: $status")
                     isInitialized = false
-                    pendingUtterance = null
-                    _isSpeaking.value = false
-                    _currentMessageId.value = null
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "TextToSpeech creation exception: ${e.message}")
             isInitializing = false
             isInitialized = false
-            _isSpeaking.value = false
-            _currentMessageId.value = null
         }
     }
 
     fun speak(context: Context, messageId: String, text: String) {
-        val cleaned = cleanMarkdownForSpeech(text).take(3600)
+        val appContext = context.applicationContext
+        val cleaned = cleanMarkdownForSpeech(text).take(1600)
         if (cleaned.isBlank()) {
             _isSpeaking.value = false
             _currentMessageId.value = null
             return
         }
 
+        stop()
+        init(appContext)
+
         _currentMessageId.value = messageId
         _isSpeaking.value = true
 
-        if (!isInitialized || tts == null) {
-            pendingUtterance = PendingUtterance(messageId, cleaned)
-            init(context)
-            return
-        }
+        activeSpeechJob = scope.launch {
+            try {
+                val chunks = splitIntoSpeechChunks(cleaned, maxChunkLen = 175)
+                var playedAnyNeural = false
 
-        executeSpeakInternal(messageId, cleaned)
+                for (chunk in chunks) {
+                    if (!isActive || !_isSpeaking.value) break
+                    val lang = if (chunk.any { it in '\u0980'..'\u09FF' }) "bn" else "en"
+                    val mp3File = fetchNeuralTtsMp3(appContext, chunk, lang)
+                    if (mp3File != null && mp3File.exists() && mp3File.length() > 128L) {
+                        playedAnyNeural = true
+                        playMp3FileSuspend(mp3File)
+                        mp3File.delete()
+                    } else {
+                        break
+                    }
+                }
+
+                if (!playedAnyNeural && isActive && _isSpeaking.value) {
+                    withContext(Dispatchers.Main) {
+                        executeNativeSpeakFallback(messageId, cleaned)
+                    }
+                } else {
+                    _isSpeaking.value = false
+                    _currentMessageId.value = null
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Neural TTS stream error, falling back to native TTS: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    executeNativeSpeakFallback(messageId, cleaned)
+                }
+            }
+        }
     }
 
-    private fun executeSpeakInternal(messageId: String, cleaned: String) {
+    private fun fetchNeuralTtsMp3(context: Context, chunk: String, lang: String): File? {
+        return try {
+            val encoded = URLEncoder.encode(chunk, "UTF-8")
+            val url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=$lang&q=$encoded"
+            val req = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124.0.0.0 Mobile Safari/537.36")
+                .get()
+                .build()
+
+            httpClient.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return null
+                val outFile = File(context.cacheDir, "jin_tts_${System.nanoTime()}.mp3")
+                resp.body?.byteStream()?.use { input ->
+                    FileOutputStream(outFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                outFile
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "fetchNeuralTtsMp3 failed: ${e.message}")
+            null
+        }
+    }
+
+    private suspend fun playMp3FileSuspend(file: File): Boolean = withContext(Dispatchers.Main) {
+        suspendCancellableCoroutine { cont ->
+            try {
+                activeMediaPlayer?.release()
+                val mp = MediaPlayer()
+                activeMediaPlayer = mp
+                mp.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+                mp.setDataSource(file.absolutePath)
+                mp.setOnCompletionListener { player ->
+                    try { player.release() } catch (_: Exception) {}
+                    if (activeMediaPlayer === player) activeMediaPlayer = null
+                    if (cont.isActive) cont.resume(true)
+                }
+                mp.setOnErrorListener { player, _, _ ->
+                    try { player.release() } catch (_: Exception) {}
+                    if (activeMediaPlayer === player) activeMediaPlayer = null
+                    if (cont.isActive) cont.resume(false)
+                    true
+                }
+                mp.prepare()
+                mp.start()
+
+                cont.invokeOnCancellation {
+                    try {
+                        mp.stop()
+                    } catch (_: Exception) {}
+                    try {
+                        mp.release()
+                    } catch (_: Exception) {}
+                    if (activeMediaPlayer === mp) activeMediaPlayer = null
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "MediaPlayer playback error: ${e.message}")
+                if (cont.isActive) cont.resume(false)
+            }
+        }
+    }
+
+    private fun splitIntoSpeechChunks(text: String, maxChunkLen: Int): List<String> {
+        val result = mutableListOf<String>()
+        val sentences = text.split(Regex("(?<=[।.!?\\n])\\s+"))
+        var current = StringBuilder()
+        for (sentence in sentences) {
+            val trimmed = sentence.trim()
+            if (trimmed.isEmpty()) continue
+            if (current.length + trimmed.length + 1 <= maxChunkLen) {
+                if (current.isNotEmpty()) current.append(" ")
+                current.append(trimmed)
+            } else {
+                if (current.isNotEmpty()) {
+                    result.add(current.toString())
+                    current = StringBuilder()
+                }
+                if (trimmed.length <= maxChunkLen) {
+                    current.append(trimmed)
+                } else {
+                    var idx = 0
+                    while (idx < trimmed.length) {
+                        val end = (idx + maxChunkLen).coerceAtMost(trimmed.length)
+                        result.add(trimmed.substring(idx, end).trim())
+                        idx = end
+                    }
+                }
+            }
+        }
+        if (current.isNotEmpty()) {
+            result.add(current.toString())
+        }
+        return result
+    }
+
+    private fun executeNativeSpeakFallback(messageId: String, cleaned: String) {
         val engine = tts
-        if (engine == null) {
+        if (engine == null || !isInitialized) {
             _isSpeaking.value = false
             _currentMessageId.value = null
             return
@@ -132,13 +269,11 @@ object ChatTtsHelper {
 
         try {
             engine.stop()
-            // Auto-detect Bangla characters (\u0980-\u09FF) and switch TTS voice appropriately
             val containsBangla = cleaned.any { it in '\u0980'..'\u09FF' }
             if (containsBangla) {
                 val bnBd = Locale("bn", "BD")
                 val bnIn = Locale("bn", "IN")
-                val availBd = engine.isLanguageAvailable(bnBd)
-                if (availBd >= TextToSpeech.LANG_AVAILABLE) {
+                if (engine.isLanguageAvailable(bnBd) >= TextToSpeech.LANG_AVAILABLE) {
                     engine.language = bnBd
                 } else if (engine.isLanguageAvailable(bnIn) >= TextToSpeech.LANG_AVAILABLE) {
                     engine.language = bnIn
@@ -157,19 +292,25 @@ object ChatTtsHelper {
             }
             val result = engine.speak(cleaned, TextToSpeech.QUEUE_FLUSH, params, messageId)
             if (result == TextToSpeech.ERROR) {
-                Log.w(TAG, "engine.speak returned ERROR for $messageId")
                 _isSpeaking.value = false
                 _currentMessageId.value = null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "executeSpeakInternal error: ${e.message}")
             _isSpeaking.value = false
             _currentMessageId.value = null
         }
     }
 
     fun stop() {
-        pendingUtterance = null
+        activeSpeechJob?.cancel()
+        activeSpeechJob = null
+        try {
+            activeMediaPlayer?.stop()
+        } catch (_: Exception) {}
+        try {
+            activeMediaPlayer?.release()
+        } catch (_: Exception) {}
+        activeMediaPlayer = null
         try {
             tts?.stop()
         } catch (_: Exception) {}
@@ -185,36 +326,21 @@ object ChatTtsHelper {
         }
     }
 
-    /**
-     * Cleans markdown formatting, code snippets, and symbols so that TextToSpeech
-     * speaks natural-sounding sentences instead of raw syntax.
-     */
     fun cleanMarkdownForSpeech(raw: String): String {
         var s = raw
-        // Remove thinking blocks if any
         s = s.replace(Regex("<think>[\\s\\S]*?</think>"), "")
-        // Remove code blocks
         s = s.replace(Regex("```[\\s\\S]*?```"), " Code block generated. ")
-        // Remove inline code backticks
         s = s.replace(Regex("`([^`]+)`"), "$1")
-        // Remove markdown images
         s = s.replace(Regex("!\\[[^\\]]*\\]\\([^)]+\\)"), "")
-        // Remove markdown links but keep text
         s = s.replace(Regex("\\[([^\\]]+)\\]\\([^)]+\\)"), "$1")
-        // Remove headings (#, ##, ###)
         s = s.replace(Regex("(?m)^#+\\s+"), "")
-        // Remove bold / italics
         s = s.replace(Regex("\\*\\*([^*]+)\\*\\*"), "$1")
         s = s.replace(Regex("\\*([^*]+)\\*"), "$1")
         s = s.replace(Regex("__([^_]+)__"), "$1")
         s = s.replace(Regex("_([^_]+)_"), "$1")
-        // Remove blockquotes (> )
         s = s.replace(Regex("(?m)^>\\s+"), "")
-        // Remove horizontal rules
         s = s.replace(Regex("(?m)^[-*_]{3,}$"), "")
-        // Remove bullet markers (*, -, +)
         s = s.replace(Regex("(?m)^[\\*\\-\\+]\\s+"), "")
-        // Clean multiple newlines and spaces
         s = s.replace(Regex("\\n{2,}"), ". ")
         s = s.replace(Regex("\\s+"), " ").trim()
         return s

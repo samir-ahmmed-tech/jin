@@ -61,7 +61,7 @@ fun AgentPicker(
     agents: Collection<AgentKind> = AgentKind.entries,
     statusColors: Map<AgentKind, Color> = emptyMap()
 ) {
-    if (agents.size < 2) return
+    if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY || agents.size < 2) return
     val scrollState = rememberScrollState()
     val shape = RoundedCornerShape(22.dp)
     Row(
@@ -108,6 +108,7 @@ fun AgentPicker(
 /** Small badge marking a Claude Code conversation in lists. */
 @Composable
 fun ClaudeBadge(modifier: Modifier = Modifier) {
+    if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) return
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
@@ -121,6 +122,7 @@ fun ClaudeBadge(modifier: Modifier = Modifier) {
 /** Small badge marking an agent conversation in lists. */
 @Composable
 fun AgentBadge(agent: AgentKind, modifier: Modifier = Modifier) {
+    if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) return
     val accent = agent.accent()
     Box(
         modifier = modifier

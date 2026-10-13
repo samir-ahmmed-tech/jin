@@ -65,44 +65,56 @@ data class AgentItemInfo(
     val badge: String? = null
 )
 
-val AGENT_ITEMS = listOf(
-    AgentItemInfo(
-        AgentKind.AGY,
-        "Antigravity 2.0 (Google)",
-        "Google's flagship agent through agy hub. Runs Gemini 2.5 and Claude 3.7 with code execution.",
-        "Core"
-    ),
-    AgentItemInfo(
-        AgentKind.DEEPSEEK_LOCAL,
-        "DeepSeek Reasoning Harness",
-        "High-performance DeepSeek V3 / Coder reasoning agent. Supports direct API and local execution.",
-        "DeepSeek"
-    ),
-    AgentItemInfo(
-        AgentKind.CLAUDE,
-        "Claude Code CLI",
-        "Anthropic's terminal agent on device: console account or Claude subscription.",
-        "Anthropic"
-    ),
-    AgentItemInfo(
-        AgentKind.CODEX,
-        "OpenAI Codex CLI",
-        "OpenAI coding engine with GPT-4o, Codex code synthesis and deep debugging.",
-        "OpenAI"
-    ),
-    AgentItemInfo(
-        AgentKind.OPENROUTER,
-        "OpenRouter Universal Swarm",
-        "Connects to 100+ open-source models (Llama 3.3, Mistral, Qwen) via OpenRouter API.",
-        "Swarm"
-    ),
-    AgentItemInfo(
-        AgentKind.OPENCODE,
-        "OpenCode AI Terminal CLI",
-        "Open-source terminal AI coding assistant powered by OpenCode Zen & polyglot models.",
-        "OpenCode"
-    )
-)
+val AGENT_ITEMS: List<AgentItemInfo>
+    get() = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+        listOf(
+            AgentItemInfo(
+                AgentKind.AGY,
+                "Antigravity 2.0 (Google)",
+                "Google's flagship agent through agy hub. Runs Gemini 2.5 and Claude with full workspace execution.",
+                "Dedicated"
+            )
+        )
+    } else {
+        listOf(
+            AgentItemInfo(
+                AgentKind.AGY,
+                "Antigravity 2.0 (Google)",
+                "Google's flagship agent through agy hub. Runs Gemini 2.5 and Claude 3.7 with code execution.",
+                "Core"
+            ),
+            AgentItemInfo(
+                AgentKind.DEEPSEEK_LOCAL,
+                "DeepSeek Reasoning Harness",
+                "High-performance DeepSeek V3 / Coder reasoning agent. Supports direct API and local execution.",
+                "DeepSeek"
+            ),
+            AgentItemInfo(
+                AgentKind.CLAUDE,
+                "Claude Code CLI",
+                "Anthropic's terminal agent on device: console account or Claude subscription.",
+                "Anthropic"
+            ),
+            AgentItemInfo(
+                AgentKind.CODEX,
+                "OpenAI Codex CLI",
+                "OpenAI coding engine with GPT-4o, Codex code synthesis and deep debugging.",
+                "OpenAI"
+            ),
+            AgentItemInfo(
+                AgentKind.OPENROUTER,
+                "OpenRouter Universal Swarm",
+                "Connects to 100+ open-source models (Llama 3.3, Mistral, Qwen) via OpenRouter API.",
+                "Swarm"
+            ),
+            AgentItemInfo(
+                AgentKind.OPENCODE,
+                "OpenCode AI Terminal CLI",
+                "Open-source terminal AI coding assistant powered by OpenCode Zen & polyglot models.",
+                "OpenCode"
+            )
+        )
+    }
 
 /**
  * Flexible Multi-Agent Selector with Concurrency and Presets.
@@ -120,59 +132,61 @@ fun AgentSelector(
     var concurrency by remember { mutableIntStateOf(authPrefs.getMultiAgentConcurrencySync()) }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Quick Presets Row
-        Text(
-            "Quick Presets",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            val presets = listOf(
-                "Solo (AGY)" to setOf(AgentKind.AGY),
-                "Dual (AGY+DeepSeek)" to setOf(AgentKind.AGY, AgentKind.DEEPSEEK_LOCAL),
-                "Trio (+Claude)" to setOf(AgentKind.AGY, AgentKind.DEEPSEEK_LOCAL, AgentKind.CLAUDE),
-                "Swarm (All)" to AgentKind.entries.toSet()
+        if (!com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+            // Quick Presets Row
+            Text(
+                "Quick Presets",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                val presets = listOf(
+                    "Solo (AGY)" to setOf(AgentKind.AGY),
+                    "Dual (AGY+DeepSeek)" to setOf(AgentKind.AGY, AgentKind.DEEPSEEK_LOCAL),
+                    "Trio (+Claude)" to setOf(AgentKind.AGY, AgentKind.DEEPSEEK_LOCAL, AgentKind.CLAUDE),
+                    "Swarm (All)" to AgentKind.entries.toSet()
+                )
 
-            presets.forEach { (name, set) ->
-                val isCurrent = selected == set
-                Surface(
-                    onClick = { onSelect(set) },
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    border = BorderStroke(
-                        1.dp,
-                        if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                    ),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                presets.forEach { (name, set) ->
+                    val isCurrent = selected == set
+                    Surface(
+                        onClick = { onSelect(set) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                        ),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Text(
-                            text = name,
-                            fontSize = 10.5.sp,
-                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                        ) {
+                            Text(
+                                text = name,
+                                fontSize = 10.5.sp,
+                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Active Agents (Multi-Select Enabled)",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Active Agents (Multi-Select Enabled)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
 
         // Individual Agent Cards
         AGENT_ITEMS.forEach { item ->
@@ -270,78 +284,80 @@ fun AgentSelector(
             }
         }
 
-        Spacer(Modifier.height(6.dp))
+        if (!com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+            Spacer(Modifier.height(6.dp))
 
-        // Concurrency Controller (1 to 6 Agents)
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(14.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Concurrent Agent Execution", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-                        Text(
-                            "Maximum simultaneous running agents (1 to 6)",
-                            fontSize = 11.5.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+            // Concurrency Controller (1 to 6 Agents)
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            "$concurrency Active",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    (1..6).forEach { num ->
-                        val isSel = concurrency == num
-                        Surface(
-                            onClick = {
-                                concurrency = num
-                                scope.launch { authPrefs.saveMultiAgentConcurrency(num) }
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                1.dp,
-                                if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            ),
-                            modifier = Modifier.weight(1f)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Concurrent Agent Execution", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Maximum simultaneous running agents (1 to 6)",
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.padding(vertical = 8.dp)
+                            Text(
+                                "$concurrency Active",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        (1..6).forEach { num ->
+                            val isSel = concurrency == num
+                            Surface(
+                                onClick = {
+                                    concurrency = num
+                                    scope.launch { authPrefs.saveMultiAgentConcurrency(num) }
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                ),
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Text(
-                                    text = "$num",
-                                    fontSize = 13.sp,
-                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface
-                                )
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "$num",
+                                        fontSize = 13.sp,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                             }
                         }
                     }

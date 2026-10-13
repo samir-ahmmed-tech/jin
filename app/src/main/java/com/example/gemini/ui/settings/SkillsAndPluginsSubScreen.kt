@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -124,8 +125,9 @@ fun SkillsAndPluginsSubScreen(
             }
 
             // Top Navigation Tabs
-            TabRow(
+            ScrollableTabRow(
                 selectedTabIndex = selectedTab,
+                edgePadding = 0.dp,
                 containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.primary,
                 divider = { HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) }
@@ -134,9 +136,9 @@ fun SkillsAndPluginsSubScreen(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     text = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Outlined.Psychology, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Skills (${skills.size})", fontSize = 13.sp, fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Icon(Icons.Outlined.Psychology, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Text("Skills (${skills.size})", fontSize = 12.5.sp, maxLines = 1, softWrap = false, fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
                 )
@@ -144,9 +146,9 @@ fun SkillsAndPluginsSubScreen(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     text = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Outlined.Extension, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Plugins (${installedPlugins.size})", fontSize = 13.sp, fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Icon(Icons.Outlined.Extension, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Text("Plugins (${installedPlugins.size})", fontSize = 12.5.sp, maxLines = 1, softWrap = false, fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
                 )
@@ -154,9 +156,9 @@ fun SkillsAndPluginsSubScreen(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     text = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Outlined.Storefront, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Store", fontSize = 13.sp, fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Icon(Icons.Outlined.Storefront, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Text("Store", fontSize = 12.5.sp, maxLines = 1, softWrap = false, fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
                 )
@@ -164,9 +166,9 @@ fun SkillsAndPluginsSubScreen(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
                     text = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Default.AddCircleOutline, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("+ Custom", fontSize = 13.sp, fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Icon(Icons.Default.AddCircleOutline, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Text("+ Custom", fontSize = 12.5.sp, maxLines = 1, softWrap = false, fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
                 )
@@ -246,11 +248,16 @@ private fun SkillsTabView(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 FilterChip(
                     selected = filterScope == "GLOBAL",
                     onClick = { onSetScope("GLOBAL") },
-                    label = { Text("Global (Default)", fontSize = 11.5.sp) },
+                    label = { Text("Global (Default)", fontSize = 11.5.sp, maxLines = 1, softWrap = false) },
                     leadingIcon = if (filterScope == "GLOBAL") {
                         { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
                     } else null,
@@ -259,7 +266,7 @@ private fun SkillsTabView(
                 FilterChip(
                     selected = filterScope == "WORKSPACE",
                     onClick = { onSetScope("WORKSPACE") },
-                    label = { Text("Project / Workspace", fontSize = 11.5.sp) },
+                    label = { Text("Project / Workspace", fontSize = 11.5.sp, maxLines = 1, softWrap = false) },
                     leadingIcon = if (filterScope == "WORKSPACE") {
                         { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
                     } else null,
@@ -268,7 +275,7 @@ private fun SkillsTabView(
                 FilterChip(
                     selected = filterScope == "ALL",
                     onClick = { onSetScope("ALL") },
-                    label = { Text("All", fontSize = 11.5.sp) },
+                    label = { Text("All", fontSize = 11.5.sp, maxLines = 1, softWrap = false) },
                     shape = RoundedCornerShape(8.dp)
                 )
             }

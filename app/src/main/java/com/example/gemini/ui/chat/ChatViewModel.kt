@@ -442,13 +442,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     fun selectModel(modelId: String) {
-        val targetAgent = when {
-            modelId.contains("claude", ignoreCase = true) -> AgentKind.CLAUDE
-            modelId.contains("deepseek", ignoreCase = true) || modelId.contains("hermes", ignoreCase = true) -> AgentKind.DEEPSEEK_LOCAL
-            modelId.contains("codex", ignoreCase = true) || modelId.contains("gpt", ignoreCase = true) || modelId.contains("openai", ignoreCase = true) -> AgentKind.CODEX
-            modelId.contains("opencode", ignoreCase = true) || modelId.contains("zen", ignoreCase = true) -> AgentKind.OPENCODE
-            modelId.contains("openrouter", ignoreCase = true) || modelId.contains("codestral", ignoreCase = true) || modelId.contains("qwen", ignoreCase = true) || modelId.contains("custom", ignoreCase = true) -> AgentKind.OPENROUTER
-            else -> AgentKind.AGY
+        val isAgyHubModel = agyBackend.availableModels.value.any { it.id.equals(modelId, ignoreCase = true) || it.key.equals(modelId, ignoreCase = true) }
+        val targetAgent = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY || isAgyHubModel) {
+            AgentKind.AGY
+        } else {
+            when {
+                modelId.contains("claude", ignoreCase = true) -> if (isClaudeEnabled) AgentKind.CLAUDE else AgentKind.AGY
+                modelId.contains("deepseek", ignoreCase = true) || modelId.contains("hermes", ignoreCase = true) -> AgentKind.DEEPSEEK_LOCAL
+                modelId.contains("codex", ignoreCase = true) || modelId.contains("gpt", ignoreCase = true) || modelId.contains("openai", ignoreCase = true) -> AgentKind.CODEX
+                modelId.contains("opencode", ignoreCase = true) || modelId.contains("zen", ignoreCase = true) -> AgentKind.OPENCODE
+                modelId.contains("openrouter", ignoreCase = true) || modelId.contains("codestral", ignoreCase = true) || modelId.contains("qwen", ignoreCase = true) || modelId.contains("custom", ignoreCase = true) -> AgentKind.OPENROUTER
+                else -> AgentKind.AGY
+            }
         }
 
         val cur = store.currentConversation.value
@@ -496,7 +501,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
-        val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
+        val curAgent = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) AgentKind.AGY else (store.currentConversation.value?.agent ?: AgentKind.AGY)
         when (curAgent) {
             AgentKind.CLAUDE -> claudeBackend.sendMessage(actualContent)
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.sendMessage(actualContent)
@@ -506,7 +511,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             AgentKind.AGY -> agyBackend.sendMessage(actualContent)
         }
 
-        if (isSwarm) {
+        if (isSwarm && !com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
             com.example.gemini.ui.components.AppToastHelper.showToast(
                 "⚡ Swarm Active: Collaborative multi-agent network engaged",
                 com.example.gemini.ui.components.ChatToastType.INFO
@@ -538,7 +543,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val isTranscribingAudio = agyBackend.isTranscribingAudio
     fun transcribeAudioFile(file: java.io.File, onDone: (String) -> Unit, onError: (String) -> Unit) = agyBackend.transcribeAudioFile(file, onDone, onError)
     fun retryMessage(messageId: String) {
-        val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
+        val curAgent = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) AgentKind.AGY else (store.currentConversation.value?.agent ?: AgentKind.AGY)
         when (curAgent) {
             AgentKind.CLAUDE -> claudeBackend.regenerate(messageId)
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.regenerate(messageId)
@@ -575,7 +580,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     fun stopStreaming() {
-        val curAgent = store.currentConversation.value?.agent ?: AgentKind.AGY
+        val curAgent = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) AgentKind.AGY else (store.currentConversation.value?.agent ?: AgentKind.AGY)
         when (curAgent) {
             AgentKind.CLAUDE -> claudeBackend.stopStreaming()
             AgentKind.DEEPSEEK_LOCAL -> deepseekBackend.stopStreaming()

@@ -627,18 +627,20 @@ private fun MainSettingsMenu(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        SettingsGroupHeader("API Keys & Custom Models", ChatGptEmerald, "Direct API keys for OpenAI, DeepSeek, Claude, Gemini & custom endpoints")
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Key,
-            iconTint = ChatGptEmerald,
-            title = "API Keys & Providers",
-            subtitle = "OpenAI Codex/GPT-4o, DeepSeek Hermes, Claude, Gemini & custom proxy",
-            badgeText = "Configure",
-            badgeColor = ChatGptEmerald,
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.API_KEYS) }
-        )
+        if (!com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+            SettingsGroupHeader("API Keys & Custom Models", ChatGptEmerald, "Direct API keys for OpenAI, DeepSeek, Claude, Gemini & custom endpoints")
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Key,
+                iconTint = ChatGptEmerald,
+                title = "API Keys & Providers",
+                subtitle = "OpenAI Codex/GPT-4o, DeepSeek Hermes, Claude, Gemini & custom proxy",
+                badgeText = "Configure",
+                badgeColor = ChatGptEmerald,
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.API_KEYS) }
+            )
+        }
 
         SettingsGroupHeader("PC Power Tools", Color(0xFF00E5FF), "100 Desktop-grade Antigravity IDE capabilities natively optimized for mobile")
         SettingsCategoryCard(
@@ -653,34 +655,36 @@ private fun MainSettingsMenu(
             onClick = { onNavigate(SettingsSection.PC_FEATURES) }
         )
 
-        SettingsGroupHeader("Agents", MaterialTheme.colorScheme.primary, "Which agents run, and the local server they share")
-        SettingsCategoryCard(
-            icon = Icons.Outlined.SmartToy,
-            iconTint = MaterialTheme.colorScheme.primary,
-            title = "Agents",
-            subtitle = when {
-                agyOn && claudeOn -> "Antigravity and Claude Code"
-                claudeOn -> "Claude Code only"
-                else -> "Antigravity only"
-            },
-            badgeText = "${enabledAgents.size} on",
-            badgeColor = MaterialTheme.colorScheme.primary,
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.AGENTS) }
-        )
+        if (!com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+            SettingsGroupHeader("Agents", MaterialTheme.colorScheme.primary, "Which agents run, and the local server they share")
+            SettingsCategoryCard(
+                icon = Icons.Outlined.SmartToy,
+                iconTint = MaterialTheme.colorScheme.primary,
+                title = "Agents",
+                subtitle = when {
+                    agyOn && claudeOn -> "Antigravity and Claude Code"
+                    claudeOn -> "Claude Code only"
+                    else -> "Antigravity only"
+                },
+                badgeText = "${enabledAgents.size} on",
+                badgeColor = MaterialTheme.colorScheme.primary,
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.AGENTS) }
+            )
 
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Psychology,
-            iconTint = Color(0xFF8B5CF6),
-            title = "🤖 Multi-Agent Studio (Devin & Manus)",
-            subtitle = "Custom roles, specialized subagents & autonomous swarm task orchestration",
-            badgeText = "SWARM",
-            badgeColor = Color(0xFF8B5CF6),
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.MULTI_AGENT_STUDIO) }
-        )
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Psychology,
+                iconTint = Color(0xFF8B5CF6),
+                title = "🤖 Multi-Agent Studio (Devin & Manus)",
+                subtitle = "Custom roles, specialized subagents & autonomous swarm task orchestration",
+                badgeText = "SWARM",
+                badgeColor = Color(0xFF8B5CF6),
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.MULTI_AGENT_STUDIO) }
+            )
+        }
         // Section 2: Servers & Network
         val (serverBadge, serverColor) = when {
             isServerOnline && isBridgeOnline -> "Online" to QuotaGreen
@@ -7255,13 +7259,13 @@ private fun CommandsSubScreen(
                             FilterChip(
                                 selected = isTermOff,
                                 onClick = { onSetGlobalCustomTerminalPolicy("CASCADE_COMMANDS_AUTO_EXECUTION_OFF") },
-                                label = { Text("✋ Ask Every Time", fontSize = 11.sp) },
+                                label = { Text("✋ Ask Every Time", fontSize = 11.sp, maxLines = 1, softWrap = false) },
                                 modifier = Modifier.weight(1f)
                             )
                             FilterChip(
                                 selected = isTermEager,
                                 onClick = { onSetGlobalCustomTerminalPolicy("CASCADE_COMMANDS_AUTO_EXECUTION_EAGER") },
-                                label = { Text("⚡ Auto-Run (Eager)", fontSize = 11.sp) },
+                                label = { Text("⚡ Auto-Run (Eager)", fontSize = 11.sp, maxLines = 1, softWrap = false) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -7287,19 +7291,19 @@ private fun CommandsSubScreen(
                             FilterChip(
                                 selected = isFileAsk,
                                 onClick = { onSetGlobalCustomFileAccessPolicy("AGENT_SETTING_POLICY_ASK") },
-                                label = { Text("✋ Ask", fontSize = 11.sp) },
+                                label = { Text("✋ Ask", fontSize = 11.sp, maxLines = 1, softWrap = false) },
                                 modifier = Modifier.weight(1f)
                             )
                             FilterChip(
                                 selected = isFileAllow,
                                 onClick = { onSetGlobalCustomFileAccessPolicy("AGENT_SETTING_POLICY_ALLOW") },
-                                label = { Text("✅ Allow", fontSize = 11.sp) },
+                                label = { Text("✅ Allow", fontSize = 11.sp, maxLines = 1, softWrap = false) },
                                 modifier = Modifier.weight(1f)
                             )
                             FilterChip(
                                 selected = isFileDeny,
                                 onClick = { onSetGlobalCustomFileAccessPolicy("AGENT_SETTING_POLICY_DENY") },
-                                label = { Text("🚫 Deny", fontSize = 11.sp) },
+                                label = { Text("🚫 Deny", fontSize = 11.sp, maxLines = 1, softWrap = false) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -7441,7 +7445,7 @@ private fun CommandsSubScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Rule", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Add Rule", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                 }
             }
 
@@ -7467,7 +7471,7 @@ private fun CommandsSubScreen(
                     FilterChip(
                         selected = isSel,
                         onClick = { selectedFilter = key },
-                        label = { Text(label, fontSize = 11.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) }
+                        label = { Text(label, fontSize = 11.sp, maxLines = 1, softWrap = false, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) }
                     )
                 }
             }

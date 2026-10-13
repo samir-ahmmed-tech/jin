@@ -2,12 +2,19 @@ package com.example.gemini.data.remote
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
+import android.os.Environment
 import android.util.Log
 import com.example.gemini.data.preferences.AuthPreferences
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -15,6 +22,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
@@ -22,13 +30,16 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 /**
- * Manages complete backup and restore of chat history, files, images, videos, projects,
- * and app data to Google Drive.
+ * Manages complete backup and restore of chat history, files, notebooks, projects,
+ * and app data to Google Drive using a SINGLE continuously-updated master file
+ * (`JIN_Master_Vault_Backup.zip`) so Google Drive storage never fills up with duplicate archives.
+ * Also supports 1-tap Local File (.zip) Export & Restore for large archives or offline recovery.
  */
 class GoogleDriveSyncManager private constructor(private val context: Context) {
 
@@ -37,7 +48,13 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
         private const val PREFS_NAME = "jin_gdrive_sync_prefs"
         private const val KEY_LAST_BACKUP = "last_backup_time"
         private const val KEY_AUTO_SYNC = "auto_sync_enabled"
+        private const val KEY_MASTER_FILE_ID = "master_file_id"
         private const val FOLDER_NAME = "JIN_Cloud_Vault"
+        const val MASTER_BACKUP_FILE_NAME = "JIN_Master_Vault_Backup.zip"
+
+        private val EXCLUDED_DIR_NAMES = setOf(
+            "build", ".gradle", "node_modules", ".cxx", "dist", ".kotlin", "caches", "tmp"
+        )
 
         @Volatile
         private var instance: GoogleDriveSyncManager? = null
@@ -52,7 +69,15 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val authPrefs = AuthPreferences(context)
-    private val client = OkHttpClient()
+    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var autoBackupJob: Job? = null
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(180, TimeUnit.SECONDS)
+        .readTimeout(180, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
 
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
@@ -63,12 +88,16 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
     private val _lastBackupTime = MutableStateFlow(prefs.getLong(KEY_LAST_BACKUP, 0L))
     val lastBackupTime: StateFlow<Long> = _lastBackupTime.asStateFlow()
 
-    private val _autoSyncEnabled = MutableStateFlow(prefs.getBoolean(KEY_AUTO_SYNC, false))
+    // Enabled by default so connecting Google automatically backs up into the single master file
+    private val _autoSyncEnabled = MutableStateFlow(prefs.getBoolean(KEY_AUTO_SYNC, true))
     val autoSyncEnabled: StateFlow<Boolean> = _autoSyncEnabled.asStateFlow()
 
     fun setAutoSyncEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_AUTO_SYNC, enabled).apply()
         _autoSyncEnabled.value = enabled
+        if (enabled) {
+            triggerAutoBackupIfEnabled(delayMs = 2000L)
+        }
     }
 
     fun getLastBackupFormatted(): String {
@@ -76,6 +105,24 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
         if (time == 0L) return "Never backed up"
         val sdf = SimpleDateFormat("MMM d, yyyy · hh:mm a", Locale.getDefault())
         return sdf.format(Date(time))
+    }
+
+    /**
+     * Automatically triggers an incremental update to the single master file on Google Drive
+     * after a short debounce window, provided Auto-Sync is enabled and Google is connected.
+     */
+    fun triggerAutoBackupIfEnabled(delayMs: Long = 10_000L) {
+        if (!_autoSyncEnabled.value) return
+        val hasCreds = authPrefs.getAccessTokenSync().isNotBlank() || authPrefs.getRefreshTokenSync().isNotBlank()
+        if (!hasCreds) return
+
+        autoBackupJob?.cancel()
+        autoBackupJob = syncScope.launch {
+            delay(delayMs)
+            if (!_isSyncing.value && _autoSyncEnabled.value) {
+                backupAllToGoogleDrive(isSilentAutoSync = true)
+            }
+        }
     }
 
     /**
@@ -131,48 +178,101 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
     }
 
     /**
-     * Creates a full archive of chats, files, and projects, and uploads to Google Drive.
+     * Updates the SINGLE master archive (`JIN_Master_Vault_Backup.zip`) on Google Drive in-place,
+     * and removes any old timestamped duplicate backup files so Drive never fills up.
      */
-    suspend fun backupAllToGoogleDrive(): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun backupAllToGoogleDrive(isSilentAutoSync: Boolean = false): Result<String> = withContext(Dispatchers.IO) {
+        if (_isSyncing.value) {
+            return@withContext Result.failure(IllegalStateException("Backup is already in progress"))
+        }
         _isSyncing.value = true
-        _syncStatus.value = "Preparing backup archive..."
+        if (!isSilentAutoSync) {
+            _syncStatus.value = "Preparing single-file master backup..."
+        }
         try {
             val token = getValidAccessToken()
             if (token == null) {
-                val err = "Google account not signed in. Please connect your Google account in Cloud Vault or Accounts."
-                _syncStatus.value = err
+                val err = "Google account not connected. Tap Sign In to enable automatic backup."
+                if (!isSilentAutoSync) _syncStatus.value = err
                 return@withContext Result.failure(IllegalStateException(err))
             }
 
-            // 1. Create a local backup ZIP file
-            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-            val tempZip = File(context.cacheDir, "JIN_Backup_$timeStamp.zip")
+            // 1. Create a local master ZIP file
+            val tempZip = File(context.cacheDir, MASTER_BACKUP_FILE_NAME)
             if (tempZip.exists()) tempZip.delete()
 
-            _syncStatus.value = "Compressing chats, files, and projects..."
+            if (!isSilentAutoSync) {
+                _syncStatus.value = "Packing chats, notebooks & workspace files..."
+            }
             zipUserData(tempZip)
 
-            val zipSizeMb = String.format(Locale.US, "%.1f MB", tempZip.length() / (1024.0 * 1024.0))
+            val zipSizeMb = String.format(Locale.US, "%.2f MB", tempZip.length() / (1024.0 * 1024.0))
 
             // 2. Locate or create JIN_Cloud_Vault folder on Google Drive
-            _syncStatus.value = "Connecting to Google Drive..."
+            if (!isSilentAutoSync) {
+                _syncStatus.value = "Syncing to single file ($MASTER_BACKUP_FILE_NAME)..."
+            }
             val folderId = getOrCreateDriveFolder(token, FOLDER_NAME)
 
-            // 3. Upload ZIP archive to Google Drive
-            _syncStatus.value = "Uploading backup ($zipSizeMb) to Drive..."
-            uploadZipToFolder(token, tempZip, folderId)
+            // 3. Update single master file in-place (or create once if first time), and purge legacy duplicates
+            val masterFileId = createOrUpdateSingleMasterZip(token, tempZip, folderId)
+            prefs.edit().putString(KEY_MASTER_FILE_ID, masterFileId).apply()
+
+            val cleanedDuplicates = cleanupOldDuplicateBackups(token, folderId, masterFileId)
 
             tempZip.delete()
 
             val now = System.currentTimeMillis()
             prefs.edit().putLong(KEY_LAST_BACKUP, now).apply()
             _lastBackupTime.value = now
-            val successMsg = "Successfully backed up $zipSizeMb to Google Drive ($FOLDER_NAME)!"
+            val cleanupNote = if (cleanedDuplicates > 0) " (Cleaned $cleanedDuplicates old duplicates)" else ""
+            val successMsg = "Synced to single file $MASTER_BACKUP_FILE_NAME ($zipSizeMb)$cleanupNote"
             _syncStatus.value = successMsg
             Result.success(successMsg)
         } catch (e: Exception) {
             Log.e(TAG, "Backup failed: ${e.message}", e)
             val err = "Backup failed: ${e.localizedMessage ?: e.message}"
+            if (!isSilentAutoSync) _syncStatus.value = err
+            Result.failure(e)
+        } finally {
+            _isSyncing.value = false
+        }
+    }
+
+    /**
+     * Restores from the single master backup archive (or latest available backup) on Google Drive.
+     */
+    suspend fun restoreLatestFromGoogleDrive(): Result<String> = withContext(Dispatchers.IO) {
+        _isSyncing.value = true
+        _syncStatus.value = "Locating master backup on Google Drive..."
+        try {
+            val token = getValidAccessToken()
+            if (token == null) {
+                val err = "Google account not connected. Please sign in or use 'Restore from Local File'."
+                _syncStatus.value = err
+                return@withContext Result.failure(IllegalStateException(err))
+            }
+
+            val folderId = getOrCreateDriveFolder(token, FOLDER_NAME)
+            val fileId = findMasterOrLatestBackupFileId(token, folderId)
+                ?: return@withContext Result.failure(IllegalStateException("No backup file found in Google Drive ($FOLDER_NAME)."))
+
+            val tempZip = File(context.cacheDir, "restore_temp.zip")
+            if (tempZip.exists()) tempZip.delete()
+
+            _syncStatus.value = "Downloading $MASTER_BACKUP_FILE_NAME from Drive..."
+            downloadDriveFile(token, fileId, tempZip)
+
+            _syncStatus.value = "Restoring chats, notebooks & projects..."
+            unzipUserData(tempZip)
+            tempZip.delete()
+
+            val successMsg = "Successfully restored all chats & data from Google Drive!"
+            _syncStatus.value = successMsg
+            Result.success(successMsg)
+        } catch (e: Exception) {
+            Log.e(TAG, "Restore failed: ${e.message}", e)
+            val err = "Cloud restore failed: ${e.localizedMessage ?: e.message}. Tip: For large files, download from Drive and use 'Restore from Local File'."
             _syncStatus.value = err
             Result.failure(e)
         } finally {
@@ -181,39 +281,67 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
     }
 
     /**
-     * Restores the latest backup archive from Google Drive.
+     * Exports the complete single-file backup directly to the user's local Download directory
+     * (`/sdcard/Download/JIN_Master_Vault_Backup.zip`) or custom URI.
      */
-    suspend fun restoreLatestFromGoogleDrive(): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun exportLocalBackupToDownloads(): Result<String> = withContext(Dispatchers.IO) {
         _isSyncing.value = true
-        _syncStatus.value = "Locating latest backup on Drive..."
+        _syncStatus.value = "Exporting local backup file..."
         try {
-            val token = getValidAccessToken()
-            if (token == null) {
-                val err = "Google account not signed in. Please connect your Google account in Cloud Vault or Accounts."
-                _syncStatus.value = err
-                return@withContext Result.failure(IllegalStateException(err))
-            }
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                ?: File("/sdcard/Download")
+            if (!downloadsDir.exists()) downloadsDir.mkdirs()
 
-            val folderId = getOrCreateDriveFolder(token, FOLDER_NAME)
-            val fileId = getLatestBackupFileId(token, folderId)
-                ?: return@withContext Result.failure(IllegalStateException("No backups found in Google Drive ($FOLDER_NAME)."))
+            val outZip = File(downloadsDir, MASTER_BACKUP_FILE_NAME)
+            if (outZip.exists()) outZip.delete()
 
-            val tempZip = File(context.cacheDir, "restore_temp.zip")
+            zipUserData(outZip)
+            val sizeMb = String.format(Locale.US, "%.2f MB", outZip.length() / (1024.0 * 1024.0))
+            val msg = "Saved to Downloads/$MASTER_BACKUP_FILE_NAME ($sizeMb)"
+            _syncStatus.value = msg
+            Result.success(msg)
+        } catch (e: Exception) {
+            Log.e(TAG, "Local export failed: ${e.message}", e)
+            val err = "Local export failed: ${e.localizedMessage ?: e.message}"
+            _syncStatus.value = err
+            Result.failure(e)
+        } finally {
+            _isSyncing.value = false
+        }
+    }
+
+    /**
+     * Restores all chats, projects, and settings directly from a locally downloaded `.zip` file URI.
+     * Ideal when the user manually downloads `JIN_Master_Vault_Backup.zip` from Google Drive.
+     */
+    suspend fun restoreFromLocalUri(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
+        _isSyncing.value = true
+        _syncStatus.value = "Reading local backup file..."
+        try {
+            val tempZip = File(context.cacheDir, "local_restore_temp.zip")
             if (tempZip.exists()) tempZip.delete()
 
-            _syncStatus.value = "Downloading backup archive..."
-            downloadDriveFile(token, fileId, tempZip)
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(tempZip).use { output ->
+                    input.copyTo(output)
+                }
+            } ?: return@withContext Result.failure(IllegalStateException("Could not open selected backup file"))
 
-            _syncStatus.value = "Extracting chats, files, and projects..."
+            if (tempZip.length() < 22L) {
+                tempZip.delete()
+                return@withContext Result.failure(IllegalStateException("Selected file is empty or not a valid ZIP archive"))
+            }
+
+            _syncStatus.value = "Extracting chats, notebooks & projects from local file..."
             unzipUserData(tempZip)
             tempZip.delete()
 
-            val successMsg = "Successfully restored all data from Google Drive!"
-            _syncStatus.value = successMsg
-            Result.success(successMsg)
+            val msg = "Successfully restored all data from local backup file!"
+            _syncStatus.value = msg
+            Result.success(msg)
         } catch (e: Exception) {
-            Log.e(TAG, "Restore failed: ${e.message}", e)
-            val err = "Restore failed: ${e.localizedMessage ?: e.message}"
+            Log.e(TAG, "Local restore failed: ${e.message}", e)
+            val err = "Local restore failed: ${e.localizedMessage ?: e.message}"
             _syncStatus.value = err
             Result.failure(e)
         } finally {
@@ -222,112 +350,118 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
     }
 
     private fun zipUserData(zipFile: File) {
-        val zos = ZipOutputStream(FileOutputStream(zipFile))
-
-        // 1. Direct chats in internal storage
-        val chatsDir = File(context.filesDir, "direct_chats")
-        if (chatsDir.exists() && chatsDir.isDirectory) {
-            addDirectoryToZip(chatsDir, "direct_chats", zos)
-        }
-
-        // 2. Legacy / general chats
-        val legacyChatsDir = File(context.filesDir, "chats")
-        if (legacyChatsDir.exists() && legacyChatsDir.isDirectory) {
-            addDirectoryToZip(legacyChatsDir, "chats", zos)
-        }
-
-        // 3. Gemini Notebooks
-        val notebooksDir = File(context.filesDir, "notebooks")
-        if (notebooksDir.exists() && notebooksDir.isDirectory) {
-            addDirectoryToZip(notebooksDir, "notebooks", zos)
-        }
-
-        // 4. Custom chat folders metadata
-        val chatFoldersFile = File(context.filesDir, "chat_folders.json")
-        if (chatFoldersFile.exists() && chatFoldersFile.isFile) {
-            addFileToZip(chatFoldersFile, "chat_folders.json", zos)
-        }
-
-        // 5. Termux workspace projects
-        val homeDir = System.getenv("HOME") ?: "/data/user/0/com.termux/files/home"
-        val projectsDir = File(homeDir, "projects")
-        if (projectsDir.exists() && projectsDir.isDirectory) {
-            addDirectoryToZip(projectsDir, "projects", zos)
-        }
-
-        // 6. Gemini brain, conversations, summaries DB, annotations & skills in Termux home
-        val geminiDir = File(homeDir, ".gemini/antigravity-cli")
-        if (geminiDir.exists() && geminiDir.isDirectory) {
-            val brain = File(geminiDir, "brain")
-            if (brain.exists() && brain.isDirectory) {
-                addDirectoryToZip(brain, ".gemini/antigravity-cli/brain", zos)
+        val addedEntries = HashSet<String>()
+        ZipOutputStream(FileOutputStream(zipFile)).use { zos ->
+            // 1. Direct chats in internal storage
+            val chatsDir = File(context.filesDir, "direct_chats")
+            if (chatsDir.exists() && chatsDir.isDirectory) {
+                addDirectoryToZip(chatsDir, "direct_chats", zos, addedEntries)
             }
-            val annotations = File(geminiDir, "annotations")
-            if (annotations.exists() && annotations.isDirectory) {
-                addDirectoryToZip(annotations, ".gemini/antigravity-cli/annotations", zos)
+
+            // 2. Legacy / general chats
+            val legacyChatsDir = File(context.filesDir, "chats")
+            if (legacyChatsDir.exists() && legacyChatsDir.isDirectory) {
+                addDirectoryToZip(legacyChatsDir, "chats", zos, addedEntries)
             }
-            val conversations = File(geminiDir, "conversations")
-            if (conversations.exists() && conversations.isDirectory) {
-                addDirectoryToZip(conversations, ".gemini/antigravity-cli/conversations", zos)
+
+            // 3. Gemini Notebooks
+            val notebooksDir = File(context.filesDir, "notebooks")
+            if (notebooksDir.exists() && notebooksDir.isDirectory) {
+                addDirectoryToZip(notebooksDir, "notebooks", zos, addedEntries)
             }
-            val skills = File(geminiDir, "skills")
-            if (skills.exists() && skills.isDirectory) {
-                addDirectoryToZip(skills, ".gemini/antigravity-cli/skills", zos)
+
+            // 4. Custom chat folders metadata
+            val chatFoldersFile = File(context.filesDir, "chat_folders.json")
+            if (chatFoldersFile.exists() && chatFoldersFile.isFile) {
+                addFileToZip(chatFoldersFile, "chat_folders.json", zos, addedEntries)
             }
-            val workflows = File(geminiDir, "workflows")
-            if (workflows.exists() && workflows.isDirectory) {
-                addDirectoryToZip(workflows, ".gemini/antigravity-cli/workflows", zos)
+
+            // 5. Termux workspace projects (excluding heavy build/gradle/apk artifacts)
+            val homeDir = System.getenv("HOME") ?: "/data/user/0/com.termux/files/home"
+            val projectsDir = File(homeDir, "projects")
+            if (projectsDir.exists() && projectsDir.isDirectory) {
+                addDirectoryToZip(projectsDir, "projects", zos, addedEntries)
             }
-            listOf("conversation_summaries.db", "conversation_summaries.db-wal", "conversation_summaries.db-shm").forEach { dbFile ->
-                val f = File(geminiDir, dbFile)
-                if (f.exists() && f.isFile) {
-                    addFileToZip(f, ".gemini/antigravity-cli/$dbFile", zos)
+
+            // 6. Gemini brain, conversations, summaries DB, annotations & skills in Termux home
+            val geminiDir = File(homeDir, ".gemini/antigravity-cli")
+            if (geminiDir.exists() && geminiDir.isDirectory) {
+                listOf("brain", "annotations", "conversations", "skills", "workflows").forEach { sub ->
+                    val dir = File(geminiDir, sub)
+                    if (dir.exists() && dir.isDirectory) {
+                        addDirectoryToZip(dir, ".gemini/antigravity-cli/$sub", zos, addedEntries)
+                    }
+                }
+                listOf("conversation_summaries.db", "conversation_summaries.db-wal", "conversation_summaries.db-shm").forEach { dbFile ->
+                    val f = File(geminiDir, dbFile)
+                    if (f.exists() && f.isFile) {
+                        addFileToZip(f, ".gemini/antigravity-cli/$dbFile", zos, addedEntries)
+                    }
                 }
             }
-        }
 
-        // 7. Claude workspace state/configs if present
-        val claudeDir = File(homeDir, ".claude")
-        if (claudeDir.exists() && claudeDir.isDirectory) {
-            addDirectoryToZip(claudeDir, ".claude", zos)
-        }
+            // 7. Global GEMINI.md rules if present
+            val globalGeminiMd = File(homeDir, ".gemini/GEMINI.md")
+            if (globalGeminiMd.exists() && globalGeminiMd.isFile) {
+                addFileToZip(globalGeminiMd, ".gemini/GEMINI.md", zos, addedEntries)
+            }
 
-        // 8. App preferences and SQLite databases from internal storage
-        val appDataDir = File(context.applicationInfo.dataDir)
-        val sharedPrefsDir = File(appDataDir, "shared_prefs")
-        if (sharedPrefsDir.exists() && sharedPrefsDir.isDirectory) {
-            addDirectoryToZip(sharedPrefsDir, "app_data/shared_prefs", zos)
+            // 8. App preferences and SQLite databases from internal storage
+            val appDataDir = File(context.applicationInfo.dataDir)
+            val sharedPrefsDir = File(appDataDir, "shared_prefs")
+            if (sharedPrefsDir.exists() && sharedPrefsDir.isDirectory) {
+                addDirectoryToZip(sharedPrefsDir, "app_data/shared_prefs", zos, addedEntries)
+            }
+            val databasesDir = File(appDataDir, "databases")
+            if (databasesDir.exists() && databasesDir.isDirectory) {
+                addDirectoryToZip(databasesDir, "app_data/databases", zos, addedEntries)
+            }
         }
-        val databasesDir = File(appDataDir, "databases")
-        if (databasesDir.exists() && databasesDir.isDirectory) {
-            addDirectoryToZip(databasesDir, "app_data/databases", zos)
-        }
-
-        zos.close()
     }
 
-    private fun addFileToZip(file: File, entryName: String, zos: ZipOutputStream) {
-        if (!file.exists() || !file.isFile) return
-        val entry = ZipEntry(entryName)
-        zos.putNextEntry(entry)
-        FileInputStream(file).use { fis ->
-            fis.copyTo(zos)
+    private fun addFileToZip(
+        file: File,
+        entryName: String,
+        zos: ZipOutputStream,
+        addedEntries: MutableSet<String>
+    ) {
+        if (!file.exists() || !file.isFile || !addedEntries.add(entryName)) return
+        try {
+            val entry = ZipEntry(entryName)
+            zos.putNextEntry(entry)
+            FileInputStream(file).use { fis ->
+                fis.copyTo(zos)
+            }
+            zos.closeEntry()
+        } catch (e: Exception) {
+            Log.w(TAG, "Skipped file $entryName: ${e.message}")
         }
-        zos.closeEntry()
     }
 
-    private fun addDirectoryToZip(dir: File, baseName: String, zos: ZipOutputStream) {
+    private fun addDirectoryToZip(
+        dir: File,
+        baseName: String,
+        zos: ZipOutputStream,
+        addedEntries: MutableSet<String>
+    ) {
         val files = dir.listFiles() ?: return
         for (f in files) {
+            val name = f.name
             if (f.isDirectory) {
-                addDirectoryToZip(f, "$baseName/${f.name}", zos)
-            } else if (f.isFile && f.length() < 50 * 1024 * 1024) { // skip massive files > 50MB
-                val entry = ZipEntry("$baseName/${f.name}")
-                zos.putNextEntry(entry)
-                FileInputStream(f).use { fis ->
-                    fis.copyTo(zos)
+                if (name in EXCLUDED_DIR_NAMES || name == ".git") continue
+                addDirectoryToZip(f, "$baseName/$name", zos, addedEntries)
+            } else if (f.isFile) {
+                // Skip compiled APK/DEX/SO binaries and files > 15MB so cloud sync stays fast & compact
+                if (name.endsWith(".apk", true) ||
+                    name.endsWith(".aab", true) ||
+                    name.endsWith(".dex", true) ||
+                    name.endsWith(".so", true) ||
+                    name.endsWith(".jar", true) ||
+                    f.length() > 15 * 1024 * 1024
+                ) {
+                    continue
                 }
-                zos.closeEntry()
+                addFileToZip(f, "$baseName/$name", zos, addedEntries)
             }
         }
     }
@@ -335,39 +469,40 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
     private fun unzipUserData(zipFile: File) {
         val homeDir = System.getenv("HOME") ?: "/data/user/0/com.termux/files/home"
         val appDataDir = File(context.applicationInfo.dataDir)
-        val zis = ZipInputStream(FileInputStream(zipFile))
-        var entry: ZipEntry? = zis.nextEntry
-        while (entry != null) {
-            val name = entry.name
-            val destFile = when {
-                name.startsWith("app_data/shared_prefs/") -> File(appDataDir, name.removePrefix("app_data/"))
-                name.startsWith("app_data/databases/") -> File(appDataDir, name.removePrefix("app_data/"))
-                name.startsWith("direct_chats/") -> File(context.filesDir, name)
-                name.startsWith("chats/") -> File(context.filesDir, name)
-                name.startsWith("notebooks/") -> File(context.filesDir, name)
-                name == "chat_folders.json" -> File(context.filesDir, name)
-                name.startsWith("projects/") -> File(homeDir, name)
-                name.startsWith(".gemini/") -> File(homeDir, name)
-                name.startsWith(".claude/") -> File(homeDir, name)
-                else -> File(context.filesDir, name)
-            }
+        ZipInputStream(FileInputStream(zipFile)).use { zis ->
+            var entry: ZipEntry? = zis.nextEntry
+            while (entry != null) {
+                val name = entry.name
+                if (!name.contains("..")) {
+                    val destFile = when {
+                        name.startsWith("app_data/shared_prefs/") -> File(appDataDir, name.removePrefix("app_data/"))
+                        name.startsWith("app_data/databases/") -> File(appDataDir, name.removePrefix("app_data/"))
+                        name.startsWith("direct_chats/") -> File(context.filesDir, name)
+                        name.startsWith("chats/") -> File(context.filesDir, name)
+                        name.startsWith("notebooks/") -> File(context.filesDir, name)
+                        name == "chat_folders.json" -> File(context.filesDir, name)
+                        name.startsWith("projects/") -> File(homeDir, name)
+                        name.startsWith(".gemini/") -> File(homeDir, name)
+                        name.startsWith(".claude/") -> File(homeDir, name)
+                        else -> File(context.filesDir, name)
+                    }
 
-            if (entry.isDirectory) {
-                destFile.mkdirs()
-            } else {
-                destFile.parentFile?.mkdirs()
-                FileOutputStream(destFile).use { fos ->
-                    zis.copyTo(fos)
+                    if (entry.isDirectory) {
+                        destFile.mkdirs()
+                    } else {
+                        destFile.parentFile?.mkdirs()
+                        FileOutputStream(destFile).use { fos ->
+                            zis.copyTo(fos)
+                        }
+                    }
                 }
+                zis.closeEntry()
+                entry = zis.nextEntry
             }
-            zis.closeEntry()
-            entry = zis.nextEntry
         }
-        zis.close()
     }
 
     private fun getOrCreateDriveFolder(token: String, folderName: String): String {
-        // Search if folder exists
         val searchUrl = "https://www.googleapis.com/drive/v3/files?q=name='$folderName'+and+mimeType='application/vnd.google-apps.folder'+and+trashed=false&fields=files(id,name)"
         val searchReq = Request.Builder()
             .url(searchUrl)
@@ -386,7 +521,6 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
             }
         }
 
-        // Create folder
         val createUrl = "https://www.googleapis.com/drive/v3/files"
         val payload = JSONObject().apply {
             put("name", folderName)
@@ -409,10 +543,33 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
         }
     }
 
-    private fun uploadZipToFolder(token: String, zipFile: File, folderId: String) {
+    /**
+     * Checks if `JIN_Master_Vault_Backup.zip` already exists in `folderId`.
+     * If it exists, updates that exact file ID in-place via `PATCH` (`uploadType=media`).
+     * Otherwise creates `JIN_Master_Vault_Backup.zip` once via `POST` (`uploadType=multipart`).
+     */
+    private fun createOrUpdateSingleMasterZip(token: String, zipFile: File, folderId: String): String {
+        val existingId = findFileByNameInFolder(token, folderId, MASTER_BACKUP_FILE_NAME)
+        if (existingId != null) {
+            val updateUrl = "https://www.googleapis.com/upload/drive/v3/files/$existingId?uploadType=media"
+            val updateReq = Request.Builder()
+                .url(updateUrl)
+                .header("Authorization", "Bearer $token")
+                .patch(zipFile.asRequestBody("application/zip".toMediaType()))
+                .build()
+
+            client.newCall(updateReq).execute().use { resp ->
+                if (resp.isSuccessful) {
+                    return existingId
+                } else {
+                    Log.w(TAG, "In-place PATCH returned ${resp.code}, falling back to fresh master file upload")
+                }
+            }
+        }
+
         val metadata = JSONObject().apply {
-            put("name", zipFile.name)
-            put("parents", org.json.JSONArray().apply { put(folderId) })
+            put("name", MASTER_BACKUP_FILE_NAME)
+            put("parents", JSONArray().apply { put(folderId) })
         }
 
         val requestBody = MultipartBody.Builder()
@@ -424,12 +581,12 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
             )
             .addFormDataPart(
                 "file",
-                zipFile.name,
+                MASTER_BACKUP_FILE_NAME,
                 zipFile.asRequestBody("application/zip".toMediaType())
             )
             .build()
 
-        val uploadUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"
+        val uploadUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id"
         val request = Request.Builder()
             .url(uploadUrl)
             .header("Authorization", "Bearer $token")
@@ -437,15 +594,93 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
             .build()
 
         client.newCall(request).execute().use { resp ->
+            val body = resp.body?.string() ?: ""
             if (!resp.isSuccessful) {
-                val err = resp.body?.string() ?: "HTTP ${resp.code}"
-                throw IllegalStateException("Upload failed: $err")
+                throw IllegalStateException("Upload failed: HTTP ${resp.code} $body")
             }
+            return JSONObject(body).optString("id", existingId ?: "")
         }
     }
 
-    private fun getLatestBackupFileId(token: String, folderId: String): String? {
-        val url = "https://www.googleapis.com/drive/v3/files?q='$folderId'+in+parents+and+trashed=false&orderBy=createdTime+desc&pageSize=1&fields=files(id,name,createdTime)"
+    /**
+     * Deletes old timestamped `JIN_Backup_*.zip` files (and any duplicate archives other than `keepFileId`)
+     * inside `JIN_Cloud_Vault` so the user's Google Drive storage never fills up.
+     */
+    private fun cleanupOldDuplicateBackups(token: String, folderId: String, keepFileId: String): Int {
+        if (keepFileId.isBlank()) return 0
+        var deletedCount = 0
+        try {
+            val url = "https://www.googleapis.com/drive/v3/files?q='$folderId'+in+parents+and+trashed=false&pageSize=100&fields=files(id,name)"
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+
+            val idsToDelete = mutableListOf<String>()
+            client.newCall(req).execute().use { resp ->
+                if (resp.isSuccessful) {
+                    val files = JSONObject(resp.body?.string().orEmpty()).optJSONArray("files")
+                    if (files != null) {
+                        for (i in 0 until files.length()) {
+                            val obj = files.getJSONObject(i)
+                            val id = obj.optString("id")
+                            val name = obj.optString("name")
+                            if (id.isNotBlank() && id != keepFileId &&
+                                (name.startsWith("JIN_Backup_") || name == MASTER_BACKUP_FILE_NAME)
+                            ) {
+                                idsToDelete.add(id)
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (oldId in idsToDelete) {
+                try {
+                    val delReq = Request.Builder()
+                        .url("https://www.googleapis.com/drive/v3/files/$oldId")
+                        .header("Authorization", "Bearer $token")
+                        .delete()
+                        .build()
+                    client.newCall(delReq).execute().use { delResp ->
+                        if (delResp.isSuccessful || delResp.code == 204) {
+                            deletedCount++
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Cleanup duplicates warning: ${e.message}")
+        }
+        return deletedCount
+    }
+
+    private fun findFileByNameInFolder(token: String, folderId: String, fileName: String): String? {
+        val url = "https://www.googleapis.com/drive/v3/files?q='$folderId'+in+parents+and+name='$fileName'+and+trashed=false&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)"
+        val req = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $token")
+            .get()
+            .build()
+
+        client.newCall(req).execute().use { resp ->
+            if (resp.isSuccessful) {
+                val files = JSONObject(resp.body?.string().orEmpty()).optJSONArray("files")
+                if (files != null && files.length() > 0) {
+                    return files.getJSONObject(0).optString("id").takeIf { it.isNotBlank() }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun findMasterOrLatestBackupFileId(token: String, folderId: String): String? {
+        // 1. Prefer the single master file
+        findFileByNameInFolder(token, folderId, MASTER_BACKUP_FILE_NAME)?.let { return it }
+
+        // 2. Fallback to most recently modified file in JIN_Cloud_Vault
+        val url = "https://www.googleapis.com/drive/v3/files?q='$folderId'+in+parents+and+trashed=false&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)"
         val request = Request.Builder()
             .url(url)
             .header("Authorization", "Bearer $token")
@@ -454,11 +689,9 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
 
         client.newCall(request).execute().use { resp ->
             if (resp.isSuccessful) {
-                val body = resp.body?.string() ?: ""
-                val json = JSONObject(body)
-                val files = json.optJSONArray("files")
+                val files = JSONObject(resp.body?.string().orEmpty()).optJSONArray("files")
                 if (files != null && files.length() > 0) {
-                    return files.getJSONObject(0).getString("id")
+                    return files.getJSONObject(0).optString("id").takeIf { it.isNotBlank() }
                 }
             }
         }

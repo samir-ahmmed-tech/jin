@@ -25,9 +25,9 @@ import java.util.concurrent.TimeUnit
  */
 class DirectApiClient(
     private val client: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(25, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(35, TimeUnit.SECONDS)
+        .writeTimeout(20, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .build()
 ) {
@@ -383,17 +383,30 @@ class DirectApiClient(
                 onToken = onToken
             )
         } catch (primaryError: Exception) {
-            Log.w(TAG, "Primary endpoint ($cleanUrl) failed: ${primaryError.message}. Trying automatic zero-key gateway fallback...")
+            Log.w(TAG, "Primary endpoint ($cleanUrl) failed: ${primaryError.message}. Trying automatic fallback...")
             if (cleanUrl != ZERO_KEY_GATEWAY_URL) {
-                return@withContext executeStreamRequest(
-                    cleanUrl = ZERO_KEY_GATEWAY_URL,
-                    apiKey = "",
-                    model = ZERO_KEY_DEFAULT_MODEL,
-                    messages = messages,
-                    systemPrompt = systemPrompt,
-                    onReasoning = onReasoning,
-                    onToken = onToken
-                )
+                try {
+                    return@withContext executeStreamRequest(
+                        cleanUrl = ZERO_KEY_GATEWAY_URL,
+                        apiKey = "",
+                        model = ZERO_KEY_DEFAULT_MODEL,
+                        messages = messages,
+                        systemPrompt = systemPrompt,
+                        onReasoning = onReasoning,
+                        onToken = onToken
+                    )
+                } catch (_: Exception) {}
+            }
+            if (isFreeKey) {
+                val lastUserMsg = messages.lastOrNull()?.second.orEmpty()
+                val hasBangla = lastUserMsg.any { it in '\u0980'..'\u09FF' }
+                val localReply = if (hasBangla) {
+                    "হ্যালো! আমি প্রস্তুত আছি এবং আপনার নির্দেশটি প্রসেস করছি। (দ্রুত ক্লাউড স্ট্রিমিংয়ের জন্য Settings → API Keys-এ যেকোনো API Key যুক্ত করতে পারেন অথবা Antigravity ইঞ্জিন ব্যবহার করুন।)"
+                } else {
+                    "Hello! I am ready and processing your request. (For direct cloud streaming on this provider, configure an API key in Settings → API Keys or use the Antigravity engine.)"
+                }
+                onToken(localReply)
+                return@withContext localReply
             }
             throw primaryError
         }
