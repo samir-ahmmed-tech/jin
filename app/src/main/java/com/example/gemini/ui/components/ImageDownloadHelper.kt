@@ -100,8 +100,15 @@ object ImageDownloadHelper {
         val input: java.io.InputStream? = when {
             source.startsWith("content://") -> context.contentResolver.openInputStream(Uri.parse(source))
             source.startsWith("http://") || source.startsWith("https://") -> {
-                val resp = OkHttpClient().newCall(Request.Builder().url(source).get().build()).execute()
-                if (resp.isSuccessful) resp.body?.byteStream() else { resp.close(); null }
+                try {
+                    val req = Request.Builder().url(source).get().build()
+                    val bytes = OkHttpClient().newCall(req).execute().use { resp ->
+                        if (resp.isSuccessful) resp.body?.bytes() else null
+                    }
+                    bytes?.let { java.io.ByteArrayInputStream(it) }
+                } catch (_: Exception) {
+                    null
+                }
             }
             else -> File(clean).takeIf { it.canRead() && it.length() > 0 }?.inputStream()
         }

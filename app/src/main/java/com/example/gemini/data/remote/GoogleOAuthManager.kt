@@ -368,11 +368,12 @@ class GoogleOAuthManager(private val client: OkHttpClient = OkHttpClient()) {
                 .post(body)
                 .build()
 
-            val response = client.newCall(request).execute()
-            val text = response.body?.string() ?: ""
-            android.util.Log.d("GeminiApp", "[OAuth] Token exchange HTTP ${response.code}: $text")
-            if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("Token exchange failed (${response.code}): $text"))
+            val (text, isSuccess, statusCode) = client.newCall(request).execute().use { resp ->
+                Triple(resp.body?.string() ?: "", resp.isSuccessful, resp.code)
+            }
+            android.util.Log.d("GeminiApp", "[OAuth] Token exchange HTTP $statusCode: $text")
+            if (!isSuccess) {
+                return@withContext Result.failure(Exception("Token exchange failed ($statusCode): $text"))
             }
 
             val tokenData = json.decodeFromString<TokenResponse>(text)
@@ -397,11 +398,12 @@ class GoogleOAuthManager(private val client: OkHttpClient = OkHttpClient()) {
                 .post(body)
                 .build()
 
-            val response = client.newCall(request).execute()
-            val text = response.body?.string() ?: ""
-            android.util.Log.d("GeminiApp", "[OAuth] Refresh token HTTP ${response.code}: $text")
-            if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("Refresh token failed (${response.code}): $text"))
+            val (text, isSuccess, statusCode) = client.newCall(request).execute().use { resp ->
+                Triple(resp.body?.string() ?: "", resp.isSuccessful, resp.code)
+            }
+            android.util.Log.d("GeminiApp", "[OAuth] Refresh token HTTP $statusCode: $text")
+            if (!isSuccess) {
+                return@withContext Result.failure(Exception("Refresh token failed ($statusCode): $text"))
             }
 
             val tokenData = json.decodeFromString<TokenResponse>(text)
@@ -420,11 +422,12 @@ class GoogleOAuthManager(private val client: OkHttpClient = OkHttpClient()) {
                 .get()
                 .build()
 
-            val response = client.newCall(request).execute()
-            val text = response.body?.string() ?: ""
-            android.util.Log.d("GeminiApp", "[OAuth] Fetch userinfo HTTP ${response.code}: $text")
-            if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("Fetch userinfo failed (${response.code}): $text"))
+            val (text, isSuccess, statusCode) = client.newCall(request).execute().use { resp ->
+                Triple(resp.body?.string() ?: "", resp.isSuccessful, resp.code)
+            }
+            android.util.Log.d("GeminiApp", "[OAuth] Fetch userinfo HTTP $statusCode: $text")
+            if (!isSuccess) {
+                return@withContext Result.failure(Exception("Fetch userinfo failed ($statusCode): $text"))
             }
 
             Result.success(json.decodeFromString<UserInfoResponse>(text))

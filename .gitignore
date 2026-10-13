@@ -16,6 +16,12 @@ local.properties
 *.jks
 *.keystore
 release.jks
+*.b64
+app/release-keystore.b64
+app/release.jks
+dist/
+*.apk
+*.aab
 
 # Go Daemon & Bridge Build Outputs
 server/bin/

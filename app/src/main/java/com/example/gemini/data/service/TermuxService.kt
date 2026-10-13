@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
@@ -133,6 +134,9 @@ open class TermuxService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     override fun onDestroy() {
         serviceScope.cancel()
         actionReleaseWakeLock()
+        try {
+            com.example.gemini.data.ssh.TermuxSshManager.disconnect()
+        } catch (_: Exception) {}
 
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
@@ -159,7 +163,15 @@ open class TermuxService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
 
     private fun runStartForeground() {
         setupNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        }
     }
 
     private fun setupNotificationChannel() {

@@ -226,6 +226,25 @@ object TermuxSshManager {
     }
 
     /**
+     * Cleanly disconnects all active exec channels and the underlying pooled SSH session.
+     */
+    fun disconnect() {
+        try {
+            runningChannels.forEach { (_, channel) ->
+                runCatching { channel.disconnect() }
+            }
+            runningChannels.clear()
+            activeSshSession?.disconnect()
+            activeSshSession = null
+            currentConfigKey = ""
+            _connectionStatus.value = SshConnectionStatus.DISCONNECTED
+            Log.d(TAG, "[SSH] Pooled SSH session cleanly disconnected")
+        } catch (e: Exception) {
+            Log.w(TAG, "[SSH] Error disconnecting session: ${e.message}")
+        }
+    }
+
+    /**
      * Executes a command inside the target session tab (or primary tab).
      * Preserves directory context across commands within each tab.
      */

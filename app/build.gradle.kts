@@ -20,12 +20,14 @@ plugins {
 }
 
 android {
+    // namespace defines the Kotlin/Java package for R and BuildConfig
     namespace = "com.example.gemini"
     compileSdk = 36
     defaultConfig {
+        // applicationId must remain com.termux for OS package identity and Termux rootfs path compatibility
         applicationId = "com.termux"
         minSdk = 24
-        targetSdk = 28
+        targetSdk = 34
         versionCode = appVersionCode
         versionName = appVersionName
 
@@ -43,13 +45,32 @@ android {
 
     signingConfigs {
         create("release") {
-            val keyFile = file("release.jks")
-            if (keyFile.exists()) {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+                ?: (project.findProperty("KEYSTORE_PATH") as? String)
+                ?: "release.jks"
+            val keyFile = file(keystorePath)
+
+            val storePass = System.getenv("KEYSTORE_PASSWORD")
+                ?: (project.findProperty("KEYSTORE_PASSWORD") as? String)
+                ?: (project.findProperty("RELEASE_STORE_PASSWORD") as? String)
+
+            val keyAliasName = System.getenv("KEY_ALIAS")
+                ?: (project.findProperty("KEY_ALIAS") as? String)
+                ?: (project.findProperty("RELEASE_KEY_ALIAS") as? String)
+                ?: "antigem"
+
+            val keyPass = System.getenv("KEY_PASSWORD")
+                ?: (project.findProperty("KEY_PASSWORD") as? String)
+                ?: (project.findProperty("RELEASE_KEY_PASSWORD") as? String)
+                ?: storePass
+
+            if (keyFile.exists() && !storePass.isNullOrEmpty()) {
                 storeFile = keyFile
-                storePassword = "123456"
-                keyAlias = "antigem"
-                keyPassword = "123456"
+                storePassword = storePass
+                keyAlias = keyAliasName
+                keyPassword = keyPass
             } else {
+                // Secure fallback: use debug signing if release keystore or credentials are not configured
                 initWith(signingConfigs.getByName("debug"))
             }
         }
@@ -80,7 +101,6 @@ android {
     lint {
         checkReleaseBuilds = false
         abortOnError = false
-        disable += "ExpiredTargetSdkVersion"
     }
 
     buildFeatures {

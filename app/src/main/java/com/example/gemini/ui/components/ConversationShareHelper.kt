@@ -111,12 +111,10 @@ object ConversationShareHelper {
                 launchShareChooser(context, shareUri, title, fileName)
 
                 if (snackbarHostState != null) {
-                    kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
-                        snackbarHostState.showSnackbar(
-                            message = "$savedFileName saved to Downloads/AntiGem/Exports",
-                            duration = SnackbarDuration.Short
-                        )
-                    }
+                    snackbarHostState.showSnackbar(
+                        message = "$savedFileName saved to Downloads/AntiGem/Exports",
+                        duration = SnackbarDuration.Short
+                    )
                 } else {
                     AppToastHelper.showToast("$savedFileName saved to Downloads/AntiGem/Exports", ChatToastType.SUCCESS)
                 }

@@ -86,10 +86,11 @@ class AntigravityApiService(
                     .post(body)
                     .build()
 
-                val response = client.newCall(request).execute()
-                val text = response.body?.string() ?: ""
-                Log.d(TAG, "[API] loadCodeAssist response code: ${response.code}")
-                if (response.isSuccessful) {
+                val (text, isSuccess, statusCode) = client.newCall(request).execute().use { resp ->
+                    Triple(resp.body?.string() ?: "", resp.isSuccessful, resp.code)
+                }
+                Log.d(TAG, "[API] loadCodeAssist response code: $statusCode")
+                if (isSuccess) {
                     val parsed = json.decodeFromString<LoadCodeAssistResponse>(text)
                     val projectId = when (val p = parsed.cloudaicompanionProject) {
                         is JsonObject -> p["id"]?.jsonPrimitive?.content ?: "rising-fact-p41fc"
@@ -125,10 +126,11 @@ class AntigravityApiService(
                     .post(body)
                     .build()
 
-                val response = client.newCall(request).execute()
-                val text = response.body?.string() ?: ""
-                Log.d(TAG, "[API] fetchAvailableModels response code: ${response.code}")
-                if (response.isSuccessful) {
+                val (text, isSuccess, statusCode) = client.newCall(request).execute().use { resp ->
+                    Triple(resp.body?.string() ?: "", resp.isSuccessful, resp.code)
+                }
+                Log.d(TAG, "[API] fetchAvailableModels response code: $statusCode")
+                if (isSuccess) {
                     val parsed = json.decodeFromString<FetchAvailableModelsResponse>(text)
                     val modelList = mutableListOf<com.example.gemini.domain.model.AiModel>()
                     val quotaList = mutableListOf<ModelQuota>()
@@ -341,9 +343,10 @@ class AntigravityApiService(
                 .build()
 
             var call: Call? = null
+            var response: Response? = null
             try {
                 call = client.newCall(request)
-                val response = call.execute()
+                response = call.execute()
 
                 Log.d(TAG, "[API] SSE response status: ${response.code} from $endpoint")
 
@@ -441,6 +444,10 @@ class AntigravityApiService(
                 if (endpoint == endpoints.last()) {
                     emit(StreamEvent.Error(e.message ?: "Stream connection error"))
                 }
+            } finally {
+                try {
+                    response?.close()
+                } catch (_: Exception) {}
             }
         }
     }.flowOn(Dispatchers.IO)

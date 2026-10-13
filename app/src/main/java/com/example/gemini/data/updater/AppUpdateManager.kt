@@ -59,17 +59,20 @@ class AppUpdateManager(private val context: Context) {
                 .header("Cache-Control", "no-cache")
                 .build()
 
-            val response = httpClient.newCall(request).execute()
-            if (!response.isSuccessful) {
-                val errorMsg = when (response.code) {
-                    404 -> "version.json not found on GitHub repository (HTTP 404). Please ensure version.json is pushed to the repository."
-                    403 -> "GitHub rate limit exceeded or access forbidden (HTTP 403)."
-                    else -> "Failed to fetch version info: HTTP ${response.code} (${response.message})"
+            val (rawJson, errorMsg) = httpClient.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    val msg = when (resp.code) {
+                        404 -> "version.json not found on GitHub repository (HTTP 404). Please ensure version.json is pushed to the repository."
+                        403 -> "GitHub rate limit exceeded or access forbidden (HTTP 403)."
+                        else -> "Failed to fetch version info: HTTP ${resp.code} (${resp.message})"
+                    }
+                    Pair(null, msg)
+                } else {
+                    Pair(resp.body?.string(), null)
                 }
-                return@withContext Result.failure(Exception(errorMsg))
             }
-
-            val rawJson = response.body?.string() ?: return@withContext Result.failure(Exception("Empty version response from server"))
+            if (errorMsg != null) return@withContext Result.failure(Exception(errorMsg))
+            if (rawJson.isNullOrBlank()) return@withContext Result.failure(Exception("Empty version response from server"))
 
             val json = JSONObject(rawJson)
             val remoteVersionCode = json.optInt("version_code", 0)
@@ -142,39 +145,40 @@ class AppUpdateManager(private val context: Context) {
                 .header("User-Agent", "JIN-Updater/${BuildConfig.VERSION_NAME}")
                 .build()
 
-            val response = httpClient.newCall(request).execute()
-            if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("Download failed: HTTP ${response.code}"))
-            }
-
-            val body = response.body ?: return@withContext Result.failure(Exception("Empty download body"))
-            val totalBytes = body.contentLength()
-
             val targetDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
                 ?: context.externalCacheDir
                 ?: context.cacheDir
             val targetFile = File(targetDir, "jin_update_${System.currentTimeMillis()}.apk")
 
-            body.byteStream().use { input ->
-                targetFile.outputStream().use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    var bytesRead: Int
-                    var downloadedBytes = 0L
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext Result.failure(Exception("Download failed: HTTP ${response.code}"))
+                }
 
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        downloadedBytes += bytesRead
+                val body = response.body ?: return@withContext Result.failure(Exception("Empty download body"))
+                val totalBytes = body.contentLength()
 
-                        val progress = if (totalBytes > 0) {
-                            (downloadedBytes.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
-                        } else {
-                            0f
+                body.byteStream().use { input ->
+                    targetFile.outputStream().use { output ->
+                        val buffer = ByteArray(64 * 1024)
+                        var bytesRead: Int
+                        var downloadedBytes = 0L
+
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            downloadedBytes += bytesRead
+
+                            val progress = if (totalBytes > 0) {
+                                (downloadedBytes.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
+                            } else {
+                                0f
+                            }
+                            withContext(Dispatchers.Main) {
+                                onProgress(progress, downloadedBytes, totalBytes)
+                            }
                         }
-                        withContext(Dispatchers.Main) {
-                            onProgress(progress, downloadedBytes, totalBytes)
-                        }
+                        output.flush()
                     }
-                    output.flush()
                 }
             }
 

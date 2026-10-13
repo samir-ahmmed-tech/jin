@@ -13,39 +13,35 @@ open class TermuxSystemReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         val action = intent?.action ?: return
+        val pendingResult = goAsync()
 
-        when {
-            action.endsWith(".app.request_storage_permissions") || action == "com.termux.app.request_storage_permissions" -> {
-                if (TermuxStorageSetupManager.hasStoragePermission(context)) {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val success = TermuxStorageSetupManager.setupStorageSymlinks(context)
-                        CoroutineScope(Dispatchers.Main).launch {
-                            Toast.makeText(
-                                context,
-                                if (success) "Storage symlinks setup in ~/storage" else "Failed setting up storage symlinks",
-                                Toast.LENGTH_SHORT
-                            ).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                when {
+                    action.endsWith(".app.request_storage_permissions") || action == "com.termux.app.request_storage_permissions" -> {
+                        if (TermuxStorageSetupManager.hasStoragePermission(context)) {
+                            val success = TermuxStorageSetupManager.setupStorageSymlinks(context)
+                            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                Toast.makeText(
+                                    context,
+                                    if (success) "Storage symlinks setup in ~/storage" else "Failed setting up storage symlinks",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } else {
+                            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                TermuxStorageSetupManager.requestStoragePermission(context)
+                            }
                         }
                     }
-                } else {
-                    TermuxStorageSetupManager.requestStoragePermission(context)
-                }
-            }
-            action.endsWith(".app.reload_style") || action == "com.termux.app.reload_style" -> {
-                if (TermuxStorageSetupManager.hasStoragePermission(context)) {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val success = TermuxStorageSetupManager.setupStorageSymlinks(context)
-                        CoroutineScope(Dispatchers.Main).launch {
-                            Toast.makeText(
-                                context,
-                                if (success) "Storage symlinks setup in ~/storage" else "Failed setting up storage symlinks",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                    action.endsWith(".app.reload_style") || action == "com.termux.app.reload_style" -> {
+                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            Toast.makeText(context, "Terminal style reloaded", Toast.LENGTH_SHORT).show()
                         }
                     }
-                } else {
-                    TermuxStorageSetupManager.requestStoragePermission(context)
                 }
+            } finally {
+                pendingResult.finish()
             }
         }
     }
