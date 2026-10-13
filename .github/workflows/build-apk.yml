@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -11,7 +13,7 @@ permissions:
 
 jobs:
   build:
-    name: Build JIN Release APK
+    name: Build JIN Dual Release APKs
     runs-on: ubuntu-latest
 
     steps:
@@ -53,7 +55,7 @@ jobs:
       - name: Read Version
         id: get_version
         run: |
-          VERSION=$(python3 -c "import json; print(json.load(open('version.json')).get('version_name', '2.0.9'))")
+          VERSION=$(python3 -c "import json; print(json.load(open('version.json')).get('version_name', '2.2.4'))")
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Generate and Validate App Icons
@@ -80,12 +82,13 @@ jobs:
           chmod +x ../app/src/main/assets/bin/agy_ide_bridge
           ls -lh ../app/src/main/assets/bin/agy_ide_bridge
 
-      - name: Build Release APKs
+      - name: Build Dual Release APKs (Full Suite + Pure Antigravity Edition)
         run: |
           chmod +x gradlew scripts/build_all_apks.sh
           ./scripts/build_all_apks.sh --release
+          ls -lh output/*.apk
 
-      - name: Upload Release APK Artifact
+      - name: Upload Release APK Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: JIN-Release-APKs
@@ -98,27 +101,25 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
-          name: "JIN v${{ steps.get_version.outputs.version }} - Single Unified Complete Release (JIN + Mobile-Harness)"
+          name: "JIN v${{ steps.get_version.outputs.version }} - Dual Edition Release (Full Suite APK + Pure Antigravity 2.0 PC Edition APK)"
           body: |
-            ### 🚀 JIN v${{ steps.get_version.outputs.version }} Complete Release
-            - 📱 **Single Unified Production APK (`jin-termux-v${{ steps.get_version.outputs.version }}-release.apk`)**:
-              - Complete unified edition combining Termux terminal environment, native PRoot rootfs, 100 PC Power Tools, Real-Time Voice, and Mobile-Harness autonomous coding engine into one single complete app.
-            - 🎛️ **3-Way Studio Modes (JIN Classic | JIN Fusion | Harness Studio)**:
-              - Switch dynamically between Classic JIN chat, JIN+Harness Fusion hybrid mode, and standalone Harness Studio via header banner.
-            - 🛠️ **100 Tools Card Layout & Density Optimization**:
-              - Completely resolved badge text wrapping bugs (`SUBMODULE`, `MERGE`, `FETCH`).
-              - Added Compact, Comfortable, and 2-Column Grid density toggles for optimal mobile UI size.
-            - 🤖 **Harness Studio Autonomous Coding**:
-              - Autonomous coding turns powered by DeepSeek Harness, OpenCode Zen, Claude Code, and Antigravity CLI with real-time reasoning stream accordion.
-            - 🔄 **Interactive Workspace Checkpoints & Diff Engine**:
-              - Line-by-line visual diffs with per-file 'Undo Change' and 'Keep Change' buttons.
-            - 🔨 **On-Device Android Scaffolding & Build**:
-              - Scaffolds Jetpack Compose and XML apps, compiles debug APKs on-device, and installs via PackageInstaller Session API.
-            - 🎙️ **Real-Time Conversational Voice Assistant (ChatGPT Style)**:
-              - 2-way vocal conversation and hands-free coding task execution with animated Voice Orb.
-            - ☁️ **Advanced Google Drive Cloud Vault**:
-              - Full backup and 1-tap restore for SQLite databases, encrypted credentials, preferences, notebooks, and projects.
-            - 👨‍💻 **Lead Developer**: Samir Ahmmed (https://github.com/samir-ahmmed-tech)
+            ### 🚀 JIN v${{ steps.get_version.outputs.version }} Dual-Edition Production Release
+            This release provides **TWO specialized production APKs** so you can choose the exact edition you prefer:
+
+            #### 1️⃣ `jin-termux-v${{ steps.get_version.outputs.version }}-release.apk` — Full Multi-Agent & Mobile-Harness Suite Edition
+            - **All 6 CLI Agents**: Google Antigravity (`agy`), Claude Code (`claude`), OpenCode CLI (`opencode`), DeepSeek CLI, OpenAI Codex CLI, and OpenRouter CLI.
+            - **Zero-Key Free AI Gateway**: Works out-of-the-box with zero API keys required (`https://text.pollinations.ai/openai` fallback + OpenCode Zen Free Tier).
+            - **Real-Time Conversational Voice Assistant (Fixed & Upgraded)**: Hybrid Android SpeechRecognizer + 16kHz PCM `AudioRecord` VAD + Cloud Whisper Fallback, async TTS pre-warm queue, Bangla (`bn-BD`) & English (`en-US`) script detection, and 2.2s Direct Voice AI Fallback.
+            - **Harness Studio & Jin Fusion**: Autonomous multi-step file creation, editing, shell execution, and interactive diffs.
+
+            #### 2️⃣ `jin-antigravity-only-v${{ steps.get_version.outputs.version }}-release.apk` — Pure Google Antigravity 2.0 PC-Grade Edition
+            - **100% Dedicated to Google Antigravity (`AgentKind.AGY`)**: All third-party agents, external API screens, Harness Studio, and Fusion tabs are stripped out for maximum speed, accuracy, and low memory footprint.
+            - **Full Antigravity PC (Antigravity 2.0 & IDE) Feature Set**:
+              - ⚡ **Antigravity Turbo Optimizer**: 60fps UI frame coalescing (`16ms`), HTTP/2 + gRPC connection pre-warming, smart context pruning, and automatic rule & `@file` injection.
+              - 🤖 **Subagents Manager**: Built-in `self`, `research`, and `image-generator` subagents plus custom `define_subagent` persistence and 1-tap parallel dispatch.
+              - 🧩 **Rules, Skills & Hooks Studio**: Live editor for global and workspace `GEMINI.md` / `AGENTS.md` rules, `SKILL.md` skills creator, `hooks.json` lifecycle hooks, and 1-tap `migrate-workflows` converter.
+              - ⏰ **Schedule & Cron Manager (`/schedule`)**: Create and manage one-shot timers and recurring 5-field cron jobs.
+              - 🛡️ **PC Security & Execution Policy Sandbox**: Configure Tool Execution Policy (`auto`, `turbo`, `ask`), Terminal Sandbox (`workspace_only`, `full_termux`, `read_only`), and Artifact Review Mode.
           files: output/*.apk
           draft: false
           prerelease: false

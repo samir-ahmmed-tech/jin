@@ -83,13 +83,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Agent of the conversation on screen; chat actions go to that agent's backend. */
     val activeAgent: StateFlow<AgentKind> = store.currentConversation
-        .map { it?.agent ?: AgentKind.AGY }
+        .map { if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) AgentKind.AGY else (it?.agent ?: AgentKind.AGY) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, AgentKind.AGY)
 
-    private val isClaudeActive get() = store.currentConversation.value?.agent == AgentKind.CLAUDE
+    private val isClaudeActive get() = !com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY && store.currentConversation.value?.agent == AgentKind.CLAUDE
 
     /** Agent used for new chats, picked on the empty chat screen (remembered). */
     val newChatAgent: StateFlow<AgentKind> = claudePrefs.newChatAgent
+        .map { if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) AgentKind.AGY else it }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AgentKind.AGY)
 
     private val agentPrefs = com.example.gemini.data.agent.AgentPreferences(application)
     /** Agents the app runs (Antigravity only until the user chooses). */
@@ -101,13 +103,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /** The bridge is restarting for a new agent selection. */
     val isApplyingAgents: StateFlow<Boolean> = _isApplyingAgents.asStateFlow()
 
-    private val isClaudeEnabled get() = AgentKind.CLAUDE in enabledAgents.value
+    private val isClaudeEnabled get() = !com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY && AgentKind.CLAUDE in enabledAgents.value
 
     /**
      * Applies an agent selection: saves it, starts / stops Claude Code in the app, leaves a chat of a disabled
      * agent, and restarts the bridge when its flags change (a disabled agent never runs there).
      */
     fun applyAgents(agents: Set<AgentKind>) {
+        if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) return
         if (agents.isEmpty()) return
         val before = enabledAgents.value
         val firstChoice = !hasChosenAgents.value
@@ -162,7 +165,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 AgentKind.OPENCODE to op
             )
         }.combine(store.currentConversation) { values, conv ->
-            values[conv?.agent ?: AgentKind.AGY] ?: values[AgentKind.AGY] ?: agy.value
+            val targetAgent = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) AgentKind.AGY else (conv?.agent ?: AgentKind.AGY)
+            values[targetAgent] ?: values[AgentKind.AGY] ?: agy.value
         }.stateIn(viewModelScope, SharingStarted.Eagerly, agy.value)
 
     private fun isoUtc(epochSeconds: Long): String =
@@ -171,7 +175,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             .format(java.util.Date(epochSeconds * 1000))
 
     private fun agentOf(conversationId: String): AgentKind =
-        conversations.value.find { it.id == conversationId }?.agent
+        if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) AgentKind.AGY
+        else conversations.value.find { it.id == conversationId }?.agent
             ?: store.currentConversation.value?.takeIf { it.id == conversationId }?.agent
             ?: AgentKind.AGY
 
@@ -180,10 +185,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setNewChatAgent(agent: AgentKind) {
-        claudePrefs.setNewChatAgent(agent)
+        val target = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) AgentKind.AGY else agent
+        claudePrefs.setNewChatAgent(target)
         val cur = store.currentConversation.value
         val isFreshChat = cur == null || (cur.title == "New Chat" && messages.value.isEmpty())
-        if (isFreshChat && cur?.agent != agent) startNewChat()
+        if (isFreshChat && cur?.agent != target) startNewChat()
     }
 
     // ==================== ANTIGRAVITY (AGY) — delegated to data/agent/agy ====================
@@ -196,23 +202,23 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val isConversationsLoading = agyBackend.isConversationsLoading
     val artifacts = agyBackend.artifacts
     val pendingApprovals = agyBackend.pendingApprovals
-    val isStreaming = byAgent(agyBackend.isStreaming, claudeBackend.isStreaming, deepseekBackend.isStreaming, codexBackend.isStreaming, openrouterBackend.isStreaming)
-    val availableModels = byAgent(agyBackend.availableModels, claudeBackend.availableModels, deepseekBackend.availableModels, codexBackend.availableModels, openrouterBackend.availableModels)
+    val isStreaming = byAgent(agyBackend.isStreaming, claudeBackend.isStreaming, deepseekBackend.isStreaming, codexBackend.isStreaming, openrouterBackend.isStreaming, opencodeBackend.isStreaming)
+    val availableModels = byAgent(agyBackend.availableModels, claudeBackend.availableModels, deepseekBackend.availableModels, codexBackend.availableModels, openrouterBackend.availableModels, opencodeBackend.availableModels)
     val enabledModelIds = agyBackend.enabledModelIds
-    val enabledModels = byAgent(agyBackend.enabledModels, claudeBackend.availableModels, deepseekBackend.availableModels, codexBackend.availableModels, openrouterBackend.availableModels)
+    val enabledModels = byAgent(agyBackend.enabledModels, claudeBackend.availableModels, deepseekBackend.availableModels, codexBackend.availableModels, openrouterBackend.availableModels, opencodeBackend.availableModels)
     val allUnifiedModels: StateFlow<List<AiModel>> = combine(
-        agyBackend.enabledModels,
-        claudeBackend.availableModels,
-        deepseekBackend.availableModels,
-        codexBackend.availableModels,
-        openrouterBackend.availableModels
-    ) { agy, claude, deepseek, codex, openrouter ->
+        combine(agyBackend.enabledModels, claudeBackend.availableModels, deepseekBackend.availableModels) { a, c, d -> Triple(a, c, d) },
+        combine(codexBackend.availableModels, openrouterBackend.availableModels, opencodeBackend.availableModels) { cx, o, op -> Triple(cx, o, op) }
+    ) { (agy, claude, deepseek), (codex, openrouter, opencode) ->
         val merged = mutableListOf<AiModel>()
         merged.addAll(agy)
-        merged.addAll(claude)
-        merged.addAll(deepseek)
-        merged.addAll(codex)
-        merged.addAll(openrouter)
+        if (!com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+            merged.addAll(claude)
+            merged.addAll(deepseek)
+            merged.addAll(codex)
+            merged.addAll(openrouter)
+            merged.addAll(opencode)
+        }
         for (def in AiModel.DEFAULT_MODELS) {
             if (merged.none { it.id == def.id || it.key == def.id }) {
                 merged.add(def)
@@ -221,7 +227,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         merged
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AiModel.DEFAULT_MODELS)
     val isRefreshingModels = byAgent(agyBackend.isRefreshingModels, claudeBackend.isRefreshingModels)
-    val selectedModelId = byAgent(agyBackend.selectedModelId, claudeBackend.selectedModelId, deepseekBackend.selectedModelId, codexBackend.selectedModelId, openrouterBackend.selectedModelId)
+    val selectedModelId = byAgent(agyBackend.selectedModelId, claudeBackend.selectedModelId, deepseekBackend.selectedModelId, codexBackend.selectedModelId, openrouterBackend.selectedModelId, opencodeBackend.selectedModelId)
     val preferredModelName = agyBackend.preferredModelName
     /** Claude's plan windows as the model pill's quota (remaining share of the 5-hour and weekly limits). */
     private val claudeQuotas: StateFlow<List<ModelQuota>> =

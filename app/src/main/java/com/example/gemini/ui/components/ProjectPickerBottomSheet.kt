@@ -361,7 +361,7 @@ fun ProjectPickerDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(
+                    Surface(
                         onClick = {
                             newFolderNameInput = ""
                             createError = null
@@ -369,12 +369,14 @@ fun ProjectPickerDialog(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .heightIn(min = 44.dp),
+                            .height(46.dp),
                         shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                        color = Color(0xFF10B981)
                     ) {
                         Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
@@ -384,11 +386,12 @@ fun ProjectPickerDialog(
                                 tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
                             Text(
                                 text = "+ New Folder",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
+                                color = Color.White,
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Ellipsis
@@ -396,19 +399,21 @@ fun ProjectPickerDialog(
                         }
                     }
 
-                    Button(
+                    Surface(
                         onClick = {
                             onDismiss()
                             onBrowseFolder()
                         },
                         modifier = Modifier
-                            .weight(1.2f)
-                            .heightIn(min = 44.dp),
+                            .weight(1.15f)
+                            .height(46.dp),
                         shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                        color = ClaudeTerracotta
                     ) {
                         Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
@@ -418,11 +423,12 @@ fun ProjectPickerDialog(
                                 tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
                             Text(
-                                text = "Browse Storage...",
+                                text = "Browse Storage",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
+                                color = Color.White,
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Ellipsis

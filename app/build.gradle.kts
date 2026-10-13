@@ -10,6 +10,7 @@ val parsedVersion = if (versionFile.exists()) {
 
 val appVersionCode = (parsedVersion["version_code"] as? Number)?.toInt() ?: 1
 val appVersionName = (parsedVersion["version_name"] as? String) ?: "1.0.0"
+val isAntigravityOnly = project.findProperty("jinEdition")?.toString()?.equals("antigravity", ignoreCase = true) == true
 
 plugins {
   alias(libs.plugins.android.application)
@@ -36,6 +37,7 @@ android {
         buildConfigField("int", "HUB_PORT", "1235")
         buildConfigField("int", "BROWSER_MCP_PORT", "8765")
         buildConfigField("boolean", "IS_OFFLINE_MODE", "false")
+        buildConfigField("boolean", "IS_ANTIGRAVITY_ONLY", if (isAntigravityOnly) "true" else "false")
         buildConfigField("String", "DELIVERY_TYPE", "\"termux\"")
     }
 

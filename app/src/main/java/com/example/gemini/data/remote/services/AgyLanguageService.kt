@@ -79,7 +79,7 @@ suspend fun <Req : Any, Resp : Any> GrpcCall<Req, Resp>.executeSafely(
     throw e
 } catch (e: GrpcException) {
     android.util.Log.e("AGY_RPC", "❌ [AgyLanguageService.executeSafely] GrpcException: status=${e.grpcStatus}, msg=${e.grpcMessage}", e)
-    val isCsrfError = e.grpcStatus == GrpcStatus.UNAUTHENTICATED || e.grpcMessage?.contains("CSRF", ignoreCase = true) == true
+    val isCsrfError = e.grpcMessage?.contains("CSRF", ignoreCase = true) == true
     if (isCsrfError) {
         val hubUrl = AuthPreferences.currentHubUrl
         android.util.Log.w("AGY_RPC", "🔄 [AgyLanguageService.executeSafely] CSRF error detected on RPC. Invalidating token...")
@@ -121,7 +121,7 @@ fun <Req : Any, Resp : Any> GrpcStreamingCall<Req, Resp>.asFlowSafely(
         throw e
     } catch (e: GrpcException) {
         android.util.Log.e("CHAT_OPEN_DEBUG", "❌ [AgyLanguageService.asFlowSafely] GrpcException: status=${e.grpcStatus}, msg=${e.grpcMessage}", e)
-        val isCsrfError = e.grpcStatus == GrpcStatus.UNAUTHENTICATED || e.grpcMessage?.contains("CSRF", ignoreCase = true) == true
+        val isCsrfError = e.grpcMessage?.contains("CSRF", ignoreCase = true) == true
         if (isCsrfError) {
             val hubUrl = AuthPreferences.currentHubUrl
             android.util.Log.w("CHAT_OPEN_DEBUG", "🔄 [AgyLanguageService.asFlowSafely] CSRF error on stream. Invalidating CSRF cache for $hubUrl...")

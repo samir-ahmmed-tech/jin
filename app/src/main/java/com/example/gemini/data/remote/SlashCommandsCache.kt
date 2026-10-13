@@ -24,6 +24,10 @@ object SlashCommandsCache {
 
     // Standard built-in Antigravity slash commands
     val BUILTIN_COMMANDS = listOf(
+        SlashCommandItem("optimize", "/optimize", "Open Antigravity 2.0 Turbo Optimizer & PC Suite (Speed, Accuracy, RAM, WAL)", "command"),
+        SlashCommandItem("subagent", "/subagent", "Manage and invoke Antigravity 2.0 subagents (self, research, image-generator, custom)", "command"),
+        SlashCommandItem("rules", "/rules", "Edit workspace & global GEMINI.md / AGENTS.md rules", "command"),
+        SlashCommandItem("skills", "/skills", "Create, edit, or migrate SKILL.md skills", "command"),
         SlashCommandItem("goal", "/goal", "Run a long-running task overnight and be extra thorough until the goal is achieved", "command"),
         SlashCommandItem("schedule", "/schedule", "Schedule a one-shot timer or recurring cron job", "command"),
         SlashCommandItem("browser", "/browser", "Interact with web applications or search and browse the web", "command"),

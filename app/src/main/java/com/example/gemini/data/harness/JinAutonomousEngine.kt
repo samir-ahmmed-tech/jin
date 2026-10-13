@@ -105,9 +105,13 @@ class JinAutonomousEngine(private val context: Context) {
         // 2. Provider Profile fallback
         when (provider.kind) {
             ProviderKind.OPENCODE_ZEN -> {
-                val key = authPrefs.getOpenCodeApiKeySync().ifBlank { "free-opencode-zen" }
-                val model = if (effectiveModel.isNotBlank() && effectiveModel != "default") effectiveModel else "deepseek-v4-flash"
-                return ResolvedEngineEndpoint("https://opencode.ai/zen/v1", key, model, "OpenCode Zen Gateway")
+                val key = authPrefs.getOpenCodeApiKeySync().trim()
+                return if (key.isNotBlank() && key != "opencode_zen_free" && key != "free-opencode-zen") {
+                    val model = if (effectiveModel.isNotBlank() && effectiveModel != "default") effectiveModel else "deepseek-v4-flash"
+                    ResolvedEngineEndpoint("https://opencode.ai/zen/v1", key, model, "OpenCode Zen Gateway")
+                } else {
+                    ResolvedEngineEndpoint(DirectApiClient.ZERO_KEY_GATEWAY_URL, "", DirectApiClient.ZERO_KEY_DEFAULT_MODEL, "OpenCode Zen Gateway (Free Tier)")
+                }
             }
             ProviderKind.DEEPSEEK -> {
                 val key = authPrefs.getDeepSeekApiKeySync()
@@ -163,8 +167,8 @@ class JinAutonomousEngine(private val context: Context) {
             return ResolvedEngineEndpoint("https://generativelanguage.googleapis.com/v1beta/openai", geminiKey, "gemini-2.5-flash", "Google Gemini API (Auto-fallback)")
         }
 
-        // 4. Default open gateway
-        return ResolvedEngineEndpoint("https://opencode.ai/zen/v1", "free-opencode-zen", "opencode-zen-coder", "OpenCode Zen Gateway (Free Tier)")
+        // 4. Default open gateway (100% zero-key free tier)
+        return ResolvedEngineEndpoint(DirectApiClient.ZERO_KEY_GATEWAY_URL, "", DirectApiClient.ZERO_KEY_DEFAULT_MODEL, "OpenCode Zen Gateway (Free Tier)")
     }
 
     /**
@@ -702,7 +706,7 @@ Guidelines:
             // If not found in fence, inspect first line of content for // filepath: xyz or <!-- filepath: xyz -->
             if (path.isBlank()) {
                 val firstLine = content.lineSequence().firstOrNull()?.trim() ?: ""
-                val lineMatch = Regex("(?:\\/\\/|#|<!--|\\/\\*)\\s*(?:filepath:|file:)\\s*([a-zA-Z0-9_./-]+\\.[a-zA-Z0-9]+)").find(firstLine)
+                val lineMatch = Regex("(?:\\/\\/|#|<!--|\\/\\*)\\s*(?:filepath:|file:|filepath=|file=)\\s*([a-zA-Z0-9_./-]+\\.[a-zA-Z0-9]+)").find(firstLine)
                 if (lineMatch != null) {
                     path = lineMatch.groupValues[1].trim()
                 }

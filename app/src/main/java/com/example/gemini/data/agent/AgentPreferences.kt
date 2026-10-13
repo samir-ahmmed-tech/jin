@@ -1,6 +1,7 @@
 package com.example.gemini.data.agent
 
 import android.content.Context
+import com.example.gemini.BuildConfig
 import com.example.gemini.domain.model.AgentKind
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * Which agents the app runs. Antigravity is on and Claude Code off until the user picks on first launch; at least
  * one always stays on. The bridge is started with the matching flags (see [bridgeFlags]).
+ * In the Antigravity-Only edition ([BuildConfig.IS_ANTIGRAVITY_ONLY]), only [AgentKind.AGY] is enabled.
  */
 class AgentPreferences(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -16,12 +18,19 @@ class AgentPreferences(context: Context) {
     private val _enabled = MutableStateFlow(read(prefs))
     val enabled: StateFlow<Set<AgentKind>> = _enabled.asStateFlow()
 
-    private val _hasChosen = MutableStateFlow(prefs.getBoolean(KEY_CHOSEN, false))
+    private val _hasChosen = MutableStateFlow(
+        if (BuildConfig.IS_ANTIGRAVITY_ONLY) true else prefs.getBoolean(KEY_CHOSEN, false)
+    )
     /** The first-launch agent choice was made. */
     val hasChosen: StateFlow<Boolean> = _hasChosen.asStateFlow()
 
     /** Saves the agent selection (ignored when empty). */
     fun setEnabled(agents: Set<AgentKind>) {
+        if (BuildConfig.IS_ANTIGRAVITY_ONLY) {
+            _enabled.value = setOf(AgentKind.AGY)
+            _hasChosen.value = true
+            return
+        }
         if (agents.isEmpty()) return
         prefs.edit().apply {
             AgentKind.entries.forEach { putBoolean(key(it), it in agents) }
@@ -39,19 +48,26 @@ class AgentPreferences(context: Context) {
 
         private fun default(agent: AgentKind) = agent == AgentKind.AGY
 
-        private fun read(prefs: android.content.SharedPreferences): Set<AgentKind> =
-            AgentKind.entries.filter { prefs.getBoolean(key(it), default(it)) }.toSet().ifEmpty { setOf(AgentKind.AGY) }
+        private fun read(prefs: android.content.SharedPreferences): Set<AgentKind> {
+            if (BuildConfig.IS_ANTIGRAVITY_ONLY) return setOf(AgentKind.AGY)
+            return AgentKind.entries.filter { prefs.getBoolean(key(it), default(it)) }.toSet().ifEmpty { setOf(AgentKind.AGY) }
+        }
 
         /** The first-launch agent choice was made, read synchronously (the server does not start before it). */
-        fun hasChosenSync(context: Context): Boolean =
-            context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_CHOSEN, false)
+        fun hasChosenSync(context: Context): Boolean {
+            if (BuildConfig.IS_ANTIGRAVITY_ONLY) return true
+            return context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_CHOSEN, false)
+        }
 
         /** Enabled agents, read synchronously (bridge launch). */
-        fun enabledSync(context: Context): Set<AgentKind> =
-            read(context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE))
+        fun enabledSync(context: Context): Set<AgentKind> {
+            if (BuildConfig.IS_ANTIGRAVITY_ONLY) return setOf(AgentKind.AGY)
+            return read(context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE))
+        }
 
         /** Bridge flags that keep a disabled agent from running at all. */
         fun bridgeFlags(context: Context): String {
+            if (BuildConfig.IS_ANTIGRAVITY_ONLY) return " --no-claude"
             val enabled = enabledSync(context)
             return buildString {
                 if (AgentKind.AGY !in enabled) append(" --no-hub")

@@ -394,73 +394,75 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
 
-                                // Persistent Harness Studio Screen (Retains workspace diffs, agent runner & state)
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer {
-                                            val isVisible = currentViewMode == AppViewMode.HARNESS
-                                            alpha = if (isVisible) 1f else 0f
-                                            translationX = if (isVisible) 0f else 20000f
-                                        }
-                                ) {
-                                    com.example.gemini.ui.harness.HarnessStudioScreen(
-                                        onClose = {
-                                            currentViewMode =
-                                                if (previousViewMode == AppViewMode.HARNESS) AppViewMode.CHAT else previousViewMode
-                                        },
-                                        onNavigateToChat = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.CHAT
-                                        },
-                                        onNavigateToIde = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.IDE
-                                        },
-                                        onNavigateToTerminal = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.TERMINAL
-                                        },
-                                        onSwitchToFusion = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.FUSION
-                                        }
-                                    )
-                                }
+                                if (!com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+                                    // Persistent Harness Studio Screen (Retains workspace diffs, agent runner & state)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                val isVisible = currentViewMode == AppViewMode.HARNESS
+                                                alpha = if (isVisible) 1f else 0f
+                                                translationX = if (isVisible) 0f else 20000f
+                                            }
+                                    ) {
+                                        com.example.gemini.ui.harness.HarnessStudioScreen(
+                                            onClose = {
+                                                currentViewMode =
+                                                    if (previousViewMode == AppViewMode.HARNESS) AppViewMode.CHAT else previousViewMode
+                                            },
+                                            onNavigateToChat = {
+                                                previousViewMode = currentViewMode
+                                                currentViewMode = AppViewMode.CHAT
+                                            },
+                                            onNavigateToIde = {
+                                                previousViewMode = currentViewMode
+                                                currentViewMode = AppViewMode.IDE
+                                            },
+                                            onNavigateToTerminal = {
+                                                previousViewMode = currentViewMode
+                                                currentViewMode = AppViewMode.TERMINAL
+                                            },
+                                            onSwitchToFusion = {
+                                                previousViewMode = currentViewMode
+                                                currentViewMode = AppViewMode.FUSION
+                                            }
+                                        )
+                                    }
 
-                                // Persistent JIN Fusion Screen (Dedicated Hybrid AI Assistant & Autonomous Coding Engine)
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer {
-                                            val isVisible = currentViewMode == AppViewMode.FUSION
-                                            alpha = if (isVisible) 1f else 0f
-                                            translationX = if (isVisible) 0f else 20000f
-                                        }
-                                ) {
-                                    com.example.gemini.ui.harness.JinFusionScreen(
-                                        chatViewModel = chatViewModel,
-                                        onClose = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.CHAT
-                                        },
-                                        onNavigateToClassic = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.CHAT
-                                        },
-                                        onNavigateToHarness = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.HARNESS
-                                        },
-                                        onNavigateToIde = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.IDE
-                                        },
-                                        onNavigateToTerminal = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.TERMINAL
-                                        }
-                                    )
+                                    // Persistent JIN Fusion Screen (Dedicated Hybrid AI Assistant & Autonomous Coding Engine)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                val isVisible = currentViewMode == AppViewMode.FUSION
+                                                alpha = if (isVisible) 1f else 0f
+                                                translationX = if (isVisible) 0f else 20000f
+                                            }
+                                    ) {
+                                        com.example.gemini.ui.harness.JinFusionScreen(
+                                            chatViewModel = chatViewModel,
+                                            onClose = {
+                                                previousViewMode = currentViewMode
+                                                currentViewMode = AppViewMode.CHAT
+                                            },
+                                            onNavigateToClassic = {
+                                                previousViewMode = currentViewMode
+                                                currentViewMode = AppViewMode.CHAT
+                                            },
+                                            onNavigateToHarness = {
+                                                previousViewMode = currentViewMode
+                                                currentViewMode = AppViewMode.HARNESS
+                                            },
+                                            onNavigateToIde = {
+                                                previousViewMode = currentViewMode
+                                                currentViewMode = AppViewMode.IDE
+                                            },
+                                            onNavigateToTerminal = {
+                                                previousViewMode = currentViewMode
+                                                currentViewMode = AppViewMode.TERMINAL
+                                            }
+                                        )
+                                    }
                                 }
 
 

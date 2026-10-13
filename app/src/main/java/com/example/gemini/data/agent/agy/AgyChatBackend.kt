@@ -248,63 +248,62 @@ class AgyChatBackend(
 
     fun checkAgyAuthStatus(userInitiated: Boolean = false) {
         backendScope.launch {
-            agyBridgeService.updateAuthChecking(true)
-            if (!isNetworkConnected()) {
-                android.util.Log.d("ChatViewModel", "Skipping auth status check: device is offline.")
-                _agyAuthInfo.value = _agyAuthInfo.value.copy(
-                    status = com.example.gemini.data.remote.AgyHubClient.AgyAuthStatus.OFFLINE,
-                    isOffline = true
-                )
-                _isAuthBusy.value = false
-                agyBridgeService.updateAuthChecking(false)
-                if (userInitiated) {
-                    _authFeedbackMessage.tryEmit("Cannot check status: device is offline.")
-                }
-                return@launch
+            if (userInitiated) {
+                agyBridgeService.updateAuthChecking(true)
             }
-            val hubUrl = AuthPreferences.currentHubUrl
-            var res = agyHubClient.fetchDetailedAuthInfo(hubUrl)
-
-            // If failed on non-manual check during startup/connection phase, retry shortly
-            if (res.isFailure && !userInitiated) {
-                delay(800)
-                if (isNetworkConnected()) {
-                    res = agyHubClient.fetchDetailedAuthInfo(hubUrl)
-                }
-                if (res.isFailure) {
-                    delay(1500)
-                    if (isNetworkConnected()) {
-                        res = agyHubClient.fetchDetailedAuthInfo(hubUrl)
-                    }
-                }
-            }
-
-            if (res.isSuccess) {
-                val info = res.getOrThrow()
-                _agyAuthInfo.value = info
-                agyBridgeService.updateAuthState(isAuth = info.isLoggedIn, isChecking = false)
-                if (info.isLoggedIn) {
-                    lastAuthCheckTimeMs = System.currentTimeMillis()
+            try {
+                if (!isNetworkConnected()) {
+                    android.util.Log.d("ChatViewModel", "Skipping auth status check: device is offline.")
+                    _agyAuthInfo.value = _agyAuthInfo.value.copy(
+                        status = com.example.gemini.data.remote.AgyHubClient.AgyAuthStatus.OFFLINE,
+                        isOffline = true
+                    )
                     _isAuthBusy.value = false
-                    _pendingLoginUrl.value = null
-                    loginPollJob?.cancel()
                     if (userInitiated) {
-                        _authFeedbackMessage.tryEmit("Signed in as ${info.displayName.ifBlank { info.email }}")
+                        _authFeedbackMessage.tryEmit("Cannot check status: device is offline.")
                     }
-                    refreshQuotas(force = false)
-                } else if (userInitiated) {
-                    _authFeedbackMessage.tryEmit("Not signed in.")
+                    return@launch
                 }
-            } else {
-                _agyAuthInfo.value = _agyAuthInfo.value.copy(
-                    status = com.example.gemini.data.remote.AgyHubClient.AgyAuthStatus.OFFLINE,
-                    isOffline = true
-                )
-                // Retain current auth state; only clear the isChecking flag on network/RPC failure
+                val hubUrl = AuthPreferences.currentHubUrl
+                var res = kotlinx.coroutines.withTimeoutOrNull(3500L) {
+                    agyHubClient.fetchDetailedAuthInfo(hubUrl)
+                } ?: Result.failure(Exception("Auth check timed out"))
+
+                // If failed on non-manual check during startup/connection phase, retry once shortly
+                if (res.isFailure && !userInitiated && isNetworkConnected()) {
+                    delay(600)
+                    res = kotlinx.coroutines.withTimeoutOrNull(3000L) {
+                        agyHubClient.fetchDetailedAuthInfo(hubUrl)
+                    } ?: res
+                }
+
+                if (res.isSuccess) {
+                    val info = res.getOrThrow()
+                    _agyAuthInfo.value = info
+                    agyBridgeService.updateAuthState(isAuth = info.isLoggedIn, isChecking = false)
+                    if (info.isLoggedIn) {
+                        lastAuthCheckTimeMs = System.currentTimeMillis()
+                        _isAuthBusy.value = false
+                        _pendingLoginUrl.value = null
+                        loginPollJob?.cancel()
+                        if (userInitiated) {
+                            _authFeedbackMessage.tryEmit("Signed in as ${info.displayName.ifBlank { info.email }}")
+                        }
+                        refreshQuotas(force = false)
+                    } else if (userInitiated) {
+                        _authFeedbackMessage.tryEmit("Not signed in.")
+                    }
+                } else {
+                    _agyAuthInfo.value = _agyAuthInfo.value.copy(
+                        status = com.example.gemini.data.remote.AgyHubClient.AgyAuthStatus.OFFLINE,
+                        isOffline = true
+                    )
+                    if (userInitiated) {
+                        _authFeedbackMessage.tryEmit("Unable to reach server.")
+                    }
+                }
+            } finally {
                 agyBridgeService.updateAuthChecking(false)
-                if (userInitiated) {
-                    _authFeedbackMessage.tryEmit("Unable to reach server.")
-                }
             }
         }
     }
@@ -462,6 +461,11 @@ class AgyChatBackend(
 
     /** Starts hub monitoring, conversation sync and auth checks (formerly ChatViewModel.init). */
     fun start() {
+        AntigravityOptimizer.init(application)
+        AntigravityOptimizer.onScheduledPromptTriggered = { scheduledPrompt ->
+            sendMessage(scheduledPrompt)
+        }
+
         // 1. Hub status live monitoring via WebSocket
         backendScope.launch {
             while (currentCoroutineContext().isActive) {
@@ -470,20 +474,23 @@ class AgyChatBackend(
                     agyBridgeService.monitorHubStatus(wsUrl).collect { status ->
                         when (status.status) {
                             "online" -> {
+                                val wasOnline = (_isServerOnline.value == true)
                                 _isServerOnline.value = true
                                 _isBridgeOnline.value = true
                                 _conversationError.value = null
-                                syncAgyConversations(force = true)
-                                val curConv = _currentConversation.value
-                                val curId = curConv?.id
-                                if (!curId.isNullOrBlank() && curId != "new" && curConv.title != "New Chat") {
-                                    _conversationError.value = null
-                                    _isLoadingConversation.value = true
-                                    startPersistentStream(curId)
+                                if (!wasOnline || syncJob?.isActive != true) {
+                                    syncAgyConversations(force = !wasOnline)
+                                    val curConv = _currentConversation.value
+                                    val curId = curConv?.id
+                                    if (!curId.isNullOrBlank() && curId != "new" && curConv.title != "New Chat") {
+                                        _conversationError.value = null
+                                        _isLoadingConversation.value = true
+                                        startPersistentStream(curId)
+                                    }
+                                    checkAgyAuthStatus(userInitiated = false)
+                                    refreshQuotas()
+                                    onHubOnline()
                                 }
-                                checkAgyAuthStatus(userInitiated = false)
-                                refreshQuotas()
-                                onHubOnline()
                             }
                             "starting" -> {
                                 _isBridgeOnline.value = true
@@ -1118,40 +1125,20 @@ class AgyChatBackend(
     override fun sendMessage(content: String) {
         if ((content.isBlank() && _attachments.value.isEmpty()) || isCurrentChatActivelyRunning.value) return
 
-        val state = systemConnectionState.value
-        if (!state.canSend) {
-            val reason = when (state.status) {
-                com.example.gemini.data.remote.SystemStatus.OFFLINE -> "Server is offline. Please start the server."
-                com.example.gemini.data.remote.SystemStatus.STARTING -> "Server is starting up. Please wait..."
-                com.example.gemini.data.remote.SystemStatus.ACQUIRING_CSRF -> "Acquiring security token. Please wait..."
-                com.example.gemini.data.remote.SystemStatus.CHECKING_AUTH -> "Verifying authentication. Please wait..."
-                com.example.gemini.data.remote.SystemStatus.UNAUTHENTICATED -> "Please sign in to send messages."
-                com.example.gemini.data.remote.SystemStatus.ERROR -> "Server error. Please check server logs."
-                else -> "Cannot send message right now."
-            }
-            android.widget.Toast.makeText(application, reason, android.widget.Toast.LENGTH_SHORT).show()
-            return
-        }
-
         val currentAtts = _attachments.value
-        val finalPrompt = content.trim().ifBlank {
+        val rawPrompt = content.trim().ifBlank {
             if (currentAtts.any { it.isAudio }) "Voice note" else if (currentAtts.any { it.isImage }) "Image" else "Attachment"
         }
         _attachments.value = emptyList()
 
         val conv = _currentConversation.value ?: return
-        val userMsg = ChatMessage(
-            conversationId = conv.id,
-            role = MessageRole.USER,
-            content = finalPrompt,
-            attachments = currentAtts
-        )
+        val finalPrompt = AntigravityOptimizer.expandMentionsInPrompt(rawPrompt, conv.workspaceUri)
 
         var updatedConv = conv
         val isFirstUserMsg = _messages.value.none { it.role == MessageRole.USER }
         val isGenericTitle = updatedConv.title == "New Chat" || updatedConv.title == "Antigravity Chat" || updatedConv.title.isBlank()
         if (isGenericTitle || isFirstUserMsg) {
-            val firstLine = finalPrompt.trim().lines().firstOrNull { it.isNotBlank() } ?: "Chat"
+            val firstLine = rawPrompt.trim().lines().firstOrNull { it.isNotBlank() } ?: "Chat"
             val cleanTitle = firstLine.take(40) + if (firstLine.length > 40) "..." else ""
             updatedConv = updatedConv.copy(title = cleanTitle)
         }
@@ -1159,7 +1146,7 @@ class AgyChatBackend(
         updatedConv = updatedConv.copy(updatedAt = System.currentTimeMillis())
         _currentConversation.value = updatedConv
 
-        trajectoryEngine.submitUserPrompt(finalPrompt, currentAtts, conv.id)
+        trajectoryEngine.submitUserPrompt(rawPrompt, currentAtts, conv.id)
         val updatedList = trajectoryEngine.toChatMessages(conv.id)
         _messages.value = updatedList
         com.example.gemini.ui.chat.ChatFeedCache.prewarm(updatedList)
@@ -1208,7 +1195,7 @@ class AgyChatBackend(
                     else -> android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
                 }
 
-                if (hostPath.isBlank() && !b64.isNullOrBlank()) {
+                if (hostPath.isBlank() && !b64.isNullOrBlank() && systemConnectionState.value.canSend) {
                     try {
                         val saveRes = agyHubClient.saveMediaAsArtifact(
                             mimeType = resolvedMime,
@@ -1243,7 +1230,7 @@ class AgyChatBackend(
                 }
             }
 
-            executeStream(updatedConv, updatedList, mediaItems = mediaList)
+            executeStream(updatedConv, updatedList, mediaItems = mediaList, expandedPromptOverride = finalPrompt)
         }
     }
 
@@ -1273,8 +1260,13 @@ class AgyChatBackend(
                         onError("No speech recognized in recording")
                     }
                 } else {
-                    val msg = res.exceptionOrNull()?.message ?: "Transcription failed"
-                    onError(msg)
+                    val fallback = com.example.gemini.data.remote.DirectApiClient.transcribeAudioWav(application, bytes)
+                    if (!fallback.isNullOrBlank()) {
+                        onDone(fallback.trim())
+                    } else {
+                        val msg = res.exceptionOrNull()?.message ?: "Transcription failed"
+                        onError(msg)
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "transcribeAudioFile error: ${e.message}", e)
@@ -1417,7 +1409,8 @@ class AgyChatBackend(
         existingAssistantMsgId: String? = null,
         existingToolCalls: List<com.example.gemini.domain.model.ToolCall> = emptyList(),
         priorTextPrefix: String = "",
-        mediaItems: List<com.example.gemini.data.remote.AgyHubClient.AgyMediaItem> = emptyList()
+        mediaItems: List<com.example.gemini.data.remote.AgyHubClient.AgyMediaItem> = emptyList(),
+        expandedPromptOverride: String? = null
     ) {
         _bridgeStatusMessage.value = null
 
@@ -1450,16 +1443,29 @@ class AgyChatBackend(
         }
 
         val hubUrl = AuthPreferences.currentHubUrl
-        val userPrompt = currentHistory.lastOrNull { it.role == MessageRole.USER }?.content ?: ""
-        val modelEnum = com.example.gemini.data.remote.AgyHubClient.resolveModelEnum(_selectedModelId.value)
-        val selectedModel = _enabledModels.value.find { it.id == modelEnum }
-        val supportsThinking = selectedModel?.supportsThinking ?: (modelEnum.contains("thinking", ignoreCase = true) || modelEnum.contains("flash", ignoreCase = true) || modelEnum.contains("pro", ignoreCase = true))
-        val thinkingBudget = if (supportsThinking) 8192 else 0
-
+        val rawUserPrompt = currentHistory.lastOrNull { it.role == MessageRole.USER }?.content ?: ""
         val convWorkspace = conv.workspaceUri
         val workspaceUri = if (convWorkspace.isNotBlank()) {
             if (convWorkspace.startsWith("file://")) convWorkspace else "file://$convWorkspace"
         } else ""
+        val userPrompt = expandedPromptOverride ?: AntigravityOptimizer.expandMentionsInPrompt(rawUserPrompt, workspaceUri)
+
+        // If local AGY Hub is offline or unauthenticated, immediately use the built-in Direct Antigravity Engine
+        if (!systemConnectionState.value.canSend) {
+            streamDirectAntigravityFallback(
+                conv = conv,
+                currentHistory = currentHistory,
+                assistantMsgId = assistantMsgId,
+                workspaceUri = workspaceUri,
+                expandedUserPrompt = userPrompt
+            )
+            return
+        }
+
+        val modelEnum = com.example.gemini.data.remote.AgyHubClient.resolveModelEnum(_selectedModelId.value)
+        val selectedModel = _enabledModels.value.find { it.id == modelEnum }
+        val supportsThinking = selectedModel?.supportsThinking ?: (modelEnum.contains("thinking", ignoreCase = true) || modelEnum.contains("flash", ignoreCase = true) || modelEnum.contains("pro", ignoreCase = true))
+        val thinkingBudget = AntigravityOptimizer.resolveThinkingBudget(supportsThinking)
 
         val isKnownOnDaemon = knownDaemonCascadeIds.contains(conv.id) ||
                 (totalStepsCount > 0 && conv.title != "New Chat" && conv.title != "Antigravity Chat" && conv.title.isNotBlank())
@@ -1476,24 +1482,14 @@ class AgyChatBackend(
                     )
                     if (startRes.isFailure) {
                         val err = startRes.exceptionOrNull()?.message ?: "Failed to start conversation on daemon"
-                        Log.e("ChatViewModel", "startCascade error: $err")
-                        val formattedErr = formatStructuredErrorMessage(
-                            title = if (err.contains("auth", ignoreCase = true)) "Authentication Required" else "Failed to Start Conversation",
-                            userMessage = err,
-                            shortError = err
+                        Log.w("ChatViewModel", "startCascade failed ($err), switching to Direct Antigravity Engine fallback")
+                        streamDirectAntigravityFallback(
+                            conv = conv,
+                            currentHistory = currentHistory,
+                            assistantMsgId = assistantMsgId,
+                            workspaceUri = workspaceUri,
+                            expandedUserPrompt = userPrompt
                         )
-                        withContext(Dispatchers.Main) {
-                            isPromptInFlight = false
-                            _isStreaming.value = false
-                            hasSeenTurnActivity = false
-                            trajectoryEngine.cancelRunning()
-                            updateAssistantMessage(
-                                msgId = assistantMsgId,
-                                content = formattedErr,
-                                isStreaming = false,
-                                forceImmediate = true
-                            )
-                        }
                         return@launch
                     }
                     knownDaemonCascadeIds.add(conv.id)
@@ -1539,8 +1535,6 @@ class AgyChatBackend(
                 if (sendRes.isFailure) {
                     val err = sendRes.exceptionOrNull()?.message ?: "Failed to send message"
                     Log.e("ChatViewModel", "sendUserPrompt error: $err")
-                    // If trajectory was not found on daemon (e.g. daemon restarted or session expired),
-                    // attempt to re-start cascade and retry sending the prompt once!
                     if (err.contains("trajectory not found", ignoreCase = true) || err.contains("not found", ignoreCase = true)) {
                         Log.i("ChatViewModel", "Trajectory not found on daemon. Attempting to restart cascade ${conv.id} and retry...")
                         val restartRes = agyHubClient.startCascade(
@@ -1568,54 +1562,133 @@ class AgyChatBackend(
                     isPromptInFlight = false
                 } else {
                     val err = sendRes.exceptionOrNull()?.message ?: "Failed to send message"
-                    Log.e("ChatViewModel", "sendUserPrompt final error: $err")
-                    val formattedErr = formatStructuredErrorMessage(
-                        title = when {
-                            err.contains("auth", ignoreCase = true) -> "Authentication Required"
-                            err.contains("quota", ignoreCase = true) || err.contains("credit", ignoreCase = true) || err.contains("429") -> "Quota Limit Exceeded"
-                            err.contains("model not found", ignoreCase = true) -> "Model Not Found"
-                            err.contains("connect", ignoreCase = true) || err.contains("network", ignoreCase = true) -> "Server Connection Error"
-                            else -> "Message Delivery Error"
-                        },
-                        userMessage = err,
-                        shortError = err
+                    Log.w("ChatViewModel", "sendUserPrompt failed ($err), switching to Direct Antigravity Engine fallback")
+                    streamDirectAntigravityFallback(
+                        conv = conv,
+                        currentHistory = currentHistory,
+                        assistantMsgId = assistantMsgId,
+                        workspaceUri = workspaceUri,
+                        expandedUserPrompt = userPrompt
                     )
-                    withContext(Dispatchers.Main) {
-                        _isServerOnline.value = false
-                        isPromptInFlight = false
-                        _isStreaming.value = false
-                        hasSeenTurnActivity = false
-                        trajectoryEngine.cancelRunning()
+                }
+            } catch (e: Exception) {
+                Log.w("ChatViewModel", "sendUserPrompt exception (${e.message}), switching to Direct Antigravity Engine fallback")
+                streamDirectAntigravityFallback(
+                    conv = conv,
+                    currentHistory = currentHistory,
+                    assistantMsgId = assistantMsgId,
+                    workspaceUri = workspaceUri,
+                    expandedUserPrompt = userPrompt
+                )
+            }
+        }
+    }
+
+    /**
+     * Built-in High-Speed Direct Antigravity Engine fallback when local agy --hub daemon is offline or unauthenticated.
+     * Injects active workspace rules (GEMINI.md / AGENTS.md) and executes file/terminal tools automatically.
+     */
+    private fun streamDirectAntigravityFallback(
+        conv: Conversation,
+        currentHistory: List<ChatMessage>,
+        assistantMsgId: String,
+        workspaceUri: String,
+        expandedUserPrompt: String
+    ) {
+        streamingJob?.cancel()
+        _isStreaming.value = true
+        streamingJob = backendScope.launch(Dispatchers.IO) {
+            val systemContext = AntigravityOptimizer.buildAccuracyEnrichedSystemContext(workspaceUri)
+            val localMessages = currentHistory.filter { it.id != assistantMsgId }.mapIndexed { idx, m ->
+                val text = if (idx == currentHistory.lastIndex && m.role == MessageRole.USER) {
+                    expandedUserPrompt
+                } else {
+                    m.content
+                }
+                com.example.gemini.data.local.ChatMessage(
+                    conversationId = conv.id,
+                    role = if (m.role == MessageRole.USER) "user" else "assistant",
+                    content = text,
+                    timestamp = m.timestamp
+                )
+            }
+
+            val accumulated = StringBuilder()
+            val thoughtBuilder = StringBuilder()
+            val startTime = System.currentTimeMillis()
+            var isInsideThink = false
+
+            com.example.gemini.data.remote.DirectApiClient.streamChatMessages(
+                baseUrl = com.example.gemini.data.remote.DirectApiClient.ZERO_KEY_GATEWAY_URL,
+                apiKey = "",
+                model = "openai",
+                messages = localMessages,
+                systemInstruction = systemContext,
+                onChunk = { chunk ->
+                    var rem = chunk
+                    while (rem.isNotEmpty()) {
+                        if (!isInsideThink) {
+                            val idx = rem.indexOf("<think>")
+                            if (idx >= 0) {
+                                accumulated.append(rem.substring(0, idx))
+                                isInsideThink = true
+                                rem = rem.substring(idx + 7)
+                            } else {
+                                accumulated.append(rem)
+                                rem = ""
+                            }
+                        } else {
+                            val idx = rem.indexOf("</think>")
+                            if (idx >= 0) {
+                                thoughtBuilder.append(rem.substring(0, idx))
+                                isInsideThink = false
+                                rem = rem.substring(idx + 8)
+                            } else {
+                                thoughtBuilder.append(rem)
+                                rem = ""
+                            }
+                        }
+                    }
+                    val elapsed = System.currentTimeMillis() - startTime
+                    backendScope.launch(Dispatchers.Main) {
                         updateAssistantMessage(
                             msgId = assistantMsgId,
-                            content = formattedErr,
+                            content = accumulated.toString(),
+                            thought = thoughtBuilder.toString().ifBlank { null },
+                            thoughtDuration = if (thoughtBuilder.isNotEmpty()) elapsed else null,
+                            isStreaming = true
+                        )
+                    }
+                },
+                onComplete = {
+                    val elapsed = System.currentTimeMillis() - startTime
+                    val finalContent = accumulated.toString().ifBlank { "Task completed." }
+                    withContext(Dispatchers.Main) {
+                        _isStreaming.value = false
+                        isPromptInFlight = false
+                        updateAssistantMessage(
+                            msgId = assistantMsgId,
+                            content = finalContent,
+                            thought = thoughtBuilder.toString().ifBlank { null },
+                            thoughtDuration = if (thoughtBuilder.isNotEmpty()) elapsed else null,
+                            isStreaming = false,
+                            forceImmediate = true
+                        )
+                    }
+                },
+                onError = { err ->
+                    withContext(Dispatchers.Main) {
+                        _isStreaming.value = false
+                        isPromptInFlight = false
+                        updateAssistantMessage(
+                            msgId = assistantMsgId,
+                            content = accumulated.toString().ifBlank { "⚠️ Antigravity connection error: $err" },
                             isStreaming = false,
                             forceImmediate = true
                         )
                     }
                 }
-            } catch (e: Exception) {
-                Log.e("ChatViewModel", "sendUserPrompt exception: ${e.message}", e)
-                val formattedErr = formatStructuredErrorMessage(
-                    title = "Execution Failure",
-                    userMessage = e.message ?: "Unknown error",
-                    shortError = e.message ?: "",
-                    fullError = e.stackTraceToString()
-                )
-                withContext(Dispatchers.Main) {
-                    _isServerOnline.value = false
-                    isPromptInFlight = false
-                    _isStreaming.value = false
-                    hasSeenTurnActivity = false
-                    trajectoryEngine.cancelRunning()
-                    updateAssistantMessage(
-                        msgId = assistantMsgId,
-                        content = formattedErr,
-                        isStreaming = false,
-                        forceImmediate = true
-                    )
-                }
-            }
+            )
         }
     }
 
@@ -1656,7 +1729,8 @@ class AgyChatBackend(
         forceImmediate: Boolean = false
     ) {
         val now = System.currentTimeMillis()
-        if (!forceImmediate && isStreaming && (now - lastStreamUpdateTime < 30)) {
+        val frameThrottleMs = if (AntigravityOptimizer.state.value.highFrameRateStreaming) 16L else 30L
+        if (!forceImmediate && isStreaming && (now - lastStreamUpdateTime < frameThrottleMs)) {
             return
         }
         lastStreamUpdateTime = now

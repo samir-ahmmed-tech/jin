@@ -244,8 +244,6 @@ class DirectAgentChatBackend(
         store.messages.value = currentList
         saveMessagesToDisk(conv.id, currentList)
 
-        val isDirectKey = (apiKey.isNotBlank() && apiKey != "google_ai_session") || kind == AgentKind.OPENCODE
-
         val assistantMsgId = UUID.randomUUID().toString()
         val assistantMsg = ChatMessage(
             id = assistantMsgId,
@@ -256,8 +254,9 @@ class DirectAgentChatBackend(
             modelId = effectiveModel
         )
 
-        _messages.value = currentList + assistantMsg
-        store.messages.value = currentList + assistantMsg
+        val listWithAssistant = currentList + assistantMsg
+        _messages.value = listWithAssistant
+        store.messages.value = listWithAssistant
         _isStreaming.value = true
 
         activeStreamJobs[conv.id]?.cancel()
@@ -269,36 +268,16 @@ class DirectAgentChatBackend(
                 .map { (if (it.role == MessageRole.USER) "user" else "assistant") to it.content }
 
             val googleToken = authPrefs.accessToken.firstOrNull()
-
-            if (!isDirectKey && googleToken.isNullOrBlank()) {
-                val fallbackNotice = """
-                    🤖 **${kind.label()} Setup Required**
-                    
-                    To chat with **${kind.label()}**, you have two 100% working options:
-                    
-                    1. 🔑 **Add API Key:** Tap **Accounts → Set API Key** to paste your ${kind.label()} key for instant fast streaming.
-                    2. 🌐 **Google AI Sign In:** Sign in with your Google account in **Accounts** to automatically power ${kind.label()} via your Google AI Pro subscription!
-                """.trimIndent()
-                val updatedWithNotice = currentList.map {
-                    if (it.id == assistantMsgId) it.copy(content = fallbackNotice, isStreaming = false) else it
-                }
-                if (_currentConversation.value?.id == conv.id) {
-                    _messages.value = updatedWithNotice
-                    store.messages.value = updatedWithNotice
-                    _isStreaming.value = false
-                }
-                saveMessagesToDisk(conv.id, updatedWithNotice)
-                return@launch
-            }
+            val useGoogleProSession = apiKey == "google_ai_session" && !googleToken.isNullOrBlank()
 
             try {
-                if (isDirectKey) {
+                if (!useGoogleProSession) {
                     directApiClient.streamChatMessages(
                         baseUrl = baseUrl,
                         apiKey = apiKey,
                         model = effectiveModel,
                         messages = history,
-                        systemPrompt = "You are JIN, an advanced agentic AI coding super-assistant created by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin). Assist the developer with clear, high-quality, production-ready code, explanation, and debugging.",
+                        systemPrompt = "You are JIN (${kind.label()}), an advanced agentic AI coding super-assistant created by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin). Assist the developer with clear, high-quality, production-ready code, explanation, and debugging.",
                         onReasoning = { rToken ->
                             thoughtBuffer.append(rToken)
                             val updatedThought = thoughtBuffer.toString()
@@ -345,8 +324,11 @@ class DirectAgentChatBackend(
                     }
                 }
 
-                val finalList = (if (_currentConversation.value?.id == conv.id) _messages.value else currentList + assistantMsg).map {
-                    if (it.id == assistantMsgId) it.copy(content = responseBuffer.toString(), isStreaming = false) else it
+                val finalContent = responseBuffer.toString().ifBlank {
+                    thoughtBuffer.toString().ifBlank { "Task completed." }
+                }
+                val finalList = (if (_currentConversation.value?.id == conv.id) _messages.value else listWithAssistant).map {
+                    if (it.id == assistantMsgId) it.copy(content = finalContent, isStreaming = false) else it
                 }
                 if (_currentConversation.value?.id == conv.id) {
                     _messages.value = finalList

@@ -22,9 +22,9 @@ object AgyOkHttpClient {
             .dispatcher(dispatcher)
             .connectionPool(connectionPool)
             .protocols(listOf(okhttp3.Protocol.H2_PRIOR_KNOWLEDGE))
-            .connectTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(6, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.MILLISECONDS) // Indefinite read timeout for streaming
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(20, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
 
         if (com.example.gemini.data.remote.inspector.NetworkInspectorManager.isEnabled) {
@@ -53,8 +53,9 @@ object AgyOkHttpClient {
 
                 val response = chain.proceed(request)
 
-                // Check for CSRF expiry (HTTP 401/403 or gRPC status 16 UNAUTHENTICATED)
-                val isCsrfError = response.code == 401 || response.code == 403 || response.header("grpc-status") == "16"
+                // Only invalidate CSRF token on HTTP 403 or explicit CSRF message, NEVER on generic gRPC status 16 (not logged in)
+                val grpcMsg = response.header("grpc-message").orEmpty()
+                val isCsrfError = response.code == 403 || grpcMsg.contains("csrf", ignoreCase = true)
                 if (isCsrfError) {
                     AgyCsrfManager.instance.notifyCsrfExpired(hubUrl, chain.request().url.encodedPath)
                 }

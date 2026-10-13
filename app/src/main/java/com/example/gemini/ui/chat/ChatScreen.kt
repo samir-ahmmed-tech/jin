@@ -160,8 +160,20 @@ fun ChatScreen(
     val conversations by viewModel.conversations.collectAsState()
     val currentConv by viewModel.currentConversation.collectAsState()
     val newChatAgent by viewModel.newChatAgent.collectAsState()
-    val isClaudeChat = currentConv?.agent == com.example.gemini.domain.model.AgentKind.CLAUDE
+    val messages by viewModel.messages.collectAsState()
     val isFreshNewChat = currentConv == null || currentConv?.title == "New Chat"
+    val activeAgentKind = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+        com.example.gemini.domain.model.AgentKind.AGY
+    } else if (isFreshNewChat && messages.isEmpty()) {
+        currentConv?.agent ?: newChatAgent
+    } else {
+        currentConv?.agent ?: com.example.gemini.domain.model.AgentKind.AGY
+    }
+    val isClaudeChat = !com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY && activeAgentKind == com.example.gemini.domain.model.AgentKind.CLAUDE
+    val isAgyChat = activeAgentKind == com.example.gemini.domain.model.AgentKind.AGY
+    val isDirectAgentChat = !isAgyChat && !isClaudeChat
+    var showAgyPcSuiteSheet by remember { mutableStateOf(false) }
+    var agyPcSuiteInitialTab by remember { mutableIntStateOf(0) }
     val claudeBackend = viewModel.claudeBackend
     val claudePending by claudeBackend.pendingPermissions.collectAsState()
     val claudeStatus by viewModel.claudeAccount.status.collectAsState()
@@ -177,7 +189,6 @@ fun ChatScreen(
             com.example.gemini.ui.components.AppToastHelper.showToast(it, com.example.gemini.ui.components.ChatToastType.INFO)
         }
     }
-    val messages by viewModel.messages.collectAsState()
     val artifacts by viewModel.artifacts.collectAsState()
     val selectedModelId by viewModel.selectedModelId.collectAsState()
     val availableModels by viewModel.availableModels.collectAsState()
@@ -842,11 +853,46 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(activeChatProject) {
-        if (activeChatProject != null) {
-            scope.launch {
-                val tree = IdeApiClient.getFileTree(activeChatProject?.path)
-                chatProjectFiles = flattenFileNodes(tree)
+    LaunchedEffect(activeChatProject, currentConv?.workspaceUri) {
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val builtInContexts = listOf(
+                com.example.gemini.data.daemon.FileNode(name = "workspace (Full Workspace Tree)", path = "workspace", isDir = false),
+                com.example.gemini.data.daemon.FileNode(name = "rules (Active GEMINI.md & AGENTS.md)", path = "rules", isDir = false),
+                com.example.gemini.data.daemon.FileNode(name = "skills (Installed SKILL.md Skills)", path = "skills", isDir = false),
+                com.example.gemini.data.daemon.FileNode(name = "subagent:research (Codebase Researcher)", path = "subagent:research", isDir = false),
+                com.example.gemini.data.daemon.FileNode(name = "subagent:self (Autonomous Full Subagent)", path = "subagent:self", isDir = false)
+            )
+            val wsPath = activeChatProject?.path?.ifBlank { null }
+                ?: currentConv?.workspaceUri?.removePrefix("file://")?.ifBlank { null }
+            val scannedFiles = if (!wsPath.isNullOrBlank()) {
+                val tree = IdeApiClient.getFileTree(wsPath)
+                val fromBridge = flattenFileNodes(tree)
+                if (fromBridge.isNotEmpty()) {
+                    fromBridge
+                } else {
+                    try {
+                        val rootDir = File(wsPath)
+                        if (rootDir.exists() && rootDir.isDirectory) {
+                            rootDir.walkTopDown()
+                                .maxDepth(4)
+                                .filter { it.isFile && !it.path.contains("/.git/") && !it.path.contains("/build/") && !it.path.contains("/node_modules/") }
+                                .take(120)
+                                .map { f ->
+                                    com.example.gemini.data.daemon.FileNode(
+                                        name = f.name,
+                                        path = f.relativeTo(rootDir).path,
+                                        isDir = false
+                                    )
+                                }
+                                .toList()
+                        } else emptyList()
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                }
+            } else emptyList()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                chatProjectFiles = builtInContexts + scannedFiles
             }
         }
     }
@@ -1151,7 +1197,9 @@ fun ChatScreen(
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.widthIn(min = 120.dp)
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1189,6 +1237,7 @@ fun ChatScreen(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontSize = 11.sp,
                                                 maxLines = 1,
+                                                softWrap = false,
                                                 overflow = TextOverflow.Ellipsis,
                                                 color = if (isChatStarted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -1272,7 +1321,7 @@ fun ChatScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        // 1. Classic Mode (Active)
+                        // 1. Classic / Antigravity 2.0 Mode (Active)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
@@ -1290,7 +1339,7 @@ fun ChatScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Classic",
+                                    text = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) "Antigravity 2.0" else "Classic",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -1298,61 +1347,191 @@ fun ChatScreen(
                             }
                         }
 
-                        // 2. Fusion Mode (⚡)
+                        // Antigravity PC Optimize Studio Pill (⚡)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.45f)),
+                            color = Color(0xFF10B981).copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.45f)),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable { onNavigateToFusion() }
+                                .clickable {
+                                    agyPcSuiteInitialTab = 0
+                                    showAgyPcSuiteSheet = true
+                                }
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.AutoAwesome,
+                                    imageVector = Icons.Default.Bolt,
+                                    contentDescription = null,
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Optimize",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF10B981)
+                                )
+                            }
+                        }
+
+                        // Antigravity PC Subagents Pill (🤖)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF38BDF8).copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    agyPcSuiteInitialTab = 1
+                                    showAgyPcSuiteSheet = true
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SmartToy,
+                                    contentDescription = null,
+                                    tint = Color(0xFF38BDF8),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Subagents",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF38BDF8)
+                                )
+                            }
+                        }
+
+                        // Antigravity PC Rules & Skills Pill (🧩)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFA855F7).copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, Color(0xFFA855F7).copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    agyPcSuiteInitialTab = 2
+                                    showAgyPcSuiteSheet = true
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Extension,
+                                    contentDescription = null,
+                                    tint = Color(0xFFA855F7),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Rules & Skills",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFA855F7)
+                                )
+                            }
+                        }
+
+                        // Antigravity PC Schedule / Cron Pill (⏰)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFF59E0B).copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    agyPcSuiteInitialTab = 3
+                                    showAgyPcSuiteSheet = true
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
                                     contentDescription = null,
                                     tint = Color(0xFFF59E0B),
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Fusion",
+                                    text = "Schedule",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = Color(0xFFF59E0B)
                                 )
                             }
                         }
 
-                        // 3. Harness Studio (🚀)
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.45f)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { onNavigateToHarness() }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                        if (!com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+                            // 2. Fusion Mode (⚡)
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.45f)),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { onNavigateToFusion() }
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.RocketLaunch,
-                                    contentDescription = null,
-                                    tint = ClaudeTerracotta,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Harness",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = Color(0xFFF59E0B),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Fusion",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+
+                            // 3. Harness Studio (🚀)
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.45f)),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { onNavigateToHarness() }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.RocketLaunch,
+                                        contentDescription = null,
+                                        tint = ClaudeTerracotta,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Harness",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                             }
                         }
 
@@ -1514,35 +1693,7 @@ fun ChatScreen(
                     val isExistingChat = messages.isEmpty() && isExistingConversation && isLoadingConversation
                     Log.d("CHAT_OPEN_DEBUG", "🖥️ [ChatScreen Render] convId=${currentConv?.id}, title='${currentConv?.title}', isLoading=$isLoadingConversation, isExisting=$isExistingChat, msgCount=${messages.size}, error=$conversationError, isServerStopped=$isServerStopped")
 
-                    if (!isClaudeChat && isServerStopped && messages.isEmpty()) {
-                        BoxWithConstraints(
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            val minHeight = maxHeight
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .verticalScroll(emptyScrollState)
-                                    .heightIn(min = minHeight)
-                                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                if (isFreshNewChat) {
-                                    com.example.gemini.ui.components.AgentPicker(
-                                        selected = currentConv?.agent ?: newChatAgent,
-                                        onSelect = { viewModel.setNewChatAgent(it) },
-                                        modifier = Modifier.padding(bottom = 20.dp),
-                                        agents = enabledAgents,
-                                        statusColors = agentEntries.associate { it.agent to it.color }
-                                    )
-                                }
-                                com.example.gemini.ui.components.ServerStoppedPromptCard()
-                            }
-                        }
-                    } else if (!isClaudeChat && isServerInitializing && messages.isEmpty()) {
-                        com.example.gemini.ui.components.EngineWarmingUpView()
-                    } else if (!conversationError.isNullOrBlank() && messages.isEmpty() && (isExistingConversation || currentConv != null)) {
+                    if (!conversationError.isNullOrBlank() && messages.isEmpty() && (isExistingConversation || currentConv != null)) {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -1610,7 +1761,7 @@ fun ChatScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                if (isFreshNewChat) {
+                                if (isFreshNewChat && !com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
                                     com.example.gemini.ui.components.AgentPicker(
                                         selected = currentConv?.agent ?: newChatAgent,
                                         onSelect = { viewModel.setNewChatAgent(it) },
@@ -1637,32 +1788,56 @@ fun ChatScreen(
                                         onServerLogs = { showLocalServerOutputDialog = true },
                                         serverStarting = serverRestarting
                                     )
-                                } else when (if (isClaudeChat) null else systemConnectionState.status) {
-                                    com.example.gemini.data.remote.SystemStatus.CHECKING_AUTH -> {
-                                        com.example.gemini.ui.components.NewChatCheckingAuthPromptCard()
-                                    }
-                                    com.example.gemini.data.remote.SystemStatus.UNAUTHENTICATED -> {
-                                        if (isNetworkConnected) {
-                                            com.example.gemini.ui.components.NewChatSignInPromptCard(
-                                                onSignInClick = { viewModel.loginToAgyHub(force = true) }
-                                            )
+                                } else {
+                                    Text(
+                                        text = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) "Google Antigravity 2.0 PC Edition" else "How can I help you today?",
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = if (com.example.gemini.BuildConfig.IS_ANTIGRAVITY_ONLY) {
+                                            "Full PC Engine • Subagents • Custom Rules & Skills • Cron • 60fps Turbo"
+                                        } else {
+                                            "Ask a question, brainstorm ideas, or start coding"
+                                        },
+                                        fontSize = 13.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(18.dp))
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                                    ) {
+                                        listOf(
+                                            Triple("⚡ Optimize Engine", 0, Color(0xFF10B981)),
+                                            Triple("🤖 Subagents", 1, Color(0xFF38BDF8)),
+                                            Triple("🧩 Rules & Skills", 2, Color(0xFFA855F7)),
+                                            Triple("⏰ Schedule Cron", 3, Color(0xFFF59E0B))
+                                        ).forEach { (label, tabIdx, tint) ->
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = tint.copy(alpha = 0.12f),
+                                                border = BorderStroke(1.dp, tint.copy(alpha = 0.35f)),
+                                                modifier = Modifier.clickable {
+                                                    agyPcSuiteInitialTab = tabIdx
+                                                    showAgyPcSuiteSheet = true
+                                                }
+                                            ) {
+                                                Text(
+                                                    text = label,
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = tint,
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                                                )
+                                            }
                                         }
-                                    }
-                                    else -> {
-                                        Text(
-                                            text = "How can I help you today?",
-                                            fontSize = 22.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            textAlign = TextAlign.Center
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "Ask a question, brainstorm ideas, or start coding",
-                                            fontSize = 14.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                                            textAlign = TextAlign.Center
-                                        )
                                     }
                                 }
                             }
@@ -1942,7 +2117,23 @@ fun ChatScreen(
                             onPick = { item ->
                                 val before = inputText.substring(0, slashIndex)
                                 val appCmd = if (isClaudeChat && item.type == "app") claudeBackend.appCommand(item.command) else null
+                                val agyTab = when (item.command.lowercase()) {
+                                    "/optimize" -> 0
+                                    "/subagent" -> 1
+                                    "/rules", "/skills" -> 2
+                                    "/schedule" -> 3
+                                    else -> null
+                                }
                                 when {
+                                    agyTab != null -> {
+                                        val tfv = TextFieldValue(before, selection = TextRange(before.length))
+                                        textFieldValue = tfv
+                                        viewModel.setDraft(activeConversationKey, tfv)
+                                        focusManager.clearFocus(force = true)
+                                        keyboardController?.hide()
+                                        agyPcSuiteInitialTab = agyTab
+                                        showAgyPcSuiteSheet = true
+                                    }
                                     appCmd != null -> {
                                         val tfv = TextFieldValue(before, selection = TextRange(before.length))
                                         textFieldValue = tfv
@@ -2237,13 +2428,13 @@ fun ChatScreen(
 
                 // Chat Input Bar with Bottom Model & Thinking Selector Pills (Claude Android Style)
                 ChatInputBar(
-                    isOnline = if (isClaudeChat) !claudeState.isBlocking else systemConnectionState.canSend,
-                    isAuth = if (isClaudeChat) claudeState != com.example.gemini.data.agent.claude.ClaudeStatus.SIGNED_OUT && claudeState != com.example.gemini.data.agent.claude.ClaudeStatus.SIGNING_IN else systemConnectionState.isAuth,
+                    isOnline = if (isClaudeChat) !claudeState.isBlocking else true,
+                    isAuth = if (isClaudeChat) claudeState != com.example.gemini.data.agent.claude.ClaudeStatus.SIGNED_OUT && claudeState != com.example.gemini.data.agent.claude.ClaudeStatus.SIGNING_IN else true,
                     offlineMessage = if (isClaudeChat) when (claudeState) {
                         com.example.gemini.data.agent.claude.ClaudeStatus.NOT_INSTALLED -> "Claude Code is not installed. Set it up in Settings."
                         com.example.gemini.data.agent.claude.ClaudeStatus.BRIDGE_OUTDATED -> "Restart the local server to use Claude Code."
                         else -> "The local server is offline. Start it to send messages."
-                    } else "Server is offline. Start the server to send messages.",
+                    } else "Antigravity Ready",
                     selectedModel = currentModel,
                     quota = currentQuota,
                     thinkingPreference = thinkingPref,
@@ -3226,6 +3417,24 @@ fun ChatScreen(
     if (showNetworkInspectorDialog) {
         com.example.gemini.ui.components.NetworkInspectorDialog(
             onDismiss = { showNetworkInspectorDialog = false }
+        )
+    }
+
+    // Antigravity 2.0 PC-Grade Suite BottomSheet (Optimize, Subagents, Rules & Skills, Schedule, Sandbox)
+    if (showAgyPcSuiteSheet) {
+        com.example.gemini.ui.agy.AntigravityPcSuiteSheet(
+            initialTab = agyPcSuiteInitialTab,
+            activeWorkspacePath = currentConv?.workspaceUri,
+            onDismiss = { showAgyPcSuiteSheet = false },
+            onOpenFullSecuritySettings = {
+                showAgyPcSuiteSheet = false
+                showSettingsDialog = true
+            },
+            onSendPromptToAntigravity = { promptText ->
+                showAgyPcSuiteSheet = false
+                viewModel.sendMessage(promptText)
+                userSentMessageTrigger++
+            }
         )
     }
     } // End of Box

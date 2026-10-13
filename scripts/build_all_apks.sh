@@ -2,10 +2,11 @@
 set -euo pipefail
 
 # -----------------------------------------------------------------------------
-# JIN Single Unified APK Packager
+# JIN Dual-Edition APK Packager (v2.2.4+)
 # Developed by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin)
-# Compiles the single complete JIN-Termux APK combining Termux environment,
-# PRoot rootfs, 100 PC Power Tools, Real-Time Voice, and Mobile-Harness.
+# Builds TWO distinct production APKs:
+#   1. jin-termux-v<VERSION>-release.apk (Full 6-Agent + Harness + Fusion Suite)
+#   2. jin-antigravity-only-v<VERSION>-release.apk (Pure Antigravity 2.0 PC Edition)
 # -----------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,7 +19,7 @@ if [[ "${1:-}" == "--release" || "${1:-}" == "-r" ]]; then
 fi
 
 echo "================================================================="
-echo "🚀 Building Single Unified JIN Package in [${MODE^^}] mode"
+echo "🚀 Building Dual JIN Packages in [${MODE^^}] mode"
 echo "================================================================="
 
 # Extract version from version.json
@@ -33,21 +34,27 @@ echo "📦 Version Name: v${VERSION_NAME} (Code: ${VERSION_CODE})"
 mkdir -p "${OUTPUT_DIR}"
 
 if [[ "${MODE}" == "release" ]]; then
-    echo "🔨 Compiling Unified Release APK (:app:assembleRelease)..."
-    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleRelease
-
+    echo "🔨 [1/2] Compiling Full Multi-Agent & Harness Release APK (-PjinEdition=full)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleRelease -PjinEdition=full
     APKS_SRC="${ROOT_DIR}/app/build/outputs/apk/release"
-    find "${APKS_SRC}" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-v${VERSION_NAME}-release.apk" \; 2>/dev/null || true
+    find "${APKS_SRC}" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-v${VERSION_NAME}-release.apk" \;
+
+    echo "🔨 [2/2] Compiling Pure Antigravity 2.0 PC Edition Release APK (-PjinEdition=antigravity)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleRelease -PjinEdition=antigravity
+    find "${APKS_SRC}" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-antigravity-only-v${VERSION_NAME}-release.apk" \;
 
     if [[ -f "${ROOT_DIR}/app/src/main/assets/bin/agy_ide_bridge" ]]; then
         cp "${ROOT_DIR}/app/src/main/assets/bin/agy_ide_bridge" "${OUTPUT_DIR}/agy_ide_bridge-v${VERSION_NAME}-android-arm64"
     fi
 else
-    echo "🔨 Compiling Unified Debug APK (:app:assembleDebug)..."
-    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleDebug
-
+    echo "🔨 [1/2] Compiling Full Multi-Agent & Harness Debug APK (-PjinEdition=full)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleDebug -PjinEdition=full
     APKS_SRC="${ROOT_DIR}/app/build/outputs/apk/debug"
-    find "${APKS_SRC}" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-v${VERSION_NAME}-debug.apk" \; 2>/dev/null || true
+    find "${APKS_SRC}" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-termux-v${VERSION_NAME}-debug.apk" \;
+
+    echo "🔨 [2/2] Compiling Pure Antigravity 2.0 PC Edition Debug APK (-PjinEdition=antigravity)..."
+    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" :app:assembleDebug -PjinEdition=antigravity
+    find "${APKS_SRC}" -name "*.apk" -exec cp {} "${OUTPUT_DIR}/jin-antigravity-only-v${VERSION_NAME}-debug.apk" \;
 
     if [[ -f "${ROOT_DIR}/app/src/main/assets/bin/agy_ide_bridge" ]]; then
         cp "${ROOT_DIR}/app/src/main/assets/bin/agy_ide_bridge" "${OUTPUT_DIR}/agy_ide_bridge-v${VERSION_NAME}-android-arm64"
@@ -56,7 +63,7 @@ fi
 
 echo ""
 echo "================================================================="
-echo "✅ Build Complete! Generated Artifact in: ${OUTPUT_DIR}"
+echo "✅ Dual Build Complete! Generated Artifacts in: ${OUTPUT_DIR}"
 echo "================================================================="
 ls -lh "${OUTPUT_DIR}"/* 2>/dev/null || true
 echo "================================================================="
