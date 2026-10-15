@@ -306,7 +306,7 @@ class DirectAgentChatBackend(
                     AntigravityApiService.instance.streamGenerateContent(
                         token = googleToken ?: "",
                         projectId = projectId,
-                        modelId = "gemini-2.5-flash",
+                        modelId = effectiveModel.ifBlank { "gemini-2.5-flash" },
                         sessionId = conv.sessionId,
                         messages = currentList
                     ).collect { event ->

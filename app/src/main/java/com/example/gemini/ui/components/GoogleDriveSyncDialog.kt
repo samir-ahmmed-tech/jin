@@ -52,8 +52,10 @@ fun GoogleDriveSyncDialog(
 
     val isSyncing by syncManager.isSyncing.collectAsState()
     val syncStatus by syncManager.syncStatus.collectAsState()
+    val syncProgress by syncManager.syncProgress.collectAsState()
     val lastBackupTime by syncManager.lastBackupTime.collectAsState()
     val autoSyncEnabled by syncManager.autoSyncEnabled.collectAsState()
+    var selectedScope by remember { mutableStateOf(com.example.gemini.data.remote.BackupScope.FULL_VAULT) }
 
     // Automatically trigger initial single-file sync if connected and never backed up yet
     LaunchedEffect(hasToken, autoSyncEnabled) {
@@ -258,6 +260,46 @@ fun GoogleDriveSyncDialog(
                     }
                 }
 
+                // Backup Scope Selector
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Backup & Export Scope",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    com.example.gemini.data.remote.BackupScope.entries.forEach { scopeItem ->
+                        val isSelected = selectedScope == scopeItem
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedScope = scopeItem }
+                        ) {
+                            Text(
+                                text = when (scopeItem) {
+                                    com.example.gemini.data.remote.BackupScope.FULL_VAULT -> "Full Vault"
+                                    com.example.gemini.data.remote.BackupScope.CHATS_ONLY -> "Chats"
+                                    com.example.gemini.data.remote.BackupScope.PROJECTS_ONLY -> "Projects"
+                                },
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+
                 // Progress or Status message
                 if (isSyncing || syncStatus != null) {
                     Spacer(modifier = Modifier.height(10.dp))
@@ -267,24 +309,32 @@ fun GoogleDriveSyncDialog(
                         border = BorderStroke(1.dp, GeminiBlue.copy(alpha = 0.25f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (isSyncing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = GeminiBlue,
-                                    strokeWidth = 2.dp
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isSyncing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = GeminiBlue,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = syncStatus ?: "Synchronizing with Google Drive...",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
                             }
-                            Text(
-                                text = syncStatus ?: "Synchronizing with Google Drive...",
-                                fontSize = 11.5.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Medium
-                            )
+                            if (syncProgress?.sha256Hex != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "SHA-256: ${syncProgress?.sha256Hex?.take(16)}... (Verified)",
+                                    fontSize = 10.sp,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    color = QuotaGreen
+                                )
+                            }
                         }
                     }
                 }
@@ -299,7 +349,7 @@ fun GoogleDriveSyncDialog(
                     Button(
                         onClick = {
                             scope.launch {
-                                val res = syncManager.backupAllToGoogleDrive()
+                                val res = syncManager.backupAllToGoogleDrive(scope = selectedScope)
                                 if (res.isSuccess) {
                                     AppToastHelper.showToast(res.getOrThrow(), ChatToastType.SUCCESS)
                                 } else {
@@ -402,7 +452,7 @@ fun GoogleDriveSyncDialog(
                     OutlinedButton(
                         onClick = {
                             scope.launch {
-                                val res = syncManager.exportLocalBackupToDownloads()
+                                val res = syncManager.exportLocalBackupToDownloads(scope = selectedScope)
                                 if (res.isSuccess) {
                                     AppToastHelper.showToast(res.getOrThrow(), ChatToastType.SUCCESS)
                                 } else {
@@ -422,7 +472,7 @@ fun GoogleDriveSyncDialog(
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = "Save to Downloads",
+                            text = "Export Local .zip",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,

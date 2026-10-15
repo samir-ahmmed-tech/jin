@@ -168,6 +168,7 @@ data class AiModel(
             AiModel("deepseek-coder", "DeepSeek Coder V2", ModelFamily.DEEPSEEK, false, "Dedicated coding LLM supporting 300+ programming languages"),
             AiModel("claude-3-7-sonnet", "Claude 3.7 Sonnet (Thinking)", ModelFamily.CLAUDE, true, "Anthropic hybrid reasoning model for complex agentic workflows"),
             AiModel("claude-3-5-sonnet", "Claude 3.5 Sonnet", ModelFamily.CLAUDE, false, "Anthropic top-tier code intelligence and refactoring engine"),
+            AiModel("gemini-argon", "Gemini Argon (Advanced / Ultra Tier)", ModelFamily.GEMINI, true, "Google frontier reasoning model for Pro/Ultra subscription tier with deep analysis & massive multimodal context", tier = "Pro/Ultra Subscription"),
             AiModel("gemini-2.5-pro", "Gemini 2.5 Pro", ModelFamily.GEMINI, true, "Google multimodal frontier model with 2M token context"),
             AiModel("gemini-2.5-flash", "Gemini 2.5 Flash", ModelFamily.GEMINI, true, "Google high-speed low-latency multimodal reasoning model"),
             AiModel("qwen/qwen-2.5-coder-32b-instruct", "Qwen 2.5 Coder 32B (OpenRouter)", ModelFamily.OTHER, false, "Alibaba Cloud flagship code model for polyglot software engineering"),
@@ -188,20 +189,20 @@ data class AiModel(
                 id.contains("codex", ignoreCase = true) || id.contains("gpt", ignoreCase = true) || id.contains("openai", ignoreCase = true) || name.contains("codex", ignoreCase = true) || name.contains("gpt", ignoreCase = true) -> ModelFamily.OPENAI
                 id.contains("deepseek", ignoreCase = true) || id.contains("hermes", ignoreCase = true) || name.contains("deepseek", ignoreCase = true) || name.contains("hermes", ignoreCase = true) -> ModelFamily.DEEPSEEK
                 id.contains("claude", ignoreCase = true) || name.contains("claude", ignoreCase = true) -> ModelFamily.CLAUDE
-                id.contains("gemini", ignoreCase = true) || name.contains("gemini", ignoreCase = true) -> ModelFamily.GEMINI
+                id.contains("gemini", ignoreCase = true) || id.contains("argon", ignoreCase = true) || name.contains("gemini", ignoreCase = true) || name.contains("argon", ignoreCase = true) -> ModelFamily.GEMINI
                 else -> ModelFamily.OTHER
             }
-            val thinking = id.contains("thinking", ignoreCase = true) || id.contains("flash", ignoreCase = true) || id.contains("pro", ignoreCase = true) || id.contains("high", ignoreCase = true) || id.contains("medium", ignoreCase = true) || id.contains("low", ignoreCase = true) || id.contains("r1", ignoreCase = true)
+            val thinking = id.contains("thinking", ignoreCase = true) || id.contains("flash", ignoreCase = true) || id.contains("pro", ignoreCase = true) || id.contains("argon", ignoreCase = true) || id.contains("high", ignoreCase = true) || id.contains("medium", ignoreCase = true) || id.contains("low", ignoreCase = true) || id.contains("r1", ignoreCase = true)
             val desc = description ?: when (family) {
                 ModelFamily.ANTIGRAVITY -> "Google Antigravity 2.0 Engine"
                 ModelFamily.OPENAI -> "OpenAI Codex & ChatGPT Model"
                 ModelFamily.DEEPSEEK -> "DeepSeek AI Open Intelligence"
                 ModelFamily.CLAUDE -> "Anthropic Claude via JIN"
-                ModelFamily.GEMINI -> "Google Gemini via Antigravity"
+                ModelFamily.GEMINI -> if (id.contains("argon", ignoreCase = true)) "Google Gemini Argon (Pro/Ultra Tier)" else "Google Gemini via Antigravity"
                 ModelFamily.OTHER -> "Custom / 3rd-Party API Provider"
             }
             var baseName = name
-            var tier: String? = null
+            var tier: String? = if (id.contains("argon", ignoreCase = true)) "Pro/Ultra Subscription" else null
             val tierMatch = Regex("^(.*?)\\s*\\((High|Medium|Low|Med|Thinking)\\)$", RegexOption.IGNORE_CASE).find(name)
             if (tierMatch != null) {
                 baseName = tierMatch.groupValues[1].trim()

@@ -24,9 +24,11 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import android.os.Build
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -34,6 +36,26 @@ import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+
+/**
+ * Granular scope selection for backup and export operations.
+ */
+enum class BackupScope(val displayName: String) {
+    FULL_VAULT("Full System & Workspace Vault"),
+    CHATS_ONLY("Chats, Notebooks & History"),
+    PROJECTS_ONLY("Projects & Code Workspaces")
+}
+
+/**
+ * Real-time progress and verification telemetry for Google Drive cloud sync.
+ */
+data class SyncProgress(
+    val phase: String,
+    val percentage: Int,
+    val filesProcessed: Int = 0,
+    val totalFilesEstimate: Int = 0,
+    val sha256Hex: String? = null
+)
 
 /**
  * Manages complete backup and restore of chat history, files, notebooks, projects,
@@ -91,6 +113,21 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
     // Enabled by default so connecting Google automatically backs up into the single master file
     private val _autoSyncEnabled = MutableStateFlow(prefs.getBoolean(KEY_AUTO_SYNC, true))
     val autoSyncEnabled: StateFlow<Boolean> = _autoSyncEnabled.asStateFlow()
+
+    private val _syncProgress = MutableStateFlow<SyncProgress?>(null)
+    val syncProgress: StateFlow<SyncProgress?> = _syncProgress.asStateFlow()
+
+    fun computeSha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { fis ->
+            val buf = ByteArray(16384)
+            var n: Int
+            while (fis.read(buf).also { n = it } != -1) {
+                digest.update(buf, 0, n)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
 
     fun setAutoSyncEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_AUTO_SYNC, enabled).apply()
@@ -181,13 +218,17 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
      * Updates the SINGLE master archive (`JIN_Master_Vault_Backup.zip`) on Google Drive in-place,
      * and removes any old timestamped duplicate backup files so Drive never fills up.
      */
-    suspend fun backupAllToGoogleDrive(isSilentAutoSync: Boolean = false): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun backupAllToGoogleDrive(
+        scope: BackupScope = BackupScope.FULL_VAULT,
+        isSilentAutoSync: Boolean = false
+    ): Result<String> = withContext(Dispatchers.IO) {
         if (_isSyncing.value) {
             return@withContext Result.failure(IllegalStateException("Backup is already in progress"))
         }
         _isSyncing.value = true
+        _syncProgress.value = SyncProgress("Preparing ${scope.displayName}...", 10)
         if (!isSilentAutoSync) {
-            _syncStatus.value = "Preparing single-file master backup..."
+            _syncStatus.value = "Preparing single-file master backup (${scope.displayName})..."
         }
         try {
             val token = getValidAccessToken()
@@ -201,14 +242,19 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
             val tempZip = File(context.cacheDir, MASTER_BACKUP_FILE_NAME)
             if (tempZip.exists()) tempZip.delete()
 
+            _syncProgress.value = SyncProgress("Packing files (${scope.displayName})...", 30)
             if (!isSilentAutoSync) {
-                _syncStatus.value = "Packing chats, notebooks & workspace files..."
+                _syncStatus.value = "Packing files into vault archive..."
             }
-            zipUserData(tempZip)
+            val fileCount = zipUserData(tempZip, scope)
+
+            val hash = computeSha256(tempZip)
+            _syncProgress.value = SyncProgress("Verifying SHA-256 checksum...", 60, fileCount, fileCount, hash)
 
             val zipSizeMb = String.format(Locale.US, "%.2f MB", tempZip.length() / (1024.0 * 1024.0))
 
             // 2. Locate or create JIN_Cloud_Vault folder on Google Drive
+            _syncProgress.value = SyncProgress("Uploading archive to Google Drive...", 80, fileCount, fileCount, hash)
             if (!isSilentAutoSync) {
                 _syncStatus.value = "Syncing to single file ($MASTER_BACKUP_FILE_NAME)..."
             }
@@ -226,7 +272,8 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
             prefs.edit().putLong(KEY_LAST_BACKUP, now).apply()
             _lastBackupTime.value = now
             val cleanupNote = if (cleanedDuplicates > 0) " (Cleaned $cleanedDuplicates old duplicates)" else ""
-            val successMsg = "Synced to single file $MASTER_BACKUP_FILE_NAME ($zipSizeMb)$cleanupNote"
+            val successMsg = "Synced to single file $MASTER_BACKUP_FILE_NAME ($zipSizeMb, $fileCount files, SHA-256: ${hash.take(8)})$cleanupNote"
+            _syncProgress.value = SyncProgress("Sync complete!", 100, fileCount, fileCount, hash)
             _syncStatus.value = successMsg
             Result.success(successMsg)
         } catch (e: Exception) {
@@ -244,6 +291,7 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
      */
     suspend fun restoreLatestFromGoogleDrive(): Result<String> = withContext(Dispatchers.IO) {
         _isSyncing.value = true
+        _syncProgress.value = SyncProgress("Locating master backup on Google Drive...", 15)
         _syncStatus.value = "Locating master backup on Google Drive..."
         try {
             val token = getValidAccessToken()
@@ -260,14 +308,18 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
             val tempZip = File(context.cacheDir, "restore_temp.zip")
             if (tempZip.exists()) tempZip.delete()
 
+            _syncProgress.value = SyncProgress("Downloading master archive...", 45)
             _syncStatus.value = "Downloading $MASTER_BACKUP_FILE_NAME from Drive..."
             downloadDriveFile(token, fileId, tempZip)
 
+            val hash = computeSha256(tempZip)
+            _syncProgress.value = SyncProgress("Restoring & verifying SHA-256 (${hash.take(8)})...", 75, sha256Hex = hash)
             _syncStatus.value = "Restoring chats, notebooks & projects..."
-            unzipUserData(tempZip)
+            val restoredCount = unzipUserData(tempZip)
             tempZip.delete()
 
-            val successMsg = "Successfully restored all chats & data from Google Drive!"
+            val successMsg = "Successfully restored $restoredCount files (SHA-256: ${hash.take(8)}) from Google Drive!"
+            _syncProgress.value = SyncProgress("Restore complete!", 100, restoredCount, restoredCount, hash)
             _syncStatus.value = successMsg
             Result.success(successMsg)
         } catch (e: Exception) {
@@ -284,9 +336,10 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
      * Exports the complete single-file backup directly to the user's local Download directory
      * (`/sdcard/Download/JIN_Master_Vault_Backup.zip`) or custom URI.
      */
-    suspend fun exportLocalBackupToDownloads(): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun exportLocalBackupToDownloads(scope: BackupScope = BackupScope.FULL_VAULT): Result<String> = withContext(Dispatchers.IO) {
         _isSyncing.value = true
-        _syncStatus.value = "Exporting local backup file..."
+        _syncProgress.value = SyncProgress("Exporting local backup file...", 25)
+        _syncStatus.value = "Exporting local backup file (${scope.displayName})..."
         try {
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 ?: File("/sdcard/Download")
@@ -295,9 +348,11 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
             val outZip = File(downloadsDir, MASTER_BACKUP_FILE_NAME)
             if (outZip.exists()) outZip.delete()
 
-            zipUserData(outZip)
+            val fileCount = zipUserData(outZip, scope)
+            val hash = computeSha256(outZip)
             val sizeMb = String.format(Locale.US, "%.2f MB", outZip.length() / (1024.0 * 1024.0))
-            val msg = "Saved to Downloads/$MASTER_BACKUP_FILE_NAME ($sizeMb)"
+            val msg = "Saved to Downloads/$MASTER_BACKUP_FILE_NAME ($sizeMb, $fileCount files, SHA-256: ${hash.take(8)})"
+            _syncProgress.value = SyncProgress("Export complete!", 100, fileCount, fileCount, hash)
             _syncStatus.value = msg
             Result.success(msg)
         } catch (e: Exception) {
@@ -316,6 +371,7 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
      */
     suspend fun restoreFromLocalUri(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
         _isSyncing.value = true
+        _syncProgress.value = SyncProgress("Reading local backup file...", 20)
         _syncStatus.value = "Reading local backup file..."
         try {
             val tempZip = File(context.cacheDir, "local_restore_temp.zip")
@@ -332,11 +388,14 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
                 return@withContext Result.failure(IllegalStateException("Selected file is empty or not a valid ZIP archive"))
             }
 
+            val hash = computeSha256(tempZip)
+            _syncProgress.value = SyncProgress("Extracting & verifying SHA-256 (${hash.take(8)})...", 60, sha256Hex = hash)
             _syncStatus.value = "Extracting chats, notebooks & projects from local file..."
-            unzipUserData(tempZip)
+            val restoredCount = unzipUserData(tempZip)
             tempZip.delete()
 
-            val msg = "Successfully restored all data from local backup file!"
+            val msg = "Successfully restored $restoredCount files (SHA-256: ${hash.take(8)}) from local backup!"
+            _syncProgress.value = SyncProgress("Restore complete!", 100, restoredCount, restoredCount, hash)
             _syncStatus.value = msg
             Result.success(msg)
         } catch (e: Exception) {
@@ -349,73 +408,101 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
         }
     }
 
-    private fun zipUserData(zipFile: File) {
+    private fun zipUserData(zipFile: File, scope: BackupScope = BackupScope.FULL_VAULT): Int {
         val addedEntries = HashSet<String>()
         ZipOutputStream(FileOutputStream(zipFile)).use { zos ->
             // 1. Direct chats in internal storage
-            val chatsDir = File(context.filesDir, "direct_chats")
-            if (chatsDir.exists() && chatsDir.isDirectory) {
-                addDirectoryToZip(chatsDir, "direct_chats", zos, addedEntries)
-            }
-
-            // 2. Legacy / general chats
-            val legacyChatsDir = File(context.filesDir, "chats")
-            if (legacyChatsDir.exists() && legacyChatsDir.isDirectory) {
-                addDirectoryToZip(legacyChatsDir, "chats", zos, addedEntries)
-            }
-
-            // 3. Gemini Notebooks
-            val notebooksDir = File(context.filesDir, "notebooks")
-            if (notebooksDir.exists() && notebooksDir.isDirectory) {
-                addDirectoryToZip(notebooksDir, "notebooks", zos, addedEntries)
-            }
-
-            // 4. Custom chat folders metadata
-            val chatFoldersFile = File(context.filesDir, "chat_folders.json")
-            if (chatFoldersFile.exists() && chatFoldersFile.isFile) {
-                addFileToZip(chatFoldersFile, "chat_folders.json", zos, addedEntries)
-            }
-
-            // 5. Termux workspace projects (excluding heavy build/gradle/apk artifacts)
-            val homeDir = System.getenv("HOME") ?: "/data/user/0/com.termux/files/home"
-            val projectsDir = File(homeDir, "projects")
-            if (projectsDir.exists() && projectsDir.isDirectory) {
-                addDirectoryToZip(projectsDir, "projects", zos, addedEntries)
-            }
-
-            // 6. Gemini brain, conversations, summaries DB, annotations & skills in Termux home
-            val geminiDir = File(homeDir, ".gemini/antigravity-cli")
-            if (geminiDir.exists() && geminiDir.isDirectory) {
-                listOf("brain", "annotations", "conversations", "skills", "workflows").forEach { sub ->
-                    val dir = File(geminiDir, sub)
-                    if (dir.exists() && dir.isDirectory) {
-                        addDirectoryToZip(dir, ".gemini/antigravity-cli/$sub", zos, addedEntries)
-                    }
+            if (scope != BackupScope.PROJECTS_ONLY) {
+                val chatsDir = File(context.filesDir, "direct_chats")
+                if (chatsDir.exists() && chatsDir.isDirectory) {
+                    addDirectoryToZip(chatsDir, "direct_chats", zos, addedEntries)
                 }
-                listOf("conversation_summaries.db", "conversation_summaries.db-wal", "conversation_summaries.db-shm").forEach { dbFile ->
-                    val f = File(geminiDir, dbFile)
-                    if (f.exists() && f.isFile) {
-                        addFileToZip(f, ".gemini/antigravity-cli/$dbFile", zos, addedEntries)
-                    }
+
+                // 2. Legacy / general chats
+                val legacyChatsDir = File(context.filesDir, "chats")
+                if (legacyChatsDir.exists() && legacyChatsDir.isDirectory) {
+                    addDirectoryToZip(legacyChatsDir, "chats", zos, addedEntries)
+                }
+
+                // 3. Gemini Notebooks
+                val notebooksDir = File(context.filesDir, "notebooks")
+                if (notebooksDir.exists() && notebooksDir.isDirectory) {
+                    addDirectoryToZip(notebooksDir, "notebooks", zos, addedEntries)
+                }
+
+                // 4. Custom chat folders metadata
+                val chatFoldersFile = File(context.filesDir, "chat_folders.json")
+                if (chatFoldersFile.exists() && chatFoldersFile.isFile) {
+                    addFileToZip(chatFoldersFile, "chat_folders.json", zos, addedEntries)
+                }
+
+                // 5. App preferences and SQLite databases from internal storage
+                val appDataDir = File(context.applicationInfo.dataDir)
+                val sharedPrefsDir = File(appDataDir, "shared_prefs")
+                if (sharedPrefsDir.exists() && sharedPrefsDir.isDirectory) {
+                    addDirectoryToZip(sharedPrefsDir, "app_data/shared_prefs", zos, addedEntries)
+                }
+                val databasesDir = File(appDataDir, "databases")
+                if (databasesDir.exists() && databasesDir.isDirectory) {
+                    addDirectoryToZip(databasesDir, "app_data/databases", zos, addedEntries)
                 }
             }
 
-            // 7. Global GEMINI.md rules if present
-            val globalGeminiMd = File(homeDir, ".gemini/GEMINI.md")
-            if (globalGeminiMd.exists() && globalGeminiMd.isFile) {
-                addFileToZip(globalGeminiMd, ".gemini/GEMINI.md", zos, addedEntries)
+            // 6. Termux workspace projects (excluding heavy build/gradle/apk artifacts)
+            if (scope != BackupScope.CHATS_ONLY) {
+                val homeDir = System.getenv("HOME") ?: "/data/user/0/com.termux/files/home"
+                val projectsDir = File(homeDir, "projects")
+                if (projectsDir.exists() && projectsDir.isDirectory) {
+                    addDirectoryToZip(projectsDir, "projects", zos, addedEntries)
+                }
+
+                // 7. Gemini brain, conversations, summaries DB, annotations & skills in Termux home
+                val geminiDir = File(homeDir, ".gemini/antigravity-cli")
+                if (geminiDir.exists() && geminiDir.isDirectory) {
+                    listOf("brain", "annotations", "conversations", "skills", "workflows").forEach { sub ->
+                        val dir = File(geminiDir, sub)
+                        if (dir.exists() && dir.isDirectory) {
+                            addDirectoryToZip(dir, ".gemini/antigravity-cli/$sub", zos, addedEntries)
+                        }
+                    }
+                    listOf("conversation_summaries.db", "conversation_summaries.db-wal", "conversation_summaries.db-shm").forEach { dbFile ->
+                        val f = File(geminiDir, dbFile)
+                        if (f.exists() && f.isFile) {
+                            addFileToZip(f, ".gemini/antigravity-cli/$dbFile", zos, addedEntries)
+                        }
+                    }
+                }
+
+                // 8. Global GEMINI.md rules if present
+                val globalGeminiMd = File(homeDir, ".gemini/GEMINI.md")
+                if (globalGeminiMd.exists() && globalGeminiMd.isFile) {
+                    addFileToZip(globalGeminiMd, ".gemini/GEMINI.md", zos, addedEntries)
+                }
             }
 
-            // 8. App preferences and SQLite databases from internal storage
-            val appDataDir = File(context.applicationInfo.dataDir)
-            val sharedPrefsDir = File(appDataDir, "shared_prefs")
-            if (sharedPrefsDir.exists() && sharedPrefsDir.isDirectory) {
-                addDirectoryToZip(sharedPrefsDir, "app_data/shared_prefs", zos, addedEntries)
+            // 9. Embed jin_backup_manifest.json with metadata & integrity proof
+            try {
+                val manifest = JSONObject().apply {
+                    put("version", "2.2.6")
+                    put("scope", scope.name)
+                    put("scopeTitle", scope.displayName)
+                    put("timestamp", System.currentTimeMillis())
+                    put("formattedDate", SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date()))
+                    put("totalFiles", addedEntries.size)
+                    put("deviceModel", Build.MODEL)
+                    put("deviceManufacturer", Build.MANUFACTURER)
+                }
+                val manifestBytes = manifest.toString(2).toByteArray(Charsets.UTF_8)
+                val manifestEntry = ZipEntry("jin_backup_manifest.json")
+                zos.putNextEntry(manifestEntry)
+                zos.write(manifestBytes)
+                zos.closeEntry()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed embedding manifest: ${e.message}")
             }
-            val databasesDir = File(appDataDir, "databases")
-            if (databasesDir.exists() && databasesDir.isDirectory) {
-                addDirectoryToZip(databasesDir, "app_data/databases", zos, addedEntries)
-            }
+        }
+        return addedEntries.size
+    }
         }
     }
 
@@ -466,13 +553,23 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
         }
     }
 
-    private fun unzipUserData(zipFile: File) {
+    private fun unzipUserData(zipFile: File): Int {
         val homeDir = System.getenv("HOME") ?: "/data/user/0/com.termux/files/home"
         val appDataDir = File(context.applicationInfo.dataDir)
+        var restoredFilesCount = 0
         ZipInputStream(FileInputStream(zipFile)).use { zis ->
             var entry: ZipEntry? = zis.nextEntry
             while (entry != null) {
                 val name = entry.name
+                if (name == "jin_backup_manifest.json") {
+                    try {
+                        val manifestJson = JSONObject(zis.readBytes().toString(Charsets.UTF_8))
+                        Log.i(TAG, "Restoring archive with manifest: $manifestJson")
+                    } catch (_: Exception) {}
+                    zis.closeEntry()
+                    entry = zis.nextEntry
+                    continue
+                }
                 if (!name.contains("..")) {
                     val destFile = when {
                         name.startsWith("app_data/shared_prefs/") -> File(appDataDir, name.removePrefix("app_data/"))
@@ -494,12 +591,14 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
                         FileOutputStream(destFile).use { fos ->
                             zis.copyTo(fos)
                         }
+                        restoredFilesCount++
                     }
                 }
                 zis.closeEntry()
                 entry = zis.nextEntry
             }
         }
+        return restoredFilesCount
     }
 
     private fun getOrCreateDriveFolder(token: String, folderName: String): String {

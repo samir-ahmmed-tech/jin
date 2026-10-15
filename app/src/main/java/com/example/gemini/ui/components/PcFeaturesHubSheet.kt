@@ -50,7 +50,12 @@ fun PcFeaturesHubSheet(
     onOpenExport: () -> Unit = {},
     onOpenAutomation: () -> Unit = {},
     onOpenGoogleDrive: () -> Unit = {},
-    onOpenNotebooks: () -> Unit = {}
+    onOpenNotebooks: () -> Unit = {},
+    onOpenTaskQueue: () -> Unit = {},
+    onOpenMultiAgentStudio: () -> Unit = {},
+    onOpenDiffReview: () -> Unit = {},
+    onOpenProjectMemory: () -> Unit = {},
+    onOpenCodeReview: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
@@ -333,7 +338,12 @@ fun PcFeaturesHubSheet(
                                                 onOpenExport = onOpenExport,
                                                 onOpenAutomation = onOpenAutomation,
                                                 onOpenGoogleDrive = onOpenGoogleDrive,
-                                                onOpenNotebooks = onOpenNotebooks
+                                                onOpenNotebooks = onOpenNotebooks,
+                                                onOpenTaskQueue = onOpenTaskQueue,
+                                                onOpenMultiAgentStudio = onOpenMultiAgentStudio,
+                                                onOpenDiffReview = onOpenDiffReview,
+                                                onOpenProjectMemory = onOpenProjectMemory,
+                                                onOpenCodeReview = onOpenCodeReview
                                             )
                                         },
                                         modifier = Modifier.fillMaxWidth().height(28.dp),
@@ -511,7 +521,12 @@ fun PcFeaturesHubSheet(
                                                     onOpenExport = onOpenExport,
                                                     onOpenAutomation = onOpenAutomation,
                                                     onOpenGoogleDrive = onOpenGoogleDrive,
-                                                    onOpenNotebooks = onOpenNotebooks
+                                                    onOpenNotebooks = onOpenNotebooks,
+                                                    onOpenTaskQueue = onOpenTaskQueue,
+                                                    onOpenMultiAgentStudio = onOpenMultiAgentStudio,
+                                                    onOpenDiffReview = onOpenDiffReview,
+                                                    onOpenProjectMemory = onOpenProjectMemory,
+                                                    onOpenCodeReview = onOpenCodeReview
                                                 )
                                             },
                                             modifier = Modifier.fillMaxWidth().height(34.dp),
@@ -544,9 +559,34 @@ private fun executeFeatureAction(
     onOpenExport: () -> Unit,
     onOpenAutomation: () -> Unit,
     onOpenGoogleDrive: () -> Unit,
-    onOpenNotebooks: () -> Unit
+    onOpenNotebooks: () -> Unit,
+    onOpenTaskQueue: () -> Unit = {},
+    onOpenMultiAgentStudio: () -> Unit = {},
+    onOpenDiffReview: () -> Unit = {},
+    onOpenProjectMemory: () -> Unit = {},
+    onOpenCodeReview: () -> Unit = {}
 ) {
     when (feat.id) {
+        "subagent_swarm", "multi_agent_studio" -> {
+            onOpenMultiAgentStudio()
+            onDismiss()
+        }
+        "hands_free_task_executor", "task_queue", "agent_task_queue" -> {
+            onOpenTaskQueue()
+            onDismiss()
+        }
+        "trajectory_diff_tracker", "multi_file_diff", "diff_reviewer" -> {
+            onOpenDiffReview()
+            onDismiss()
+        }
+        "agent_memory_graph", "project_memory", "memory_engine" -> {
+            onOpenProjectMemory()
+            onDismiss()
+        }
+        "code_review_audit", "security_auditor" -> {
+            onOpenCodeReview()
+            onDismiss()
+        }
         "quick_open", "file_tree", "global_find_replace", "zen_mode", "lsp_diagnostics", "symbol_outline", "multi_cursor" -> {
             onNavigateToIde()
             onDismiss()

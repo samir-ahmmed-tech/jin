@@ -360,6 +360,30 @@ private fun AgentEditorDialog(
                     )
                 }
 
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("gemini-argon", "gemini-2.5-pro", "gemini-2.5-flash", "claude-3-7-sonnet", "deepseek-chat").forEach { quickModel ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (modelId == quickModel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, if (modelId == quickModel) MaterialTheme.colorScheme.primary else Color.Transparent),
+                            modifier = Modifier.clickable { modelId = quickModel }
+                        ) {
+                            Text(
+                                text = quickModel,
+                                fontSize = 10.sp,
+                                fontWeight = if (modelId == quickModel) FontWeight.Bold else FontWeight.Normal,
+                                color = if (modelId == quickModel) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                }
+
                 Text("Specialty Role:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     AgentSpecialtyRole.entries.forEach { r ->
@@ -541,7 +565,7 @@ private fun SwarmDispatcherTab(
 
             Button(
                 onClick = {
-                    val swarmPrompt = "[SWARM_WORKFLOW_DISPATCH]\nGoal: $goalInput\n" + plannedSteps.joinToString("\n") { "Step ${it.stepIndex}: [Agent: ${it.agentName}] ${it.prompt}" }
+                    val swarmPrompt = agentManager.formatSwarmDispatchPrompt(goalInput, plannedSteps)
                     onDispatch(swarmPrompt)
                 },
                 modifier = Modifier.fillMaxWidth().height(44.dp),

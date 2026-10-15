@@ -40,6 +40,10 @@ class AgyModelService {
         @Volatile
         private var defaultModelEnum: String = ""
 
+        init {
+            updateModelRegistry(AiModel.DEFAULT_MODELS)
+        }
+
         fun updateModelRegistry(models: List<AiModel>) {
             if (models.isEmpty()) return
             models.forEach { m ->

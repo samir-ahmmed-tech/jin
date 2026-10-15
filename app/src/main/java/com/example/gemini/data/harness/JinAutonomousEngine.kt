@@ -471,11 +471,14 @@ class JinAutonomousEngine(private val context: Context) {
             onEvent(RuntimeEvent.ToolCompleted(sessionId, "Android Generator", "Generated Android application skeleton."))
         }
 
+        val memoryPrompt = com.example.gemini.data.agent.memory.ProjectMemoryManager(context).formatMemoryPrompt(workspace)
+
         val systemPrompt = """
 You are JIN Autonomous Software Engineering Agent (${agent.title}), an elite AI pair programming super-assistant developed by Samir Ahmmed (https://github.com/samir-ahmmed-tech/jin).
 You have direct read/write/execute permissions in the project workspace at: ${workspace.absolutePath}.
 
 $workspaceSummary
+$memoryPrompt
 
 Your goal is to autonomously solve the user's software engineering task with production-quality code.
 You can invoke the following tool blocks:
@@ -585,8 +588,21 @@ Guidelines:
                 onEvent(RuntimeEvent.ToolCompleted(sessionId, "Gradle Build", "Build succeeded!$note"))
                 onEvent(RuntimeEvent.AssistantDelta(sessionId, "\n\n✅ **Android Build Succeeded!**$note\n```\n${buildResult.output.takeLast(1000)}\n```\n"))
             } else {
-                onEvent(RuntimeEvent.ToolCompleted(sessionId, "Gradle Build", "Build finished with exit code ${buildResult.exitCode}"))
-                onEvent(RuntimeEvent.AssistantDelta(sessionId, "\n\n⚠️ **Build Diagnostics (exit code ${buildResult.exitCode}):**\n```\n${buildResult.output.takeLast(1000)}\n```\n"))
+                val diagnosis = TerminalErrorDiagnoser.diagnose(buildResult.exitCode, buildResult.output)
+                onEvent(RuntimeEvent.ToolCompleted(sessionId, "Gradle Build", "Build finished with exit code ${buildResult.exitCode} (${diagnosis.category})"))
+                val diagMarkdown = buildString {
+                    append("\n\n⚠️ **Build Diagnostics (exit code ${buildResult.exitCode}):**\n")
+                    append("- **Category**: `${diagnosis.category}`\n")
+                    append("- **Summary**: ${diagnosis.summary}\n")
+                    if (diagnosis.filePath != null) {
+                        append("- **File**: `${diagnosis.filePath}`")
+                        if (diagnosis.lineNumber != null) append(" (Line: ${diagnosis.lineNumber})")
+                        append("\n")
+                    }
+                    append("- **Recommended Action**: ${diagnosis.suggestedFixDirection}\n\n")
+                    append("```\n${diagnosis.rawSnippet.takeLast(1200)}\n```\n")
+                }
+                onEvent(RuntimeEvent.AssistantDelta(sessionId, diagMarkdown))
             }
         }
 

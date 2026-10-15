@@ -39,6 +39,18 @@ class CustomAgentManager private constructor(private val context: Context) {
 
         val BUILTIN_TEMPLATES = listOf(
             CustomAgent(
+                id = "builtin_argon",
+                name = "Argon Frontier Architect",
+                role = AgentSpecialtyRole.ARCHITECT,
+                avatarEmoji = "💎",
+                accentColorHex = "#6366F1",
+                modelId = "gemini-argon",
+                systemPrompt = "You are Argon Frontier Architect, powered by Gemini Argon Ultra-tier reasoning. You design robust distributed systems, formulate formal software specs, and orchestrate complex autonomous swarm workflows.",
+                temperature = 0.2f,
+                enabledTools = AgentCapabilityTool.entries,
+                isBuiltInTemplate = true
+            ),
+            CustomAgent(
                 id = "builtin_manus",
                 name = "Manus Autonomous Solver",
                 role = AgentSpecialtyRole.GENERAL_ORCHESTRATOR,
@@ -245,6 +257,37 @@ class CustomAgentManager private constructor(private val context: Context) {
             )
         }
 
+        // Swarm Consensus & Synthesis Step
+        if (steps.size > 1) {
+            steps.add(
+                SwarmStep(
+                    stepIndex = steps.size + 1,
+                    agentId = architect.id,
+                    agentName = architect.name,
+                    agentAvatar = architect.avatarEmoji,
+                    title = "${steps.size + 1}. Swarm Consensus & Final Synthesis",
+                    prompt = "Synthesize all outputs from preceding specialist agents, confirm all acceptance criteria are met, and provide a unified delivery summary for: $goal",
+                    status = SwarmTaskStatus.PENDING
+                )
+            )
+        }
+
         steps
+    }
+
+    /**
+     * Formats an orchestrated Swarm breakdown into an autonomous dispatch prompt.
+     */
+    fun formatSwarmDispatchPrompt(goal: String, steps: List<SwarmStep>): String {
+        return buildString {
+            append("### 🐝 JIN Autonomous Swarm Workflow\n\n")
+            append("**Master Goal**: $goal\n\n")
+            append("#### 📋 Sequenced Multi-Agent Execution Plan:\n")
+            steps.forEach { step ->
+                append("${step.stepIndex}. **${step.agentAvatar} ${step.agentName}**: ${step.title}\n")
+                append("   - *Directive*: ${step.prompt}\n")
+            }
+            append("\n---\n*Each agent operates sequentially. Step 1 outputs define architecture; Step 2 builds implementation; subsequent steps audit and certify consensus.*")
+        }
     }
 }

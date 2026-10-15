@@ -312,6 +312,11 @@ fun ChatScreen(
     var showAutomationControlsDialog by remember { mutableStateOf(false) }
     var showRealtimeVoiceDialog by remember { mutableStateOf(false) }
     var showStopConfirmDialog by remember { mutableStateOf(false) }
+    var showMultiAgentStudioDialog by remember { mutableStateOf(false) }
+    var showTaskQueueSheet by remember { mutableStateOf(false) }
+    var showDiffReviewDialog by remember { mutableStateOf(false) }
+    var showProjectMemoryDialog by remember { mutableStateOf(false) }
+    var showCodeReviewDialog by remember { mutableStateOf(false) }
     var isInitialGracePeriod by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -2567,7 +2572,12 @@ fun ChatScreen(
             onOpenSkills = { showSettingsDialog = true },
             onOpenAutomation = { showAutomationControlsDialog = true },
             onOpenGoogleDrive = { showGoogleDriveSyncDialog = true },
-            onOpenNotebooks = { showNotebookDialog = true }
+            onOpenNotebooks = { showNotebookDialog = true },
+            onOpenTaskQueue = { showTaskQueueSheet = true },
+            onOpenMultiAgentStudio = { showMultiAgentStudioDialog = true },
+            onOpenDiffReview = { showDiffReviewDialog = true },
+            onOpenProjectMemory = { showProjectMemoryDialog = true },
+            onOpenCodeReview = { showCodeReviewDialog = true }
         )
     }
 
@@ -3149,6 +3159,11 @@ fun ChatScreen(
             onOpenAutomation = { showAutomationControlsDialog = true },
             onDeepResearch = { textFieldValue = TextFieldValue("/research ") },
             onLearningMode = { textFieldValue = TextFieldValue("/learn ") },
+            onOpenMultiAgentStudio = { showMultiAgentStudioDialog = true },
+            onOpenTaskQueue = { showTaskQueueSheet = true },
+            onOpenDiffReview = { showDiffReviewDialog = true },
+            onOpenProjectMemory = { showProjectMemoryDialog = true },
+            onOpenCodeReview = { showCodeReviewDialog = true },
             onDismiss = { showAttachmentSelector = false }
         )
     }
@@ -3217,6 +3232,74 @@ fun ChatScreen(
             },
             onDismiss = { showRealtimeVoiceDialog = false }
         )
+    }
+
+    // Multi-Agent Swarm Studio Dialog
+    if (showMultiAgentStudioDialog) {
+        com.example.gemini.ui.agents.MultiAgentStudioDialog(
+            onDismiss = { showMultiAgentStudioDialog = false },
+            onDispatchToChat = { prompt ->
+                showMultiAgentStudioDialog = false
+                viewModel.sendMessage(prompt)
+                userSentMessageTrigger++
+            }
+        )
+    }
+
+    // Autonomous Task Queue Bottom Sheet
+    if (showTaskQueueSheet) {
+        val activeWorkspace = activeChatProject?.path ?: "/data/user/0/com.termux/files/home"
+        com.example.gemini.ui.agent.TaskQueueSheet(
+            currentWorkspace = activeWorkspace,
+            onDismiss = { showTaskQueueSheet = false }
+        )
+    }
+
+    // Multi-File Diff Reviewer & Rollback Dialog
+    if (showDiffReviewDialog) {
+        val activeWorkspace = activeChatProject?.path ?: "/data/user/0/com.termux/files/home"
+        com.example.gemini.ui.agent.DiffReviewDialog(
+            workspacePath = activeWorkspace,
+            onDismiss = { showDiffReviewDialog = false }
+        )
+    }
+
+    // Persistent Project Memory & Rules Dialog
+    if (showProjectMemoryDialog) {
+        val activeWorkspace = activeChatProject?.path ?: "/data/user/0/com.termux/files/home"
+        com.example.gemini.ui.agent.ProjectMemoryDialog(
+            workspacePath = activeWorkspace,
+            onDismiss = { showProjectMemoryDialog = false }
+        )
+    }
+
+    // Automated Code Review & Security Audit Dialog
+    if (showCodeReviewDialog) {
+        val activeWorkspace = activeChatProject?.path ?: "/data/user/0/com.termux/files/home"
+        com.example.gemini.ui.agent.CodeReviewDialog(
+            workspacePath = activeWorkspace,
+            onDismiss = { showCodeReviewDialog = false }
+        )
+    }
+
+    // Universal Plan Mode Interactive Review Dialog
+    val planManager = remember { com.example.gemini.data.agent.plan.PlanModeManager.getInstance(context) }
+    val currentPlan by planManager.currentPlan.collectAsState()
+    if (currentPlan != null && currentPlan?.status == com.example.gemini.data.agent.plan.PlanStatus.DRAFT) {
+        currentPlan?.let { draftPlan ->
+            com.example.gemini.ui.agent.PlanModeReviewDialog(
+                plan = draftPlan,
+                onApprove = { planId ->
+                    scope.launch { planManager.approvePlan(planId) }
+                },
+                onReject = { planId, reason ->
+                    scope.launch { planManager.rejectPlan(planId, reason) }
+                },
+                onDismiss = {
+                    scope.launch { planManager.clearCurrentPlan() }
+                }
+            )
+        }
     }
 
     // Markdown Document Fullscreen Viewer Modal (.md files)

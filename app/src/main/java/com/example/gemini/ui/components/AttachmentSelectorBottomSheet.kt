@@ -38,6 +38,11 @@ fun AttachmentSelectorBottomSheet(
     onOpenAutomation: () -> Unit = {},
     onDeepResearch: () -> Unit = {},
     onLearningMode: () -> Unit = {},
+    onOpenMultiAgentStudio: () -> Unit = {},
+    onOpenTaskQueue: () -> Unit = {},
+    onOpenDiffReview: () -> Unit = {},
+    onOpenProjectMemory: () -> Unit = {},
+    onOpenCodeReview: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -243,6 +248,66 @@ fun AttachmentSelectorBottomSheet(
                 title = "Learning & Tutor Mode",
                 subtitle = "Step-by-step interactive concepts, code drills, and quizzes",
                 onClick = { onDismiss(); onLearningMode() }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Section 4: Super-Agent & Code Review
+            Text(
+                text = "SUPER-AGENT & CODE QUALITY",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            AttachmentOptionRow(
+                icon = Icons.Outlined.Groups,
+                iconColor = Color(0xFFEC4899),
+                title = "Multi-Agent Swarm Studio",
+                subtitle = "Orchestrate specialized subagents with consensus & Gemini Argon",
+                onClick = { onDismiss(); onOpenMultiAgentStudio() }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            AttachmentOptionRow(
+                icon = Icons.Outlined.QueuePlayNext,
+                iconColor = Color(0xFF8B5CF6),
+                title = "Autonomous Task Queue",
+                subtitle = "Manage persistent background coding jobs & parallel tasks",
+                onClick = { onDismiss(); onOpenTaskQueue() }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            AttachmentOptionRow(
+                icon = Icons.Outlined.Difference,
+                iconColor = Color(0xFF3B82F6),
+                title = "Multi-File Diff Reviewer",
+                subtitle = "Review unified patches, inspect changes & 1-tap rollback",
+                onClick = { onDismiss(); onOpenDiffReview() }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            AttachmentOptionRow(
+                icon = Icons.Outlined.Psychology,
+                iconColor = Color(0xFFF59E0B),
+                title = "Project Memory & Rules",
+                subtitle = "Permanent repository instructions, style guides & memory graph",
+                onClick = { onDismiss(); onOpenProjectMemory() }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            AttachmentOptionRow(
+                icon = Icons.Outlined.Security,
+                iconColor = Color(0xFFEF4444),
+                title = "Code Review & Security Audit",
+                subtitle = "Deep static analysis: detect leaks, hardcoded keys & security flaws",
+                onClick = { onDismiss(); onOpenCodeReview() }
             )
         }
     }
