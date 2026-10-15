@@ -1370,8 +1370,8 @@ class AgyChatBackend(
         val index = current.indexOfFirst { it.id == targetMsg.id }
         if (index < 0) return
 
-        persistentStreamJob?.cancel()
-        persistentStreamJob = null
+        activeStreamJobs[conv.id]?.cancel()
+        activeStreamJobs.remove(conv.id)
         _isStreaming.value = false
         isPromptInFlight = false
 

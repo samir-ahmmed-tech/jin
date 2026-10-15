@@ -231,7 +231,7 @@ class AgentTaskQueueManager private constructor(private val context: Context) {
 
                 updateTaskState(task.id, QueuedTaskState.RUNNING, 30, "Agent executing directives...")
 
-                engine.runTask(
+                engine.executeTask(
                     projectId = task.id,
                     prompt = task.prompt,
                     agent = task.agentKind,

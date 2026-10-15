@@ -33,8 +33,43 @@ class MultiFileDiffReviewer(
     private val checkpoints: WorkspaceCheckpoints
 ) {
 
+    companion object {
+        @Volatile
+        private var INSTANCE: MultiFileDiffReviewer? = null
+
+        fun getInstance(context: Context): MultiFileDiffReviewer {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: MultiFileDiffReviewer(
+                    context.applicationContext,
+                    WorkspaceCheckpoints(context.applicationContext.filesDir, context.applicationContext)
+                ).also { INSTANCE = it }
+            }
+        }
+    }
+
     private val _diffItems = MutableStateFlow<List<FileDiffReviewItem>>(emptyList())
     val diffItems: StateFlow<List<FileDiffReviewItem>> = _diffItems.asStateFlow()
+    val pendingDiffs: StateFlow<List<FileDiffReviewItem>> = _diffItems.asStateFlow()
+
+    suspend fun rollbackFile(path: String) = withContext(Dispatchers.IO) {
+        val current = _diffItems.value.toMutableList()
+        current.removeAll { it.path == path }
+        _diffItems.value = current
+    }
+
+    suspend fun acceptFile(path: String) = withContext(Dispatchers.IO) {
+        val current = _diffItems.value.toMutableList()
+        current.removeAll { it.path == path }
+        _diffItems.value = current
+    }
+
+    suspend fun rollbackAll() = withContext(Dispatchers.IO) {
+        _diffItems.value = emptyList()
+    }
+
+    suspend fun acceptAll() = withContext(Dispatchers.IO) {
+        _diffItems.value = emptyList()
+    }
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
