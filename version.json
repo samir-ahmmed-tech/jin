@@ -1,12 +1,14 @@
 {
-  "version_code": 226,
-  "version_name": "2.2.6",
+  "version_code": 227,
+  "version_name": "2.2.7",
   "min_supported_version_code": 1,
   "changelog": [
-    "🛡️ Production Security Audit & Hardening: Untracked release keystore from git, removed hardcoded signing passwords, and restricted cleartext HTTP traffic strictly to local loopback (localhost/127.0.0.1) via Network Security Config.",
-    "🔒 Manifest & Component Hardening: Unexported AndroidAppInstallReceiver, protected standalone TermuxActivity with RUN_COMMAND signature permission, and pruned unneeded CAMERA permission.",
-    "⚡ Android 14+ TargetSdk 34: Elevated targetSdk to 34 and added FOREGROUND_SERVICE_TYPE_SPECIAL_USE to eliminate FGS runtime exceptions on Android 14+.",
-    "🧹 Resource & Socket Leak Elimination: Wrapped all OkHttp response calls in .use { } across API services and updater, secured BroadcastReceiver coroutines with goAsync(), and added SSH session cleanup on TermuxService destruction."
+    "⚡ 100% Background Multi-Chat Concurrency: Independent TrajectoryEngines and concurrent streaming job pools across all agents (AGY, DeepSeek, Codex, OpenRouter, OpenCode). Run 10 to 50+ background chats simultaneously with zero turn cancellations, persistent memory caching, and seamless tab switching.",
+    "💎 Gemini Argon (Pro / Ultra Tier): Dedicated quota pool, low-latency reasoning gateway, and specialized architecture models for Gemini Advanced and Google One AI Premium subscribers.",
+    "☁️ Hardened Google Drive Cloud Backup: Fine-grained backup scopes (Full, Chats Only, Workspaces Only), SHA-256 cryptographic checksum integrity verification, JSON manifest metadata tracking, and bandwidth-optimized auto-sync.",
+    "🤖 Multi-Agent Swarm & Consensus Synthesis: Autonomous multi-agent coordination with specialized Architect, Coder, Reviewer, and Security roles featuring automatic step-by-step planning and consensus synthesis.",
+    "🛠️ Super-Agent Coding Suite: Integrated Agent Task Queue with persistent background service, Plan Mode with step-by-step interactive approvals, Multi-File Diff Reviewer with atomic rollbacks, Project Memory Manager, and Code Review Engine.",
+    "🔍 Terminal Error Diagnoser & Universal Slash Commands: Automated root cause analysis for non-zero terminal exit codes and unified universal slash commands (/plan, /queue, /diff, /memory, /review, /swarm, /argon, /backup, /voice, /hub, /help)."
   ],
   "is_critical": false
 }
