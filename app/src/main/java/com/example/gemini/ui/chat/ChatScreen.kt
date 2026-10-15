@@ -3398,7 +3398,7 @@ fun ChatScreen(
                     scope.launch { planManager.rejectPlan(planId, reason) }
                 },
                 onDismiss = {
-                    scope.launch { planManager.clearCurrentPlan() }
+                    planManager.clearActivePlan()
                 }
             )
         }
