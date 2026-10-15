@@ -77,7 +77,18 @@ class AgyChatBackend(
     val systemConnectionState: StateFlow<com.example.gemini.data.remote.SystemConnectionState> = agyBridgeService.systemConnectionState
     val hubStatus: StateFlow<com.example.gemini.data.remote.AgyHubStatus> = agyBridgeService.hubStatus
     val agyHubClient = com.example.gemini.data.remote.AgyHubClient()
-    val trajectoryEngine = com.example.gemini.domain.chat.TrajectoryEngine()
+
+    private val trajectoryEngines = java.util.concurrent.ConcurrentHashMap<String, com.example.gemini.domain.chat.TrajectoryEngine>()
+    private val fallbackTrajectoryEngine = com.example.gemini.domain.chat.TrajectoryEngine()
+
+    fun getTrajectoryEngine(convId: String): com.example.gemini.domain.chat.TrajectoryEngine {
+        if (convId.isBlank()) return fallbackTrajectoryEngine
+        return trajectoryEngines.computeIfAbsent(convId) { com.example.gemini.domain.chat.TrajectoryEngine() }
+    }
+
+    val trajectoryEngine: com.example.gemini.domain.chat.TrajectoryEngine
+        get() = _currentConversation.value?.id?.let { getTrajectoryEngine(it) } ?: fallbackTrajectoryEngine
+
     val speechManager = com.example.gemini.data.audio.AgyAudioTranscriptionManager(agyHubClient) {
         AuthPreferences.currentHubUrl
     }
@@ -88,7 +99,8 @@ class AgyChatBackend(
     private val _isConversationsLoading = MutableStateFlow(true)
     val isConversationsLoading: StateFlow<Boolean> = _isConversationsLoading.asStateFlow()
 
-    val artifacts: StateFlow<List<com.example.gemini.domain.model.ArtifactSnapshot>> = trajectoryEngine.artifacts
+    private val _artifacts = MutableStateFlow<List<com.example.gemini.domain.model.ArtifactSnapshot>>(emptyList())
+    val artifacts: StateFlow<List<com.example.gemini.domain.model.ArtifactSnapshot>> = _artifacts.asStateFlow()
 
     val pendingApprovals: StateFlow<List<PendingToolApproval>> = _messages.map { msgs ->
         msgs.filter { it.role == com.example.gemini.domain.model.MessageRole.ASSISTANT }
@@ -452,7 +464,10 @@ class AgyChatBackend(
     private var lastPrewarmedProjectPath: String? = null
 
     private var streamingJob: Job? = null
-    private var persistentStreamJob: Job? = null
+    private val activeStreamJobs = java.util.concurrent.ConcurrentHashMap<String, Job>()
+    val persistentStreamJob: Job?
+        get() = activeStreamConversationId?.let { activeStreamJobs[it] } ?: activeStreamJobs.values.firstOrNull()
+    private val conversationMessagesCache = java.util.concurrent.ConcurrentHashMap<String, List<ChatMessage>>()
     @Volatile private var activeStreamConversationId: String? = null
     @Volatile private var currentTurnStartStep: Int = 0
     @Volatile private var totalStepsCount: Int = 0
@@ -805,8 +820,6 @@ class AgyChatBackend(
     }
 
     override fun startNewChat() {
-        persistentStreamJob?.cancel()
-        persistentStreamJob = null
         activeStreamConversationId = null
         currentAssistantMsgId = null
         currentTurnStartStep = 0
@@ -834,10 +847,12 @@ class AgyChatBackend(
             workspaceUri = defaultWorkspaceUri
         )
         _currentConversation.value = newConv
-        trajectoryEngine.reset(newConv.id, force = true)
+        val newEngine = getTrajectoryEngine(newConv.id)
+        newEngine.reset(newConv.id, force = true)
         com.example.gemini.ui.components.ToolCallExpansionCache.setChat(newConv.id)
         com.example.gemini.ui.components.CodeBlockExpansionCache.setChat(newConv.id)
         _messages.value = emptyList()
+        _artifacts.value = emptyList()
         _isLoadingConversation.value = false
         _conversationError.value = null
     }
@@ -849,8 +864,6 @@ class AgyChatBackend(
             return
         }
 
-        persistentStreamJob?.cancel()
-        persistentStreamJob = null
         activeStreamConversationId = id
         currentAssistantMsgId = null
         currentTurnStartStep = 0
@@ -858,14 +871,24 @@ class AgyChatBackend(
         isPromptInFlight = false
         hasStartedRunning = false
         hasSeenTurnActivity = false
-        trajectoryEngine.reset(id, force = true)
+        _bridgeStatusMessage.value = null
+
+        val engine = getTrajectoryEngine(id)
         com.example.gemini.ui.components.ToolCallExpansionCache.setChat(id)
         com.example.gemini.ui.components.CodeBlockExpansionCache.setChat(id)
-        currentTrajectoryId = ""
-        _isStreaming.value = false
-        _bridgeStatusMessage.value = null
-        _messages.value = emptyList()
-        _isLoadingConversation.value = true
+        currentTrajectoryId = engine.trajectoryId
+
+        val cached = conversationMessagesCache[id]?.takeIf { it.isNotEmpty() } ?: engine.toChatMessages(id)
+        if (cached.isNotEmpty()) {
+            _messages.value = cached
+            _isLoadingConversation.value = false
+        } else {
+            _messages.value = emptyList()
+            _isLoadingConversation.value = true
+        }
+
+        _isStreaming.value = engine.isRunning && !engine.isWaitingInteraction
+        _artifacts.value = engine.artifacts.value
 
         backendScope.launch {
             _conversationError.value = null
@@ -877,13 +900,12 @@ class AgyChatBackend(
             knownDaemonCascadeIds.add(id)
 
             // Connect persistent stream for real-time live streaming.
-            // StreamAgentStateUpdates delivers the complete history in Chunk 0!
             startPersistentStream(id)
         }
     }
 
     fun startPersistentStream(conversationId: String) {
-        Log.d("CHAT_OPEN_DEBUG", "🌊 [ChatViewModel.startPersistentStream] convId=$conversationId, current activeId=$activeStreamConversationId, jobActive=${persistentStreamJob?.isActive}")
+        Log.d("CHAT_OPEN_DEBUG", "🌊 [ChatViewModel.startPersistentStream] convId=$conversationId, current activeId=$activeStreamConversationId")
         if (conversationId.isBlank()) return
 
         // Another agent's chat is on screen: never stream it from the AGY hub
@@ -898,109 +920,128 @@ class AgyChatBackend(
             return
         }
 
-        if (activeStreamConversationId == conversationId && persistentStreamJob?.isActive == true) {
-            Log.d("CHAT_OPEN_DEBUG", "🌊 [ChatViewModel.startPersistentStream] Already actively running for $conversationId")
+        activeStreamConversationId = conversationId
+
+        val existingJob = activeStreamJobs[conversationId]
+        if (existingJob != null && existingJob.isActive) {
+            Log.d("CHAT_OPEN_DEBUG", "🌊 [ChatViewModel.startPersistentStream] Already actively running in background for $conversationId")
+            val engine = getTrajectoryEngine(conversationId)
+            val cached = conversationMessagesCache[conversationId]?.takeIf { it.isNotEmpty() } ?: engine.toChatMessages(conversationId)
+            if (cached.isNotEmpty()) {
+                _messages.value = cached
+                _artifacts.value = engine.artifacts.value
+                _isLoadingConversation.value = false
+                _isStreaming.value = engine.isRunning && !engine.isWaitingInteraction
+            }
             return
         }
 
-        persistentStreamJob?.cancel()
-        activeStreamConversationId = conversationId
         currentTurnStartStep = 0
         totalStepsCount = 0
 
-        if (_messages.value.isEmpty()) {
+        val engine = getTrajectoryEngine(conversationId)
+        val cached = conversationMessagesCache[conversationId]?.takeIf { it.isNotEmpty() } ?: engine.toChatMessages(conversationId)
+        if (cached.isNotEmpty()) {
+            _messages.value = cached
+            _isLoadingConversation.value = false
+        } else if (_messages.value.isEmpty()) {
             _isLoadingConversation.value = true
             _conversationError.value = null
         }
 
-        persistentStreamJob = backendScope.launch(Dispatchers.IO) {
+        val job = backendScope.launch(Dispatchers.IO) {
             val hubUrl = AuthPreferences.currentHubUrl
             var isFirstChunk = true
 
-            if (trajectoryEngine.conversationId != conversationId || _messages.value.isEmpty()) {
-                trajectoryEngine.reset(conversationId)
+            if (engine.conversationId != conversationId || engine.toChatMessages(conversationId).isEmpty()) {
+                engine.reset(conversationId)
             }
 
             Log.d("CHAT_OPEN_DEBUG", "🌊 [ChatViewModel.startPersistentStream] Starting loop for $conversationId on $hubUrl")
 
-            while (activeStreamConversationId == conversationId || trajectoryEngine.isRunning) {
-                try {
-                    agyHubClient.streamAgentStateUpdates(conversationId, hubUrl).collect { resp ->
-                        val update = resp.update
-                        val statusStr = update?.status?.name ?: ""
-                        val stepsCount = update?.main_trajectory_update?.steps_update?.steps?.size ?: 0
-                        Log.d("CHAT_OPEN_DEBUG", "📥 [ChatViewModel Stream Frame] convId=$conversationId, status=$statusStr, stepsCount=$stepsCount, active=$activeStreamConversationId")
-                        isFirstChunk = false
-                        val turns = if (update != null) trajectoryEngine.ingestAgentStateUpdate(update) else emptyList()
-                        val msgs = trajectoryEngine.toChatMessages(conversationId)
+            try {
+                agyHubClient.streamAgentStateUpdates(conversationId, hubUrl).collect { resp ->
+                    val update = resp.update
+                    val statusStr = update?.status?.name ?: ""
+                    val stepsCount = update?.main_trajectory_update?.steps_update?.steps?.size ?: 0
+                    Log.d("CHAT_OPEN_DEBUG", "📥 [ChatViewModel Stream Frame] convId=$conversationId, status=$statusStr, stepsCount=$stepsCount, active=$activeStreamConversationId")
+                    isFirstChunk = false
+                    val turns = if (update != null) engine.ingestAgentStateUpdate(update) else emptyList()
+                    val msgs = engine.toChatMessages(conversationId)
+                    conversationMessagesCache[conversationId] = msgs
 
+                    val isRunning = engine.isRunning
+                    val isWaiting = engine.isWaitingInteraction
 
-                        withContext(Dispatchers.Main) {
-                            if (activeStreamConversationId != conversationId) return@withContext
+                    // Keep conversation list running status updated across all active chats
+                    val currentList = _conversations.value
+                    val convIdx = currentList.indexOfFirst { it.id == conversationId }
+                    if (convIdx >= 0 && currentList[convIdx].isRunning != isRunning) {
+                        val updatedList = currentList.toMutableList()
+                        updatedList[convIdx] = updatedList[convIdx].copy(isRunning = isRunning)
+                        _conversations.value = updatedList
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        if (activeStreamConversationId == conversationId) {
                             _isServerOnline.value = true
                             _conversationError.value = null
                             _isLoadingConversation.value = false
                             _isReconnecting.value = false
-
-                            val isRunning = trajectoryEngine.isRunning
-                            val isWaiting = trajectoryEngine.isWaitingInteraction
                             _isStreaming.value = isRunning && !isWaiting
-
-                            Log.d("CHAT_OPEN_DEBUG", "✨ [ChatViewModel State Update] convId=$conversationId, turnsCount=${turns.size}, msgsCount=${msgs.size}, isRunning=$isRunning, isWaiting=$isWaiting")
-
                             _messages.value = msgs
-                            if (msgs.isNotEmpty()) {
-                                com.example.gemini.ui.chat.ChatFeedCache.prewarm(msgs)
+                            _artifacts.value = engine.artifacts.value
+                        }
 
-                                msgs.flatMap { it.toolCalls }.filter {
-                                    it.toolType == com.example.gemini.domain.model.ToolType.GENERATE_IMAGE && it.output.isNotBlank()
-                                }.forEach { tc ->
-                                    com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, tc.output, agyHubClient, hubUrl)
-                                }
-                                msgs.flatMap { it.attachments }.filter { it.isImage && it.path.isNotBlank() }.forEach { att ->
-                                    val rawUri = if (att.path.startsWith("file://") || att.path.startsWith("http")) att.path else "file://${att.path}"
-                                    com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, rawUri, agyHubClient, hubUrl)
-                                }
+                        if (msgs.isNotEmpty()) {
+                            com.example.gemini.ui.chat.ChatFeedCache.prewarm(msgs)
+
+                            msgs.flatMap { it.toolCalls }.filter {
+                                it.toolType == com.example.gemini.domain.model.ToolType.GENERATE_IMAGE && it.output.isNotBlank()
+                            }.forEach { tc ->
+                                com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, tc.output, agyHubClient, hubUrl)
+                            }
+                            msgs.flatMap { it.attachments }.filter { it.isImage && it.path.isNotBlank() }.forEach { att ->
+                                val rawUri = if (att.path.startsWith("file://") || att.path.startsWith("http")) att.path else "file://${att.path}"
+                                com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, rawUri, agyHubClient, hubUrl)
                             }
                         }
                     }
+                }
 
-                    if (isFirstChunk) {
-                        if (activeStreamConversationId != conversationId) break
-                        val isHubOnline = agyBridgeService.hubStatus.value.status == "online"
-                        Log.w("CHAT_OPEN_DEBUG", "⚠️ [ChatViewModel Stream Loop] Stream finished without delivering frames: isFirstChunk=true, isHubOnline=$isHubOnline")
-                        withContext(Dispatchers.Main) {
+                if (isFirstChunk) {
+                    val isHubOnline = agyBridgeService.hubStatus.value.status == "online"
+                    Log.w("CHAT_OPEN_DEBUG", "⚠️ [ChatViewModel Stream Loop] Stream finished without delivering frames: isFirstChunk=true, isHubOnline=$isHubOnline")
+                    withContext(Dispatchers.Main) {
+                        if (activeStreamConversationId == conversationId) {
                             _isLoadingConversation.value = false
                             _isReconnecting.value = false
                             val isKnownExisting = _conversations.value.any { it.id == conversationId && it.title != "New Chat" }
-                            if (activeStreamConversationId == conversationId) {
-                                if (isKnownExisting && _messages.value.isEmpty()) {
-                                    _conversationError.value = "No messages received from Antigravity. Tap Retry."
-                                    _isServerOnline.value = isHubOnline
-                                } else {
-                                    _conversationError.value = null
-                                }
+                            if (isKnownExisting && _messages.value.isEmpty()) {
+                                _conversationError.value = "No messages received from Antigravity. Tap Retry."
+                                _isServerOnline.value = isHubOnline
+                            } else {
+                                _conversationError.value = null
                             }
                         }
-                        break
-                    } else {
-                        // Normal disconnection after receiving data; clean up in-flight states and stop loop so banner stays stable
-                        withContext(Dispatchers.Main) {
+                    }
+                } else {
+                    // Normal disconnection after receiving data
+                    withContext(Dispatchers.Main) {
+                        if (activeStreamConversationId == conversationId) {
                             _isServerOnline.value = false
                             _isReconnecting.value = false
                             if (isPromptInFlight || _isStreaming.value) {
                                 isPromptInFlight = false
                                 _isStreaming.value = false
-                                trajectoryEngine.cancelRunning()
+                                engine.cancelRunning()
                                 markLastAssistantMessageDisconnected()
                             }
                         }
-                        break
                     }
-                } catch (e: Exception) {
-                    if (e is kotlinx.coroutines.CancellationException) {
-                        break
-                    }
+                }
+            } catch (e: Exception) {
+                if (e !is kotlinx.coroutines.CancellationException) {
                     Log.e("CHAT_OPEN_DEBUG", "❌ [ChatViewModel Stream Exception] convId=$conversationId: ${e.message}", e)
                     Log.w("ChatViewModel", "Persistent stream error ($conversationId): ${e.message}")
                     val rawErr = e.localizedMessage ?: e.message ?: e.toString()
@@ -1011,23 +1052,27 @@ class AgyChatBackend(
                     }
 
                     withContext(Dispatchers.Main) {
-                        _isServerOnline.value = false
-                        _isReconnecting.value = false
-                        _isLoadingConversation.value = false
-                        if (_messages.value.isEmpty()) {
-                            _conversationError.value = helpfulMsg
-                        }
-                        if (isPromptInFlight || _isStreaming.value) {
-                            isPromptInFlight = false
-                            _isStreaming.value = false
-                            trajectoryEngine.cancelRunning()
-                            markLastAssistantMessageDisconnected()
+                        if (activeStreamConversationId == conversationId) {
+                            _isServerOnline.value = false
+                            _isReconnecting.value = false
+                            _isLoadingConversation.value = false
+                            if (_messages.value.isEmpty()) {
+                                _conversationError.value = helpfulMsg
+                            }
+                            if (isPromptInFlight || _isStreaming.value) {
+                                isPromptInFlight = false
+                                _isStreaming.value = false
+                                engine.cancelRunning()
+                                markLastAssistantMessageDisconnected()
+                            }
                         }
                     }
-                    break
                 }
+            } finally {
+                activeStreamJobs.remove(conversationId)
             }
         }
+        activeStreamJobs[conversationId] = job
     }
 
     private fun markLastAssistantMessageDisconnected() {
@@ -1148,6 +1193,7 @@ class AgyChatBackend(
 
         trajectoryEngine.submitUserPrompt(rawPrompt, currentAtts, conv.id)
         val updatedList = trajectoryEngine.toChatMessages(conv.id)
+        conversationMessagesCache[conv.id] = updatedList
         _messages.value = updatedList
         com.example.gemini.ui.chat.ChatFeedCache.prewarm(updatedList)
 
@@ -1788,9 +1834,12 @@ class AgyChatBackend(
         hasSeenTurnActivity = false
         currentAssistantMsgId = null
         _bridgeStatusMessage.value = null
-        trajectoryEngine.cancelRunning()
+        val engine = conv?.id?.let { getTrajectoryEngine(it) } ?: fallbackTrajectoryEngine
+        engine.cancelRunning()
 
         if (conv != null) {
+            activeStreamJobs[conv.id]?.cancel()
+            activeStreamJobs.remove(conv.id)
             backendScope.launch {
                 val hubUrl = AuthPreferences.currentHubUrl
                 agyHubClient.cancelCascadeInvocation(conv.id, hubUrl)
@@ -1800,6 +1849,14 @@ class AgyChatBackend(
                 if (it.isStreaming) it.copy(isStreaming = false) else it
             }
             _messages.value = list
+            conversationMessagesCache[conv.id] = list
+            val currentList = _conversations.value
+            val convIdx = currentList.indexOfFirst { it.id == conv.id }
+            if (convIdx >= 0) {
+                val updatedList = currentList.toMutableList()
+                updatedList[convIdx] = updatedList[convIdx].copy(isRunning = false)
+                _conversations.value = updatedList
+            }
         }
     }
 
@@ -2235,10 +2292,7 @@ class AgyChatBackend(
 
     /** Detaches on-screen presentation of AGY chat without killing background tasks. */
     fun detach() {
-        if (!trajectoryEngine.isRunning) {
-            persistentStreamJob?.cancel()
-            persistentStreamJob = null
-        }
+        // Do not cancel background stream jobs so ongoing chats (up to 50+) continue uninterrupted in the background
         activeStreamConversationId = null
         currentAssistantMsgId = null
         isPromptInFlight = false
@@ -2250,7 +2304,8 @@ class AgyChatBackend(
     }
 
     fun dispose() {
-        persistentStreamJob?.cancel()
+        activeStreamJobs.values.forEach { it.cancel() }
+        activeStreamJobs.clear()
         streamingJob?.cancel()
     }
 }
