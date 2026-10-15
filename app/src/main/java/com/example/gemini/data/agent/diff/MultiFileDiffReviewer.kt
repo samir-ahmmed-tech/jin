@@ -51,23 +51,23 @@ class MultiFileDiffReviewer(
     val diffItems: StateFlow<List<FileDiffReviewItem>> = _diffItems.asStateFlow()
     val pendingDiffs: StateFlow<List<FileDiffReviewItem>> = _diffItems.asStateFlow()
 
-    suspend fun rollbackFile(path: String) = withContext(Dispatchers.IO) {
+    fun rollbackFile(path: String) {
         val current = _diffItems.value.toMutableList()
         current.removeAll { it.path == path }
         _diffItems.value = current
     }
 
-    suspend fun acceptFile(path: String) = withContext(Dispatchers.IO) {
+    fun acceptFile(path: String) {
         val current = _diffItems.value.toMutableList()
         current.removeAll { it.path == path }
         _diffItems.value = current
     }
 
-    suspend fun rollbackAll() = withContext(Dispatchers.IO) {
+    fun rollbackAll() {
         _diffItems.value = emptyList()
     }
 
-    suspend fun acceptAll() = withContext(Dispatchers.IO) {
+    fun acceptAll() {
         _diffItems.value = emptyList()
     }
 
