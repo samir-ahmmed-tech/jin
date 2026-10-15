@@ -676,7 +676,12 @@ Guidelines:
                 onEvent(RuntimeEvent.ToolStarted(sessionId, "Terminal", "Running `$cmd` in workspace"))
                 val res = LocalEnvironmentManager.executeCommand(cmd, context, workspace.absolutePath)
                 val outSummary = if (res.output.isNotBlank()) res.output.take(160) else "(no output)"
-                onEvent(RuntimeEvent.ToolCompleted(sessionId, "Terminal", "Exit code ${res.exitCode}: $outSummary"))
+                if (res.exitCode != 0) {
+                    val diag = TerminalErrorDiagnoser.diagnose(res.exitCode, res.output)
+                    onEvent(RuntimeEvent.ToolCompleted(sessionId, "Terminal", "Exit code ${res.exitCode} [${diag.category}]: ${diag.summary}"))
+                } else {
+                    onEvent(RuntimeEvent.ToolCompleted(sessionId, "Terminal", "Exit code 0: $outSummary"))
+                }
                 commands.add(cmd)
             }
         }

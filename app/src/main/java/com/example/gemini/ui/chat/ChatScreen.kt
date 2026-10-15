@@ -2481,6 +2481,108 @@ fun ChatScreen(
                         )
                     },
                     onSendMessage = { text ->
+                        val trimmedCmd = text.trim()
+                        if (trimmedCmd.startsWith("/") && attachments.isEmpty()) {
+                            val cmdName = trimmedCmd.removePrefix("/").substringBefore(' ').lowercase()
+                            val cmdArg = trimmedCmd.substringAfter(' ', "").trim()
+                            when (cmdName) {
+                                "plan" -> {
+                                    if (cmdArg.isNotBlank()) {
+                                        val activeWorkspace = activeChatProject?.path ?: "/data/user/0/com.termux/files/home"
+                                        scope.launch {
+                                            val pManager = com.example.gemini.data.agent.plan.PlanModeManager.getInstance(context)
+                                            pManager.createPlan(
+                                                title = cmdArg.take(40),
+                                                goal = cmdArg,
+                                                workspacePath = activeWorkspace,
+                                                steps = listOf(
+                                                    com.example.gemini.data.agent.plan.PlanStep(1, "Analyze Project Context", "Read workspace structure, config, and dependencies"),
+                                                    com.example.gemini.data.agent.plan.PlanStep(2, "Generate Solution Architecture", "Formulate implementation strategy and patch blueprint"),
+                                                    com.example.gemini.data.agent.plan.PlanStep(3, "Apply Code Modifications", "Write source code files and update definitions"),
+                                                    com.example.gemini.data.agent.plan.PlanStep(4, "Audit & Validate Changes", "Verify syntax, integrity, and test coverage")
+                                                )
+                                            )
+                                        }
+                                    } else {
+                                        com.example.gemini.ui.components.AppToastHelper.showToast(
+                                            "Usage: /plan <goal or feature description>",
+                                            com.example.gemini.ui.components.ChatToastType.INFO
+                                        )
+                                    }
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "queue", "tasks" -> {
+                                    showTaskQueueSheet = true
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "diff" -> {
+                                    showDiffReviewDialog = true
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "memory" -> {
+                                    showProjectMemoryDialog = true
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "review", "audit" -> {
+                                    showCodeReviewDialog = true
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "swarm" -> {
+                                    showMultiAgentStudioDialog = true
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "argon" -> {
+                                    viewModel.selectModel("gemini-argon")
+                                    com.example.gemini.ui.components.AppToastHelper.showToast(
+                                        "💎 Model switched to Gemini Argon (Pro/Ultra Tier)",
+                                        com.example.gemini.ui.components.ChatToastType.SUCCESS
+                                    )
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "backup" -> {
+                                    showGoogleDriveSyncDialog = true
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "voice" -> {
+                                    showRealtimeVoiceDialog = true
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "hub" -> {
+                                    showPcFeaturesHub = true
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                                "help" -> {
+                                    com.example.gemini.ui.components.AppToastHelper.showToast(
+                                        "⚡ Commands: /plan, /queue, /diff, /memory, /review, /swarm, /argon, /backup, /voice, /hub",
+                                        com.example.gemini.ui.components.ChatToastType.INFO
+                                    )
+                                    viewModel.clearDraft(activeConversationKey)
+                                    textFieldValue = TextFieldValue("")
+                                    return@ChatInputBar
+                                }
+                            }
+                        }
+
                         val appCmd = if (isClaudeChat && attachments.isEmpty()) claudeBackend.appCommand(text) else null
                         val unreadable = if (isClaudeChat) attachments.filter { a ->
                             a.isAudio || a.mimeType?.startsWith("audio/") == true || a.mimeType?.startsWith("video/") == true
