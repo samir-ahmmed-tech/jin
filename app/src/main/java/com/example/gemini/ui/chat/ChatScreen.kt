@@ -2494,7 +2494,6 @@ fun ChatScreen(
                                             pManager.createPlan(
                                                 title = cmdArg.take(40),
                                                 goal = cmdArg,
-                                                workspacePath = activeWorkspace,
                                                 steps = listOf(
                                                     com.example.gemini.data.agent.plan.PlanStep(1, "Analyze Project Context", "Read workspace structure, config, and dependencies"),
                                                     com.example.gemini.data.agent.plan.PlanStep(2, "Generate Solution Architecture", "Formulate implementation strategy and patch blueprint"),
@@ -3350,18 +3349,21 @@ fun ChatScreen(
 
     // Autonomous Task Queue Bottom Sheet
     if (showTaskQueueSheet) {
-        val activeWorkspace = activeChatProject?.path ?: "/data/user/0/com.termux/files/home"
         com.example.gemini.ui.agent.TaskQueueSheet(
-            currentWorkspace = activeWorkspace,
             onDismiss = { showTaskQueueSheet = false }
         )
     }
 
     // Multi-File Diff Reviewer & Rollback Dialog
     if (showDiffReviewDialog) {
-        val activeWorkspace = activeChatProject?.path ?: "/data/user/0/com.termux/files/home"
+        val diffReviewer = remember { com.example.gemini.data.agent.diff.MultiFileDiffReviewer.getInstance(context) }
+        val diffItems by diffReviewer.pendingDiffs.collectAsState()
         com.example.gemini.ui.agent.DiffReviewDialog(
-            workspacePath = activeWorkspace,
+            diffItems = diffItems,
+            onRollbackFile = { path -> diffReviewer.rollbackFile(path) },
+            onAcceptFile = { path -> diffReviewer.acceptFile(path) },
+            onRollbackAll = { diffReviewer.rollbackAll() },
+            onAcceptAll = { diffReviewer.acceptAll() },
             onDismiss = { showDiffReviewDialog = false }
         )
     }
@@ -3370,7 +3372,7 @@ fun ChatScreen(
     if (showProjectMemoryDialog) {
         val activeWorkspace = activeChatProject?.path ?: "/data/user/0/com.termux/files/home"
         com.example.gemini.ui.agent.ProjectMemoryDialog(
-            workspacePath = activeWorkspace,
+            workspaceDir = java.io.File(activeWorkspace),
             onDismiss = { showProjectMemoryDialog = false }
         )
     }
@@ -3379,16 +3381,16 @@ fun ChatScreen(
     if (showCodeReviewDialog) {
         val activeWorkspace = activeChatProject?.path ?: "/data/user/0/com.termux/files/home"
         com.example.gemini.ui.agent.CodeReviewDialog(
-            workspacePath = activeWorkspace,
+            workspaceDir = java.io.File(activeWorkspace),
             onDismiss = { showCodeReviewDialog = false }
         )
     }
 
     // Universal Plan Mode Interactive Review Dialog
     val planManager = remember { com.example.gemini.data.agent.plan.PlanModeManager.getInstance(context) }
-    val currentPlan by planManager.currentPlan.collectAsState()
-    if (currentPlan != null && currentPlan?.status == com.example.gemini.data.agent.plan.PlanStatus.DRAFT) {
-        currentPlan?.let { draftPlan ->
+    val activePlan by planManager.activePlan.collectAsState()
+    if (activePlan != null && activePlan?.status == com.example.gemini.data.agent.plan.PlanStatus.DRAFT) {
+        activePlan?.let { draftPlan ->
             com.example.gemini.ui.agent.PlanModeReviewDialog(
                 plan = draftPlan,
                 onApprove = { planId ->

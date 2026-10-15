@@ -468,6 +468,8 @@ private fun SwarmDispatcherTab(
     onPlanSwarm: suspend (goal: String, selected: List<CustomAgent>) -> List<SwarmStep>,
     onDispatch: (prompt: String) -> Unit
 ) {
+    val context = LocalContext.current
+    val agentManager = remember { CustomAgentManager.getInstance(context) }
     val scope = rememberCoroutineScope()
     var goalInput by remember { mutableStateOf("") }
     var selectedAgentIds by remember { mutableStateOf(agents.map { it.id }.toSet()) }

@@ -32,7 +32,14 @@ data class PlanStep(
     val targetFiles: List<String> = emptyList(),
     val status: PlanStepState = PlanStepState.PENDING,
     val executionLog: String? = null
-)
+) {
+    constructor(stepIndex: Int, title: String, description: String) : this(
+        id = UUID.randomUUID().toString(),
+        stepIndex = stepIndex,
+        title = title,
+        description = description
+    )
+}
 
 data class ExecutionPlan(
     val id: String = UUID.randomUUID().toString(),
@@ -65,6 +72,7 @@ class PlanModeManager(private val context: Context? = null) {
 
     private val _activePlan = MutableStateFlow<ExecutionPlan?>(null)
     val activePlan: StateFlow<ExecutionPlan?> = _activePlan.asStateFlow()
+    val currentPlan: StateFlow<ExecutionPlan?> = _activePlan.asStateFlow()
 
     private val _planHistory = MutableStateFlow<List<ExecutionPlan>>(emptyList())
     val planHistory: StateFlow<List<ExecutionPlan>> = _planHistory.asStateFlow()
@@ -75,6 +83,18 @@ class PlanModeManager(private val context: Context? = null) {
             title = title.ifBlank { "Implementation Plan" },
             goal = goal,
             steps = parsedSteps,
+            status = PlanStatus.DRAFT
+        )
+        _activePlan.value = plan
+        _planHistory.value = _planHistory.value + plan
+        return plan
+    }
+
+    fun createPlan(title: String, goal: String, steps: List<PlanStep>): ExecutionPlan {
+        val plan = ExecutionPlan(
+            title = title.ifBlank { "Implementation Plan" },
+            goal = goal,
+            steps = steps,
             status = PlanStatus.DRAFT
         )
         _activePlan.value = plan

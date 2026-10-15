@@ -503,8 +503,6 @@ class GoogleDriveSyncManager private constructor(private val context: Context) {
         }
         return addedEntries.size
     }
-        }
-    }
 
     private fun addFileToZip(
         file: File,
