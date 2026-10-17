@@ -278,28 +278,38 @@ class LocalPtySession(
                 val loginShellBinaries = arrayOf("login", "bash", "zsh", "fish", "sh")
 
                 val shellBinary = when {
-                    forceShell != null && File(bin, forceShell).exists() && File(bin, forceShell).canExecute() -> File(bin, forceShell).absolutePath
-                    forceShell != null && File(bin, forceShell).exists() -> File(bin, forceShell).absolutePath
-                    forceShell != null && File(forceShell).exists() -> File(forceShell).absolutePath
+                    forceShell != null && File(bin, forceShell).exists() -> {
+                        val forceFile = File(bin, forceShell)
+                        if (!forceFile.canExecute()) {
+                            forceFile.setExecutable(true, false)
+                            try { android.system.Os.chmod(forceFile.absolutePath, 493) } catch (_: Exception) {}
+                        }
+                        if (forceFile.canExecute()) forceFile.absolutePath else "/system/bin/sh"
+                    }
+                    forceShell != null && File(forceShell).exists() -> {
+                        val forceFile = File(forceShell)
+                        if (!forceFile.canExecute()) {
+                            forceFile.setExecutable(true, false)
+                            try { android.system.Os.chmod(forceFile.absolutePath, 493) } catch (_: Exception) {}
+                        }
+                        if (forceFile.canExecute()) forceFile.absolutePath else "/system/bin/sh"
+                    }
                     else -> {
                         var found: String? = null
                         for (name in loginShellBinaries) {
                             val file = File(bin, name)
-                            if (file.exists() && file.canExecute()) {
-                                found = file.absolutePath
-                                break
-                            }
-                        }
-                        if (found == null) {
-                            for (name in loginShellBinaries) {
-                                val file = File(bin, name)
-                                if (file.exists()) {
+                            if (file.exists()) {
+                                if (!file.canExecute()) {
+                                    file.setExecutable(true, false)
+                                    try { android.system.Os.chmod(file.absolutePath, 493) } catch (_: Exception) {}
+                                }
+                                if (file.canExecute()) {
                                     found = file.absolutePath
                                     break
                                 }
                             }
                         }
-                        found ?: "/system/bin/sh"
+                        found ?: listOf("/system/bin/sh", "/bin/sh", "/system/bin/mksh").firstOrNull { File(it).canExecute() } ?: "/system/bin/sh"
                     }
                 }
 

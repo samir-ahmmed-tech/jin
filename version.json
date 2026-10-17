@@ -1,8 +1,10 @@
 {
-  "version_code": 227,
-  "version_name": "2.2.7",
+  "version_code": 228,
+  "version_name": "2.2.8",
   "min_supported_version_code": 1,
   "changelog": [
+    "🛡️ Rootfs Linux Setup & Shell Permission Fix: Resolved 'error=13 Permission denied' execution failure during rootfs shell verification. Added automated POSIX attribute sanitization, recursive executable permission enforcement, and self-healing fallback for local shells and working directories.",
+    "🚀 Optimized Rootfs Bootstrap Mirror: Direct-connect rootfs bootstrap mirror routing for instant setup without 404 fallback delays.",
     "⚡ 100% Background Multi-Chat Concurrency: Independent TrajectoryEngines and concurrent streaming job pools across all agents (AGY, DeepSeek, Codex, OpenRouter, OpenCode). Run 10 to 50+ background chats simultaneously with zero turn cancellations, persistent memory caching, and seamless tab switching.",
     "💎 Gemini Argon (Pro / Ultra Tier): Dedicated quota pool, low-latency reasoning gateway, and specialized architecture models for Gemini Advanced and Google One AI Premium subscribers.",
     "☁️ Hardened Google Drive Cloud Backup: Fine-grained backup scopes (Full, Chats Only, Workspaces Only), SHA-256 cryptographic checksum integrity verification, JSON manifest metadata tracking, and bandwidth-optimized auto-sync.",

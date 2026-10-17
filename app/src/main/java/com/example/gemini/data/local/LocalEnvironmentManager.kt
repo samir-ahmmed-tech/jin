@@ -63,8 +63,8 @@ object LocalEnvironmentManager {
     // Relaxed minimum size (10 KB) allowing ultra-lightweight (BusyBox/Alpine) to massive custom rootfs archives
     private const val MIN_BOOTSTRAP_SIZE_BYTES = 10 * 1024L
 
-    const val HARDCODED_ROOTFS_URL = "https://github.com/samir-ahmmed-tech/jin/releases/download/rootfs-v1/bootrapz_2026-10-04.zip"
-    const val FALLBACK_ROOTFS_URL = "https://github.com/Santoshkurmi/antigem/releases/download/rootfs-v1/bootrapz_2026-10-04.zip"
+    const val HARDCODED_ROOTFS_URL = "https://github.com/Santoshkurmi/antigem/releases/download/rootfs-v1/bootrapz_2026-10-04.zip"
+    const val FALLBACK_ROOTFS_URL = "https://github.com/samir-ahmmed-tech/jin/releases/download/rootfs-v1/bootrapz_2026-10-04.zip"
     const val HARDCODED_ROOTFS_TAG = "rootfs-v1"
     const val HARDCODED_ROOTFS_ASSET = "bootrapz_2026-10-04.zip"
     const val HARDCODED_ROOTFS_SIZE_BYTES = 350 * 1024 * 1024L
@@ -483,10 +483,108 @@ object LocalEnvironmentManager {
                 try { Os.symlink(availableSh.name, envFile.absolutePath) } catch (_: Exception) {}
             }
             if (envFile.exists()) envFile.setExecutable(true, false)
+            enforceAllBinaryPermissions(context)
             bBash.exists() || uBash.exists() || bSh.exists() || uSh.exists()
         }.onFailure {
             Log.e(TAG, "Failed ensuring Ubuntu compatibility links: ${it.message}")
         }.getOrDefault(false)
+    }
+
+    /**
+     * Recursively verifies and repairs execution permissions across all rootfs binaries and directories.
+     * Prevents Linux 'error=13 Permission denied' execution failures on Termux and PRoot setups.
+     */
+    fun enforceAllBinaryPermissions(context: Context) {
+        try {
+            val homeDir = getHomeDir(context)
+            val prefixDir = getPrefixDir(context)
+            val binDir = getBinDir(context)
+            val etcDir = getEtcDir(context)
+            val libDir = getLibDir(context)
+            val tmpDir = getTmpDir(context)
+            val projectsDir = getProjectsDir(context)
+            val ubuntuDir = getUbuntuRootDir(context)
+
+            // 1. Ensure core root directories have directory search and write permissions (0755 / 493)
+            val dirsToEnsure = mutableListOf(homeDir, prefixDir, binDir, etcDir, libDir, tmpDir, projectsDir)
+            if (ubuntuDir.exists()) {
+                dirsToEnsure.addAll(
+                    listOf(
+                        ubuntuDir,
+                        File(ubuntuDir, "bin"),
+                        File(ubuntuDir, "usr"),
+                        File(ubuntuDir, "usr/bin"),
+                        File(ubuntuDir, "usr/sbin"),
+                        File(ubuntuDir, "sbin"),
+                        File(ubuntuDir, "antigem"),
+                        File(ubuntuDir, "antigem/bin"),
+                        File(ubuntuDir, "root"),
+                        File(ubuntuDir, "root/.local"),
+                        File(ubuntuDir, "root/.local/bin"),
+                        File(ubuntuDir, "tmp")
+                    )
+                )
+            }
+
+            for (dir in dirsToEnsure) {
+                if (dir.exists()) {
+                    dir.setReadable(true, false)
+                    dir.setWritable(true, false)
+                    dir.setExecutable(true, false)
+                    try { Os.chmod(dir.absolutePath, 493) } catch (_: Exception) {}
+                }
+            }
+
+            // 2. Recursively ensure execute permissions on all binaries in execution directories
+            val executableContainers = mutableListOf(
+                binDir,
+                File(prefixDir, "sbin"),
+                File(prefixDir, "libexec"),
+                File(binDir, "applets"),
+                File(homeDir, ".local/bin")
+            )
+            if (ubuntuDir.exists()) {
+                executableContainers.addAll(
+                    listOf(
+                        File(ubuntuDir, "bin"),
+                        File(ubuntuDir, "usr/bin"),
+                        File(ubuntuDir, "usr/sbin"),
+                        File(ubuntuDir, "sbin"),
+                        File(ubuntuDir, "antigem/bin"),
+                        File(ubuntuDir, "root/.local/bin")
+                    )
+                )
+            }
+
+            for (container in executableContainers) {
+                if (container.exists() && container.isDirectory) {
+                    container.walkTopDown().forEach { file ->
+                        try {
+                            if (file.isDirectory) {
+                                file.setReadable(true, false)
+                                file.setWritable(true, false)
+                                file.setExecutable(true, false)
+                                try { Os.chmod(file.absolutePath, 493) } catch (_: Exception) {}
+                            } else if (file.isFile) {
+                                val name = file.name
+                                val isParentExec = file.parentFile?.name in listOf("bin", "sbin", "libexec", "applets")
+                                val isExecPath = file.absolutePath.contains("/bin/") || file.absolutePath.contains("/libexec/")
+                                val isKnownExecutable = isParentExec || isExecPath || !name.contains(".") ||
+                                        name.endsWith(".sh") ||
+                                        name in listOf("bash", "sh", "dash", "busybox", "login", "dpkg", "apt", "apt-get", "tar", "gzip", "xz", "env", "agy")
+                                if (isKnownExecutable) {
+                                    file.setReadable(true, false)
+                                    file.setExecutable(true, false)
+                                    try { Os.chmod(file.absolutePath, 493) } catch (_: Exception) {}
+                                }
+                            }
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Non-fatal error in enforceAllBinaryPermissions: ${e.message}")
+        }
     }
 
     fun isUbuntuInstalled(context: Context): Boolean {
@@ -1840,11 +1938,16 @@ object LocalEnvironmentManager {
                                 }
                             } else if (entry.isDirectory) {
                                 targetFile.mkdirs()
-                                val dirMode = if (unixMode != 0) unixMode else 493 // 0755
+                                val rawDirMode = entry.unixMode
+                                val dirPermBits = if (rawDirMode != 0) rawDirMode and 511 else 493
+                                val dirMode = dirPermBits or 448 // 0700: ensure owner has rwx permissions
                                 try {
-                                    Os.chmod(targetFile.absolutePath, if (isUbuntuMode) dirMode or 448 else dirMode)
+                                    Os.chmod(targetFile.absolutePath, dirMode)
                                 } catch (e: Exception) {
                                     Log.w(TAG, "chmod failed on directory ${targetFile.name}: ${e.message}")
+                                    targetFile.setReadable(true, false)
+                                    targetFile.setWritable(true, false)
+                                    targetFile.setExecutable(true, false)
                                 }
                             } else {
                                 targetFile.parentFile?.let { p ->
@@ -1868,19 +1971,33 @@ object LocalEnvironmentManager {
                                         }
                                     }
 
-                                    // Apply exact Unix mode recorded in the ZIP header
+                                    // Extract pure 9-bit permission mask without file type bits (S_IFREG/S_IFDIR)
+                                    val rawFileMode = entry.unixMode
+                                    val unixMode = if (rawFileMode != 0) rawFileMode and 511 else 0
+                                    val isExecutableDir = targetFile.parentFile?.name in listOf("bin", "libexec", "applets", "sbin")
+                                    val isExecutablePath = targetFile.absolutePath.contains("/bin/") ||
+                                            targetFile.absolutePath.contains("/libexec/") ||
+                                            targetFile.absolutePath.contains("/applets/")
+                                    val shouldBeExecutable = isExecutableDir || isExecutablePath || (unixMode and 73 != 0) || !targetFile.name.contains(".")
+
                                     if (unixMode != 0) {
+                                        val finalMode = if (shouldBeExecutable) unixMode or 493 else unixMode
                                         try {
-                                            Os.chmod(targetFile.absolutePath, if (isUbuntuMode) unixMode and 511 else unixMode)
+                                            Os.chmod(targetFile.absolutePath, finalMode)
                                         } catch (e: Exception) {
-                                            Log.w(TAG, "chmod failed on ${targetFile.name} (mode $unixMode): ${e.message}")
+                                            Log.w(TAG, "chmod failed on ${targetFile.name} (mode $finalMode): ${e.message}")
                                         }
+                                        if (shouldBeExecutable) {
+                                            targetFile.setExecutable(true, false)
+                                        }
+                                        targetFile.setReadable(true, false)
                                     } else {
                                         // Fallback if ZIP had no Unix attributes
-                                        val isExecutableDir = targetFile.parentFile?.name in listOf("bin", "libexec", "applets", "sbin")
-                                        val isExecutablePath = targetFile.absolutePath.contains("/bin/") || targetFile.absolutePath.contains("/libexec/")
-                                        if (isExecutableDir || isExecutablePath || !targetFile.name.contains(".")) {
+                                        if (shouldBeExecutable) {
                                             targetFile.setExecutable(true, false)
+                                            try { Os.chmod(targetFile.absolutePath, 493) } catch (_: Exception) {}
+                                        } else {
+                                            try { Os.chmod(targetFile.absolutePath, 420) } catch (_: Exception) {}
                                         }
                                         targetFile.setReadable(true, false)
                                         targetFile.setWritable(true, true)
@@ -2004,12 +2121,26 @@ object LocalEnvironmentManager {
                 return@withContext false
             }
 
+            log("Enforcing execution permissions across all binaries before verification...")
+            enforceAllBinaryPermissions(appContext)
+
             log("Running verification test command in shell...")
-            val testRes = executeCommand(
+            var testRes = executeCommand(
                 command = "echo 'GEMINI_LOCAL_TOOLS_OK' && pwd",
                 context = appContext
             )
             log("Verification output: ${testRes.output.trim()}")
+
+            if (!testRes.output.contains("GEMINI_LOCAL_TOOLS_OK")) {
+                log("⚠️ First verification attempt failed (${testRes.output.trim()}). Attempting emergency permission restoration...")
+                enforceAllBinaryPermissions(appContext)
+                delay(300)
+                testRes = executeCommand(
+                    command = "echo 'GEMINI_LOCAL_TOOLS_OK' && pwd",
+                    context = appContext
+                )
+                log("Secondary verification output: ${testRes.output.trim()}")
+            }
 
             if (!testRes.output.contains("GEMINI_LOCAL_TOOLS_OK")) {
                 val errorMsg = "Shell verification test failed: ${testRes.output}"
@@ -2450,6 +2581,15 @@ object LocalEnvironmentManager {
         val bashFile = File(binDir, "bash")
         val shFile = File(binDir, "sh")
 
+        // Ensure executable permissions on all shell binaries present
+        listOf(bashFile, dashFile, shFile).forEach { shell ->
+            if (shell.exists()) {
+                shell.setReadable(true, false)
+                shell.setExecutable(true, false)
+                try { Os.chmod(shell.absolutePath, 493) } catch (_: Exception) {}
+            }
+        }
+
         // Ensure a working sh fallback exists if not present in archive
         if (!shFile.exists() || !shFile.canExecute()) {
             if (bashFile.exists() && bashFile.canExecute()) {
@@ -2458,6 +2598,14 @@ object LocalEnvironmentManager {
                 try { Os.symlink("dash", shFile.absolutePath) } catch (_: Exception) {}
             }
         }
+        if (!bashFile.exists() || !bashFile.canExecute()) {
+            if (shFile.exists() && shFile.canExecute()) {
+                try { Os.symlink("sh", bashFile.absolutePath) } catch (_: Exception) {}
+            }
+        }
+
+        // Run system-wide binary and directory permissions enforcement
+        enforceAllBinaryPermissions(context)
 
         projectsDir.mkdirs()
 
@@ -2783,22 +2931,36 @@ All files created here persist inside the application.
             val localBash = File(getBinDir(context), "bash")
             val localDash = File(getBinDir(context), "dash")
             val localSh = File(getBinDir(context), "sh")
+            listOf(localBash, localDash, localSh).forEach {
+                if (it.exists() && !it.canExecute()) {
+                    it.setExecutable(true, false)
+                    try { Os.chmod(it.absolutePath, 493) } catch (_: Exception) {}
+                }
+            }
             when {
                 localBash.exists() && localBash.canExecute() -> localBash.absolutePath
                 localDash.exists() && localDash.canExecute() -> localDash.absolutePath
                 localSh.exists() && localSh.canExecute() -> localSh.absolutePath
-                localDash.exists() -> localDash.absolutePath
-                localBash.exists() -> localBash.absolutePath
-                localSh.exists() -> localSh.absolutePath
-                else -> "/system/bin/sh"
+                else -> {
+                    listOf("/system/bin/sh", "/bin/sh", "/system/bin/mksh").firstOrNull { File(it).canExecute() } ?: "/system/bin/sh"
+                }
             }
         } else {
             "/system/bin/sh"
         }
 
         val processBuilder = ProcessBuilder(shellBinary, "-c", command)
-        if (resolvedWorkingDir != null && File(resolvedWorkingDir).exists()) {
-            processBuilder.directory(File(resolvedWorkingDir))
+        if (resolvedWorkingDir != null) {
+            val workDirFile = File(resolvedWorkingDir)
+            if (workDirFile.exists()) {
+                if (!workDirFile.canExecute() || !workDirFile.canRead()) {
+                    workDirFile.setReadable(true, false)
+                    workDirFile.setWritable(true, false)
+                    workDirFile.setExecutable(true, false)
+                    try { Os.chmod(workDirFile.absolutePath, 493) } catch (_: Exception) {}
+                }
+                processBuilder.directory(workDirFile)
+            }
         }
 
         val procEnv = processBuilder.environment()
@@ -2927,11 +3089,16 @@ All files created here persist inside the application.
         scriptFile.setExecutable(true, false)
 
         val bashPath = when {
-            File(binDir, "bash").exists() -> File(binDir, "bash").absolutePath
-            File(prefixDir, "bin/bash").exists() -> File(prefixDir, "bin/bash").absolutePath
-            File(binDir, "sh").exists() -> File(binDir, "sh").absolutePath
-            File("/data/data/com.termux/files/usr/bin/bash").exists() -> "/data/data/com.termux/files/usr/bin/bash"
-            else -> "sh"
+            File(binDir, "bash").exists() && File(binDir, "bash").canExecute() -> File(binDir, "bash").absolutePath
+            File(prefixDir, "bin/bash").exists() && File(prefixDir, "bin/bash").canExecute() -> File(prefixDir, "bin/bash").absolutePath
+            File(binDir, "sh").exists() && File(binDir, "sh").canExecute() -> File(binDir, "sh").absolutePath
+            File("/data/data/com.termux/files/usr/bin/bash").canExecute() -> "/data/data/com.termux/files/usr/bin/bash"
+            File(binDir, "bash").exists() -> {
+                File(binDir, "bash").setExecutable(true, false)
+                try { Os.chmod(File(binDir, "bash").absolutePath, 493) } catch (_: Exception) {}
+                File(binDir, "bash").absolutePath
+            }
+            else -> listOf("/system/bin/sh", "/bin/sh").firstOrNull { File(it).canExecute() } ?: "sh"
         }
 
         val cmdList = mutableListOf(bashPath, scriptFile.absolutePath)
