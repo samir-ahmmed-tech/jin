@@ -439,6 +439,7 @@ object LocalEnvironmentManager {
 
         LocalServerManager.ensureBridgeBinary(context)
         ensureRootfsCompatibilityLinks(ubuntuDir)
+        enforceAllBinaryPermissions(context)
     }
 
     fun ensureRootfsCompatibilityLinks(ubuntuDir: File): Boolean {
@@ -483,7 +484,6 @@ object LocalEnvironmentManager {
                 try { Os.symlink(availableSh.name, envFile.absolutePath) } catch (_: Exception) {}
             }
             if (envFile.exists()) envFile.setExecutable(true, false)
-            enforceAllBinaryPermissions(context)
             bBash.exists() || uBash.exists() || bSh.exists() || uSh.exists()
         }.onFailure {
             Log.e(TAG, "Failed ensuring Ubuntu compatibility links: ${it.message}")
